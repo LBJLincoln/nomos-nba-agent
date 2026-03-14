@@ -481,7 +481,7 @@ def search_exa_nba(query, num_results=10):
     documents = []
     for r in results:
         text = r.get("text", "")
-        if not text:
+        if not text or len(text) < 50:
             continue
         documents.append({
             "id": f"exa-{hashlib.md5(r.get('url','').encode()).hexdigest()[:12]}",
@@ -490,6 +490,75 @@ def search_exa_nba(query, num_results=10):
             "title": r.get("title", ""),
             "category": "web_content",
         })
+
+    return documents
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SOURCE 7: BASKETBALL REFERENCE (web scraping via Exa.AI)
+# ══════════════════════════════════════════════════════════════════════════════
+
+BBREF_PAGES = [
+    # All-time leaders
+    {"url": "https://www.basketball-reference.com/leaders/pts_career.html", "topic": "All-time career scoring leaders"},
+    {"url": "https://www.basketball-reference.com/leaders/ast_career.html", "topic": "All-time career assists leaders"},
+    {"url": "https://www.basketball-reference.com/leaders/trb_career.html", "topic": "All-time career rebounds leaders"},
+    {"url": "https://www.basketball-reference.com/leaders/stl_career.html", "topic": "All-time career steals leaders"},
+    {"url": "https://www.basketball-reference.com/leaders/blk_career.html", "topic": "All-time career blocks leaders"},
+    # Advanced stats
+    {"url": "https://www.basketball-reference.com/leaders/per_career.html", "topic": "All-time career PER leaders"},
+    {"url": "https://www.basketball-reference.com/leaders/ws_career.html", "topic": "All-time career Win Shares leaders"},
+    {"url": "https://www.basketball-reference.com/leaders/vorp_career.html", "topic": "All-time career VORP leaders"},
+    {"url": "https://www.basketball-reference.com/leaders/bpm_career.html", "topic": "All-time career BPM leaders"},
+    # Season records
+    {"url": "https://www.basketball-reference.com/leaders/pts_per_g_season.html", "topic": "Single-season PPG leaders"},
+    {"url": "https://www.basketball-reference.com/leaders/ast_per_g_season.html", "topic": "Single-season APG leaders"},
+    {"url": "https://www.basketball-reference.com/leaders/trb_per_g_season.html", "topic": "Single-season RPG leaders"},
+    # MVP history
+    {"url": "https://www.basketball-reference.com/awards/mvp.html", "topic": "NBA MVP award history"},
+    {"url": "https://www.basketball-reference.com/awards/finals_mvp.html", "topic": "NBA Finals MVP history"},
+    {"url": "https://www.basketball-reference.com/awards/dpoy.html", "topic": "NBA DPOY award history"},
+    # Draft
+    {"url": "https://www.basketball-reference.com/draft/", "topic": "NBA Draft history overview"},
+]
+
+def fetch_bbref_via_exa(pages=None):
+    """Fetch Basketball Reference pages via Exa.AI content search."""
+    if not EXA_API_KEY:
+        print("[BBREF] No EXA_API_KEY — skipping Basketball Reference")
+        return []
+
+    pages = pages or BBREF_PAGES
+    documents = []
+
+    for page in pages:
+        # Use Exa to search for this specific content
+        resp, status = http_post(
+            "https://api.exa.ai/search",
+            {
+                "query": f"basketball-reference.com {page['topic']}",
+                "numResults": 3,
+                "useAutoprompt": False,
+                "type": "auto",
+                "includeDomains": ["basketball-reference.com"],
+                "contents": {"text": {"maxCharacters": 3000}},
+            },
+            headers={"x-api-key": EXA_API_KEY, "Content-Type": "application/json"},
+            timeout=30,
+        )
+
+        results = resp.get("results", []) if "error" not in resp else []
+        for r in results:
+            text = r.get("text", "")
+            if text and len(text) > 100:
+                documents.append({
+                    "id": f"bbref-{hashlib.md5(r.get('url','').encode()).hexdigest()[:12]}",
+                    "text": text[:3000],
+                    "source": r.get("url", page["url"]),
+                    "title": r.get("title", page["topic"]),
+                    "category": "basketball_reference",
+                })
+
+        time.sleep(1)  # Rate limit
 
     return documents
 
@@ -536,8 +605,14 @@ def ingest_all():
     all_docs.extend(odds)
     print(f"  → {len(odds)} odds entries")
 
-    # 6. Exa.AI expert content search
-    print("[6/6] Exa.AI expert content search...")
+    # 6. Basketball Reference (via Exa.AI)
+    print("[6/7] Basketball Reference (leaders, awards, records)...")
+    bbref_docs = fetch_bbref_via_exa()
+    all_docs.extend(bbref_docs)
+    print(f"  → {len(bbref_docs)} Basketball Reference pages")
+
+    # 7. Exa.AI expert content search
+    print("[7/7] Exa.AI expert content search...")
     exa_queries = [
         "NBA advanced analytics 2025 best practices team building",
         "NBA betting sharp strategy CLV closing line value",

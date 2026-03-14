@@ -1,0 +1,140 @@
+{
+  "timestamp": "20260314-202435",
+  "total_documents": 21,
+  "sources": {
+    "advanced_stats": 8,
+    "betting_strategy": 3,
+    "expert_methodology": 6,
+    "team_datasets": 4,
+    "live_odds": 0,
+    "web_content": 0
+  },
+  "documents": [
+    {
+      "id": "adv-raptor",
+      "text": "RAPTOR (Robust Algorithm using Player Tracking and On/Off Ratings)\nDeveloppe par FiveThirtyEight/Nate Silver. Combine box score, on/off data, et player tracking.\nComposantes: RAPTOR Offense + RAPTOR Defense = RAPTOR Total (en points par 100 possessions)\nWAR RAPTOR = impact total en victoires. Top tier: +8 WAR/saison.\nUtilise par: analystes, media, front offices pour comparaisons cross-era.\nAvantage: ajuste pour qualite des coequipiers et adversaires.",
+      "source": "FiveThirtyEight/Nate Silver",
+      "category": "advanced_stats"
+    },
+    {
+      "id": "adv-epm",
+      "text": "EPM (Estimated Plus-Minus) — Dunks & Threes / Taylor Snarr\nLe gold standard des metrics modernes. Utilise regularized adjusted plus-minus (RAPM)\nenrichi par box score priors. Separé en EPM Offense et EPM Defense.\nEchelle: points par 100 possessions au-dessus de la moyenne.\nElite: > +5.0 EPM. All-Star level: > +3.0. Starter: > +1.0.\nJokic 2023-24: +9.2 EPM (historique). Utilise par plusieurs front offices NBA.",
+      "source": "Dunks & Threes / Taylor Snarr",
+      "category": "advanced_stats"
+    },
+    {
+      "id": "adv-lebron",
+      "text": "LEBRON (Luck-adjusted player Estimate using a Box prior Regularized ON-off)\nBBall Index metric. Combine RAPM avec prior box score.\nLEBRON = O-LEBRON + D-LEBRON. WAR derivee du LEBRON.\nUn des meilleurs predicteurs de performance future.\nAvantage: mieux calibre que EPM pour les petits echantillons.\nUtilise par: front offices, media, DFS players.",
+      "source": "BBall Index",
+      "category": "advanced_stats"
+    },
+    {
+      "id": "adv-darko",
+      "text": "DARKO (Daily Adjusted Rating and Kalman Optimized)\nModele predictif bayesien par Kostya Medvedovsky.\nUtilise filtres de Kalman pour mettre a jour les projections joueur QUOTIDIENNEMENT.\nPredit: points, rebonds, passes, minutes, impact.\nTres utilise pour DFS (Daily Fantasy Sports) et paris props.\nAvantage: s'adapte rapidement aux changements (blessures, changement de role).",
+      "source": "DARKO / Kostya Medvedovsky",
+      "category": "advanced_stats"
+    },
+    {
+      "id": "adv-tracking",
+      "text": "NBA Player Tracking (Second Spectrum / anciennement SportVU)\nCamera system installé dans les 30 arenas NBA. Capture 25 frames/seconde.\nDonnées: position x,y de chaque joueur + ballon, vitesse, acceleration, distance parcourue.\nMetrics derivees: contested shots, drive frequency, catch-and-shoot %, pull-up %,\ntouches, time of possession, speed, distance covered, rebounding chances.\nUtilise par: TOUTES les equipes NBA pour game planning et player evaluation.\nPublic via stats.nba.com/players/tracking/.",
+      "source": "NBA.com / Second Spectrum",
+      "category": "advanced_stats"
+    },
+    {
+      "id": "adv-synergy",
+      "text": "Synergy Sports (maintenant partie de Second Spectrum)\nPlay-by-play video tagging. Chaque possession classifiee par type:\n- Pick-and-Roll Ball Handler / Roll Man\n- Isolation, Post-Up, Spot-Up\n- Transition, Cut, Off-Screen, Handoff, Putbacks, Miscellaneous\nPour chaque type: PPP (Points Per Possession), frequency, percentile ranking.\nTHE tool utilise par les coaching staffs pour game prep et scouting.\n30/30 equipes NBA utilisent Synergy.",
+      "source": "Synergy Sports / Second Spectrum",
+      "category": "advanced_stats"
+    },
+    {
+      "id": "adv-cleaning-glass",
+      "text": "Cleaning the Glass (Ben Falk, ancien VP Basketball Ops 76ers)\nSite premium d'analytics avancees. Filtre les minutes garbage time.\nMetrics cles: eFG%, TS%, TOV%, ORB%, FTr, Assist Rate — tous filtres contextuellement.\nLineup data, on/off splits, shot charts par zone.\nUtilise par: front offices, agents, media serieux.\nAvantage: filtrage garbage time + contexte (home/away, score margin).",
+      "source": "Cleaning the Glass / Ben Falk",
+      "category": "advanced_stats"
+    },
+    {
+      "id": "adv-pbp-stats",
+      "text": "PBP Stats (Ryan Davis)\nPlay-by-play analytics detaillees. Tracking data public.\nMatchup data: qui garde qui, efficacite defensive par matchup.\nShot quality metrics (qSQ, xeFG%), expected rebounding.\nLineup combinations avec contexte de minutes jouees.\nUtilise par: coaches, DFS, bettors serieux.",
+      "source": "PBP Stats / Ryan Davis",
+      "category": "advanced_stats"
+    },
+    {
+      "id": "bloom-001",
+      "text": "Tony Bloom Strategy — Le plus grand parieur sportif du monde\nTony Bloom, surnomme \"The Lizard\", proprietaire de Brighton & Hove Albion FC.\nFondateur de Starlizard, societe de conseil en paris sportifs (~$1B+ de chiffre d'affaires annuel).\n\nPRINCIPES CLES DE LA STRATEGIE BLOOM:\n1. MODELES MATHEMATIQUES: Equipe de 160+ data scientists, physiciens, mathematiciens\n2. EXPECTED VALUE (EV): Ne JAMAIS parier sans edge mathematique positif\n3. VOLUME: Des milliers de paris par jour, petits edges mais volume massif\n4. AUTOMATISATION: Algorithmes qui placent les paris automatiquement quand EV > seuil\n5. CLOSING LINE VALUE (CLV): Mesure principale de performance — si tu bats la cloture, tu gagnes long terme\n6. MARKET MAKING: Comprendre comment les bookmakers fixent les cotes (pouvoir predictif vs flow d'argent)",
+      "source": "Tony Bloom / Starlizard",
+      "category": "betting_strategy"
+    },
+    {
+      "id": "bloom-002",
+      "text": "Starlizard Methodology — Application au NBA\n\nMODELE NBA DE TYPE STARLIZARD:\n1. POWER RATINGS: Chaque equipe a un rating ajuste quotidiennement\n   - Back-to-back adjustment: -2 a -4 points\n   - Travel adjustment: -0.5 a -1.5 points\n   - Injury impact: modele position-specific (star PG > rotation big)\n   - Rest days: +0.5 par jour de repos au-dela de 1\n\n2. LINE SHOPPING: Comparer TOUTES les cotes disponibles\n   - Pinnacle = marche le plus efficace (sharp book)\n   - Si ta ligne > Pinnacle close = potentiellement +EV\n   - Minimum 3-5% edge avant de parier\n\n3. BANKROLL MANAGEMENT (Kelly Criterion adapte):\n   - Full Kelly trop volatile → utiliser 1/4 Kelly ou 1/3 Kelly\n   - Max bet = 3% du bankroll\n   - Track ROI sur 1000+ paris minimum avant de juger\n\n4. TIMING: Parier EARLY quand les lignes sont soft, OU LIVE quand le marche surreagit\n\n5. DATA PIPELINE: Automatisation complete\n   - Scraping odds en temps reel (toutes les 30s)\n   - Calcul EV automatique\n   - Alerte quand EV > seuil (ex: 3%)\n   - Placement automatique si possible",
+      "source": "Tony Bloom / Starlizard methodology",
+      "category": "betting_strategy"
+    },
+    {
+      "id": "bloom-003",
+      "text": "Sharps vs Squares — Ce que les equipes NBA de betting font differemment\n\nSHARP BETTING NBA (ce que font les pros):\n1. FOCUS SUR TOTALS: Les totals (over/under) sont plus predictibles que les spreads\n2. PLAYER PROPS: Edge enorme sur les props avec des modeles de projection\n3. LIVE BETTING: Le marche in-game est moins efficient que pre-game\n4. CONTRARIAN: Parier contre le public quand les lignes bougent sur steam moves recreationnels\n5. CORRELATED PARLAYS: Ex — equipe rapide + over (correles positivement)\n\nMETRICS A TRACKER (comme un hedge fund):\n- CLV (Closing Line Value): objectif +2% CLV moyen\n- ROI: objectif 3-7% long terme\n- Yield: profit / turnover\n- Sharpe Ratio: risk-adjusted returns\n- Drawdown max: jamais > 20% du bankroll\n- Win rate: pas important en soi, seul le EV compte\n\nERREURS A EVITER:\n- Parier avec ses emotions (son equipe favorite)\n- Chaser les pertes (augmenter les mises apres une perte)\n- Ignorer les back-to-backs et fatigue\n- Ne pas tracker ses paris systematiquement\n- Parier sans edge (recreation ≠ investissement)",
+      "source": "Sharp Betting / Professional NBA Betting",
+      "category": "betting_strategy"
+    },
+    {
+      "id": "expert-zach-lowe",
+      "text": "Zach Lowe — ESPN Senior NBA Writer (anciennement Grantland)\nConsidere comme le meilleur analyste tactique NBA dans les media.\nMethodologie: Film study + analytics + interviews coaching staffs.\nSpecialites: defensive schemes, off-ball movement, lineup construction.\nSon podcast \"Lowe Post\" est reference chez les front offices NBA.\nKey insight: L'oeil et les stats doivent converger — si les stats disent une chose\nmais le film montre autre chose, c'est les stats qui sont incompletes.",
+      "source": "Expert knowledge / Zach Lowe",
+      "category": "expert_methodology"
+    },
+    {
+      "id": "expert-ben-taylor",
+      "text": "Ben Taylor — Thinking Basketball (YouTube + Book)\nAuteur de \"Thinking Basketball: How to watch, enjoy and appreciate the game\"\nLe meilleur pour les analyses historiques cross-era.\nMethodologie: backpicks.com GOAT rankings, film study, statistical context.\nSon systeme de ranking integre: scoring efficiency, playmaking, defense,\nleadership, clutch, longevity — avec ajustement pour l'ere.\nChaine YouTube: 500K+ subscribers. Reference absolue pour GOAT debates.",
+      "source": "Expert knowledge / Ben Taylor",
+      "category": "expert_methodology"
+    },
+    {
+      "id": "expert-seth-partnow",
+      "text": "Seth Partnow — ancien VP Analytics Milwaukee Bucks (champion 2021)\nAuteur de \"The Midrange Theory: Basketball's Evolution in the Age of Analytics\"\nTravaille maintenant pour The Athletic.\nExpertise: comment les equipes NBA utilisent REELLEMENT les analytics.\nKey insight: Les equipes ne suivent pas betement les modeles — l'analytics\nest un input parmi d'autres (scouting, coaching, culture, market dynamics).\nShot selection, lineup optimization, draft modeling.",
+      "source": "Expert knowledge / Seth Partnow",
+      "category": "expert_methodology"
+    },
+    {
+      "id": "expert-kirk-goldsberry",
+      "text": "Kirk Goldsberry — Pioneer des shot charts / spatial analytics\nAuteur de \"SprawlBall\" et \"The Atlas of NBA Shooters\".\nProfesseur a UT San Antonio devenu consultant NBA.\nA revolutionne la visualisation des donnees NBA avec les shot charts par zone.\nTravaille avec les San Antonio Spurs.\nKey insight: La revolution 3-points est la plus grande transformation\ntactique de l'histoire du sport professionnel.",
+      "source": "Expert knowledge / Kirk Goldsberry",
+      "category": "expert_methodology"
+    },
+    {
+      "id": "expert-nate-silver",
+      "text": "Nate Silver — FiveThirtyEight NBA RAPTOR/Elo models\nStatisticien celebre, fondateur de FiveThirtyEight.\nA cree le systeme Elo NBA (adaptee du chess Elo) pour predire les matchs.\nRAPTOR: sa metric joueur la plus aboutie (replaced CARMELO in 2019).\nApproche: bayesian priors + updating avec nouvelles donnees.\nElo NBA: predit ~68% des matchs correctement (reference).\nAussi auteur de \"The Signal and the Noise\" sur la prediction en general.",
+      "source": "Expert knowledge / Nate Silver",
+      "category": "expert_methodology"
+    },
+    {
+      "id": "expert-haralabos-voulgaris",
+      "text": "Haralabos Voulgaris — Parieur professionnel NBA devenu front office\nUn des plus gros parieurs NBA de l'histoire. A rejoint les Dallas Mavericks\ncomme Director of Quantitative Research & Development sous Mark Cuban.\nMethodologie: modeles de simulation Monte Carlo, injury impact modeling,\nreferee tendency analysis, pace/style adjustments.\nKey insight: L'avantage dans les paris NBA vient du meilleur traitement\nde l'information PUBLIQUE, pas de l'acces a l'information privee.\nA quitte Dallas en 2021 apres des resultats mitiges en front office.",
+      "source": "Expert knowledge / Haralabos Voulgaris",
+      "category": "expert_methodology"
+    },
+    {
+      "id": "dataset-second-spectrum",
+      "text": "Second Spectrum — Official NBA Tracking Data Provider\nEvery NBA arena has 5+ cameras tracking all 10 players + ball at 25fps.\nData captured: x,y coordinates, speed, acceleration, distance.\nDerived stats: shot quality (qSQ), pass quality, defensive coverage,\nscreen effectiveness, rebounding positioning, transition speed.\nEVERY NBA team has access. Some teams build proprietary models on top.\nCost: included in NBA team licensing (~$1M+/year for enhanced access).\nPublic data: limited subset on stats.nba.com",
+      "source": "NBA Teams / Second Spectrum",
+      "category": "team_datasets"
+    },
+    {
+      "id": "dataset-statsbomb",
+      "text": "StatsBomb (primarily soccer but expanding to basketball)\nEvent-level data with 360 freeze frames.\nFor NBA context: similar companies provide event-level data:\n- Sportradar (official NBA data partner) — play-by-play, live stats\n- Genius Sports — betting data, live odds, performance data\n- Stats Perform (Opta) — historical stats, AI predictions\nNBA teams typically use 3-5 data providers simultaneously.",
+      "source": "NBA Teams / Data Providers",
+      "category": "team_datasets"
+    },
+    {
+      "id": "dataset-public-sources",
+      "text": "Free/Public NBA Data Sources Used by Analysts:\n1. Basketball Reference (basketball-reference.com) — Historical stats since 1946\n2. NBA.com/stats — Official tracking data (limited public API)\n3. stats.nba.com API — JSON endpoints for all stats categories\n4. balldontlie.io — Clean REST API for players, games, stats\n5. nba_api Python package — Wrapper for NBA.com endpoints\n6. Kaggle NBA datasets — Historical game data, player stats, draft data\n7. PBP Stats (pbpstats.com) — Detailed play-by-play\n8. Cleaning the Glass — Premium filtered analytics\n9. Dunks & Threes — EPM and advanced metrics\n10. BBall Index — LEBRON metric and proprietary data",
+      "source": "Public NBA Data Sources",
+      "category": "team_datasets"
+    },
+    {
+      "id": "dataset-draft-models",
+      "text": "NBA Draft Prediction Models (used by teams):\n1. Big Board models: Combine measurements + college stats + conference strength\n2. Statistical translation models: Convert college stats to projected NBA stats\n   - Kevin Pelton's WARP (Wins Above Replacement Player)\n   - Sports Reference's VORP projections\n3. Archetype models: Compare prospect body/stats profile to historical players\n4. Bust probability models: Predict likelihood of bust based on red flags\n   (age, conference, statistical profile, shooting concerns)\n5. Positional value: Center production is cheapest to replace (draft guards/wings higher)\nKey variables: age at draft, college conference, per-40 minute stats,\ntrue shooting %, assist rate, steal rate, block rate, rebounding rate.",
+      "source": "NBA Draft Analytics",
+      "category": "team_datasets"
+    }
+  ]
+}
