@@ -1,0 +1,15 @@
+# Environment
+.env.local
+.env
+*.pid
+
+# Logs & data (generated)
+logs/
+data/cache/
+data/eval/results/
+users/
+reports/
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
