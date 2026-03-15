@@ -2,7 +2,7 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from models.power_ratings import predict_matchup, get_rest_adjustment
+from models.power_ratings import predict_matchup, get_rest_adjustment, get_injury_adjustment
 
 
 def test_predict_matchup_home_favorite():
@@ -32,3 +32,26 @@ def test_rest_adjustment_values():
     assert get_rest_adjustment(0) == -4.0
     assert get_rest_adjustment(2) == 0.0
     assert get_rest_adjustment(99) == 0.8  # capped at 4+
+
+
+def test_injury_adjustment_realistic_nba():
+    """Losing a superstar C (Jokic) hurts more than losing a rotation SG."""
+    # Superstar center out — largest possible impact
+    star_out = get_injury_adjustment([
+        {"player": "Nikola Jokic", "tier": "superstar", "position": "C"},
+    ])
+    assert star_out < -6.0, "Superstar C injury should exceed -6.0 pts"
+
+    # Rotation shooting guard out — minimal impact
+    bench_out = get_injury_adjustment([
+        {"player": "Bench SG", "tier": "rotation", "position": "SG"},
+    ])
+    assert -1.0 < bench_out < 0.0, "Rotation SG loss should be minor"
+
+    # Multiple injuries stack: All-Star PG + starter SF
+    multi = get_injury_adjustment([
+        {"player": "Tyrese Haliburton", "tier": "all_star", "position": "PG"},
+        {"player": "Starter SF", "tier": "starter", "position": "SF"},
+    ])
+    assert multi < bench_out, "Two injuries should hurt more than one rotation player"
+    assert multi < -5.0
