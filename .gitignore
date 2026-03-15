@@ -1,7 +1,24 @@
-# Environment
+# Environment & secrets
 .env.local
 .env
+.env.*
 *.pid
+credentials.json
+**/credentials*.json
+*.pem
+*.key
+secrets/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+*.egg
 
 # Logs & data (generated)
 logs/
@@ -9,7 +26,16 @@ data/cache/
 data/eval/results/
 users/
 reports/
-__pycache__/
-*.pyc
+
+# OS & IDE
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Dependencies
 node_modules/
+venv/
+.venv/
