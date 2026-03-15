@@ -162,7 +162,11 @@ def get_embedding(text, max_chars=8000):
 
     data = resp.get("data", [])
     if data:
-        return data[0].get("embedding")
+        emb = data[0].get("embedding")
+        if emb is None:
+            log(f"Embedding response missing 'embedding' key in data[0]: {list(data[0].keys())}", "ERROR")
+        return emb
+    log(f"Embedding response has empty 'data' list (status={status})", "ERROR")
     return None
 
 def get_embeddings_batch(texts, batch_size=16, max_chars=8000):
