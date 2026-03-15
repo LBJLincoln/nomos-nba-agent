@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-15T05:04:47.247893+00:00",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "betting",
+  "avg_latency_ms": 16264,
+  "results": [
+    {
+      "id": "nba-bet-001",
+      "category": "betting",
+      "question": "Qu'est-ce que le Kelly Criterion en paris sportifs NBA ?",
+      "golden": "Formule de gestion de bankroll: f* = (bp - q) / b, ou b=cote decimale-1, p=proba victoire, q=1-p",
+      "answer": "Le Kelly Criterion est une formule mathématique pour déterminer la taille optimale d'un pari afin de maximiser la croissance à long terme du capital. En NBA, il s'exprime ainsi :\n\n**Formule de Kelly :**\nf* = (bp - q) / b\n\nOù :\n- f* = fraction du capital à parier\n- b = cote décimale - 1 (ex: cote 2.5 → b = 1.5)\n- p = probabilité estimée de victoire\n- q = 1 - p (probabilité de perte)\n\n**Exemple NBA :**\n- Cote Lakers vs Warriors : Warriors à 2.2\n- Votre modèle estime 50% de chances pour les Warrior",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 48404,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-005",
+      "category": "betting",
+      "question": "Quelle est la marge typique d'un bookmaker NBA ?",
+      "golden": "3-5% de vig (vigorish/juice) sur les cotes standard, spreads -110/-110",
+      "answer": "La marge typique d'un bookmaker NBA varie entre 4% et 6% pour les paris standards sur le moneyline et le spread. Voici les détails précis :\n\n**Marge standard (vig) :**\n- Moneyline : -110/-110 (11/10) = 4.55% de marge\n- Spread : -110/-110 = 4.55% de marge\n- Total (over/under) : -110/-110 = 4.55% de marge\n\n**Marge selon le type de pari :**\n- Paris simples : 4-5%\n- Parlays : 10-15% (cumulée)\n- Props : 6-8%\n- Futures : 8-12%\n\n**Exemple concret :**\nSi deux équipes ont une vraie probabilité de 50% cha",
+      "keywords_matched": 0.8,
+      "passed": true,
+      "latency_ms": 6367,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-003",
+      "category": "betting",
+      "question": "Comment fonctionnent les spreads NBA ?",
+      "golden": "Le favori doit gagner par plus de X points, l'outsider doit perdre par moins de X points ou gagner",
+      "answer": "Les spreads NBA sont des handicaps de points appliqués par les bookmakers pour équilibrer les paris entre deux équipes. Voici le fonctionnement précis :\n\n**Définition du spread**\n- L'équipe favorite a un spread négatif (ex: -7.5)\n- L'équipe outsider a un spread positif (ex: +7.5)\n- Pour gagner un pari sur la favorite, elle doit gagner de plus que le spread\n- Pour gagner un pari sur l'outsider, elle doit soit gagner le match, soit perdre de moins que le spread\n\n**Exemple concret**\nMatch Lakers vs",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 8947,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-004",
+      "category": "betting",
+      "question": "What are player props in NBA betting?",
+      "golden": "Bets on individual player performance: points over/under, rebounds, assists, 3-pointers made, etc.",
+      "answer": "Les player props (propositions de joueurs) sont des paris spécifiques sur la performance individuelle d'un joueur NBA pendant un match. Voici les détails techniques :\n\n**Types de player props courants :**\n- Points + rebonds + passes (over/under)\n- Points uniquement (over/under)\n- Rebonds (over/under)\n- Passes décisives (over/under)\n- 3-points réussis (over/under)\n- Double-double/triple-double\n- Première équipe à marquer\n- Plus de points que tel joueur adverse\n\n**Calcul des cotes :**\nLes bookmake",
+      "keywords_matched": 0.8,
+      "passed": true,
+      "latency_ms": 10529,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-002",
+      "category": "betting",
+      "question": "What is CLV (Closing Line Value) in NBA betting?",
+      "golden": "Difference between the odds you bet at and the closing odds — positive CLV indicates long-term profitability",
+      "answer": "CLV (Closing Line Value) in NBA betting measures the difference between the line you bet at versus the closing line when the game starts. It's a key metric for evaluating betting skill over time.\n\n**How CLV works:**\n- If you bet on Team A -3 and the line closes at -4.5, you have positive CLV of 1.5 points\n- If you bet on Team A +5 and the line closes at +3, you have negative CLV of 2 points\n\n**Why CLV matters:**\nThe closing line is considered the most efficient market price, incorporating all av",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 7074,
+      "sources": 0
+    }
+  ]
+}
