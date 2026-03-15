@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-15T04:25:14.841812+00:00",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "betting",
+  "avg_latency_ms": 13204,
+  "results": [
+    {
+      "id": "nba-bet-003",
+      "category": "betting",
+      "question": "Comment fonctionnent les spreads NBA ?",
+      "golden": "Le favori doit gagner par plus de X points, l'outsider doit perdre par moins de X points ou gagner",
+      "answer": "Les spreads NBA, également appelés \"ligne de pointage\" ou \"marge de victoire\", sont un type de pari sportif qui consiste à prédire la différence de points entre deux équipes lors d'un match. Voici comment cela fonctionne :\n\n* Un bookmaker établit une ligne de pointage pour un match, par exemple : Lakers -7,5 contre les Celtics.\n* Cela signifie que les Lakers sont favorisés de 7,5 points, ce qui signifie qu'ils doivent gagner par au moins 8 points pour que le pari soit gagnant.\n* Si vous pariez s",
+      "keywords_matched": 0.75,
+      "passed": true,
+      "latency_ms": 4250,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-004",
+      "category": "betting",
+      "question": "What are player props in NBA betting?",
+      "golden": "Bets on individual player performance: points over/under, rebounds, assists, 3-pointers made, etc.",
+      "answer": "Les player props (propositions de joueurs) sont des paris spécifiques sur la performance individuelle d'un joueur NBA pendant un match. Voici les types principaux :\n\n**Statistiques individuelles :**\n- Points marqués (over/under)\n- Rebonds totaux\n- Passes décisives\n- Contres\n- Interceptions\n- Minutes jouées\n\n**Combinaisons de stats :**\n- Double-double (pts + rebonds)\n- Triple-double (pts + rebonds + passes)\n- 20+ points + 10+ rebonds\n- 5+ tirs à 3 points réussis\n\n**Performances spécifiques :**\n- ",
+      "keywords_matched": 0.8,
+      "passed": true,
+      "latency_ms": 9243,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-005",
+      "category": "betting",
+      "question": "Quelle est la marge typique d'un bookmaker NBA ?",
+      "golden": "3-5% de vig (vigorish/juice) sur les cotes standard, spreads -110/-110",
+      "answer": "La marge typique d'un bookmaker NBA varie entre 4% et 5% pour les paris standards sur le moneyline et le spread.\n\nPour un match avec un spread équilibré (-110/-110), la marge est d'environ 4.5% :\n- Si vous pariez 110$ sur chaque côté, le bookmaker collecte 220$\n- Il paie 210$ au gagnant (100$ de profit + 110$ de mise)\n- Marge = (220 - 210) / 220 = 4.5%\n\nPour les paris totals (over/under), la marge est similaire, généralement autour de 4.5% à 5%.\n\nLes paris moneyline ont une marge variable selon ",
+      "keywords_matched": 0.6,
+      "passed": true,
+      "latency_ms": 12277,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-002",
+      "category": "betting",
+      "question": "What is CLV (Closing Line Value) in NBA betting?",
+      "golden": "Difference between the odds you bet at and the closing odds — positive CLV indicates long-term profitability",
+      "answer": "CLV (Closing Line Value) in NBA betting measures the difference between the line you bet at and the closing line when the game starts. It's a key metric for evaluating betting skill over the long term.\n\n**How CLV works:**\n- If you bet on a team at +3 and the line closes at +1, you have positive CLV of 2 points\n- If you bet at -5 and it closes at -7, you have positive CLV of 2 points\n- If you bet at -3 and it closes at -1, you have negative CLV of 2 points\n\n**Why CLV matters:**\nThe closing line r",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 11016,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-001",
+      "category": "betting",
+      "question": "Qu'est-ce que le Kelly Criterion en paris sportifs NBA ?",
+      "golden": "Formule de gestion de bankroll: f* = (bp - q) / b, ou b=cote decimale-1, p=proba victoire, q=1-p",
+      "answer": "Le Kelly Criterion est une formule mathématique pour déterminer la taille optimale d'un pari afin de maximiser la croissance à long terme de votre bankroll. En NBA, il s'applique comme suit :\n\n**Formule de Kelly :**\nf* = (bp - q) / b\n\nOù :\n- f* = fraction de votre bankroll à parier\n- b = cote décimal - 1 (gain net)\n- p = probabilité estimée de gagner\n- q = 1 - p (probabilité de perdre)\n\n**Exemple NBA :**\nSi vous estimez que les Warriors ont 60% de chances de battre les Lakers (p = 0.60), et que ",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 29236,
+      "sources": 0
+    }
+  ]
+}

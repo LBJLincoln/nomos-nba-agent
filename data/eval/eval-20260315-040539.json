@@ -1,0 +1,121 @@
+{
+  "timestamp": "2026-03-15T04:05:39.107778+00:00",
+  "total": 10,
+  "passed": 10,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "stats",
+  "avg_latency_ms": 15424,
+  "results": [
+    {
+      "id": "nba-stats-005",
+      "category": "stats",
+      "question": "Qui detient le record du plus grand nombre de rebonds en carriere ?",
+      "golden": "Wilt Chamberlain avec 23,924 rebonds",
+      "answer": "Le record du plus grand nombre de rebonds en carrière en NBA est détenu par **Wilt Chamberlain** avec **23 924 rebonds**.\n\nVoici le top 5 des meilleurs rebondeurs de l'histoire :\n\n1. **Wilt Chamberlain** - 23 924 (1 045 matchs)\n2. **Bill Russell** - 21 620 (963 matchs)  \n3. **Kareem Abdul-Jabbar** - 17 440 (1 560 matchs)\n4. **Elvin Hayes** - 16 279 (1 303 matchs)\n5. **Robert Parish** - 14 715 (1 611 matchs)\n\nChamberlain détient également le record de moyenne de rebonds par match en carrière avec",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 35005,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-006",
+      "category": "stats",
+      "question": "What is Stephen Curry's career three-point shooting percentage?",
+      "golden": "Approximately 42-43%",
+      "answer": "Stephen Curry's career three-point shooting percentage is **43.2%** (2,842 made 3-pointers on 6,574 attempts) through the 2022-23 season.\n\nThis ranks him 1st all-time in career three-pointers made and 5th all-time in career three-point percentage among players with at least 1,500 attempts.\n\nFor context:\n- His single-season high was **43.8%** in 2015-16 (402/916)\n- League average three-point percentage during his career: ~35.5%\n- Next closest active player: Damian Lillard at 38.7%\n\nSource: Basket",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 6989,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-011",
+      "category": "stats",
+      "question": "Quel est le True Shooting % le plus eleve pour une saison (min 1000 pts) ?",
+      "golden": "Environ 73-74% TS% (plusieurs joueurs modernes)",
+      "answer": "Le True Shooting % le plus élevé pour une saison avec un minimum de 1000 points est détenu par **Stephen Curry** lors de la saison 2015-2016 avec les Golden State Warriors.\n\n**Statistiques de Curry en 2015-2016 :**\n- True Shooting % : **66.9%**\n- Points marqués : **1,598**\n- Matchs joués : **79**\n- Tentatives de field goals : **1,341**\n- Tirs à 3 points : **402/886 (45.4%)**\n- Lancers francs : **251/277 (90.6%)**\n\n**Contexte :**\n- Curry a établi ce record lors d'une saison historique où il a rem",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 19749,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-003",
+      "category": "stats",
+      "question": "Quel joueur a le plus de titres MVP en saison reguliere ?",
+      "golden": "Kareem Abdul-Jabbar avec 6 MVP",
+      "answer": "Le joueur avec le plus de titres de MVP en saison régulière est **Kareem Abdul-Jabbar** avec **6 MVP** :\n\n1. 1971 (avec les Bucks)\n2. 1972 (avec les Bucks)\n3. 1974 (avec les Bucks)\n4. 1976 (avec les Lakers)\n5. 1977 (avec les Lakers)\n6. 1980 (avec les Lakers)\n\n**Autres joueurs avec 5 MVP :**\n- **Michael Jordan** (1988, 1991, 1992, 1996, 1998)\n- **LeBron James** (2009, 2010, 2012, 2013, 2020)\n\n**Autres multiples MVP :**\n- Wilt Chamberlain (4)\n- Bill Russell (5)\n- Moses Malone (3)\n- Larry Bird (3)\n",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 8498,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-012",
+      "category": "stats",
+      "question": "Who scored the most points in their rookie season?",
+      "golden": "Wilt Chamberlain with 2,707 points (37.6 PPG) in 1959-60",
+      "answer": "Voici les meilleures saisons de rookies en termes de points marqués dans l'histoire de la NBA :\n\n**1. Wilt Chamberlain - 1959-60 Philadelphia Warriors**\n- 2 707 points\n- 50.4 PPG (moyenne par match)\n- 48.5 minutes par match (tous les matchs en prolongation)\n\n**2. Rick Barry - 1965-66 San Francisco Warriors**\n- 2 393 points\n- 25.7 PPG\n\n**3. Michael Jordan - 1984-85 Chicago Bulls**\n- 2 313 points\n- 28.2 PPG\n\n**4. Allen Iverson - 1996-97 Philadelphia 76ers**\n- 1 786 points\n- 23.5 PPG\n\n**5. Carmelo ",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 24248,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-014",
+      "category": "stats",
+      "question": "What is Nikola Jokic's career assist average?",
+      "golden": "Approximately 7-8 assists per game",
+      "answer": "Nikola Jokic's career assist average is **7.1 assists per game** through the 2023-24 season.\n\nHere are his assist numbers by season:\n- 2015-16: 2.4 APG\n- 2016-17: 2.7 APG  \n- 2017-18: 3.7 APG\n- 2018-19: 7.0 APG\n- 2019-20: 7.0 APG\n- 2020-21: 8.6 APG\n- 2021-22: 8.3 APG\n- 2022-23: 9.8 APG\n- 2023-24: 8.5 APG\n\nHis career high is 9.8 APG in 2022-23, when he won his second MVP award. For context, his assist numbers have increased significantly since his early years, reflecting his evolution from a trad",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 7757,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-015",
+      "category": "stats",
+      "question": "Quel joueur a le plus de matchs joues en carriere NBA ?",
+      "golden": "Robert Parish avec 1,611 matchs (ou Vince Carter 1,541)",
+      "answer": "Le joueur avec le plus de matchs joués en carrière NBA est **Vince Carter** avec **1 541 matchs** disputés entre 1998 et 2020.\n\nCarter a joué 22 saisons NBA, un record, avec 8 équipes différentes :\n- Toronto Raptors (1998-2004)\n- New Jersey Nets (2004-2009)\n- Orlando Magic (2009-2010)\n- Phoenix Suns (2010-2011)\n- Dallas Mavericks (2011-2014)\n- Memphis Grizzlies (2014-2017)\n- Sacramento Kings (2017-2018)\n- Atlanta Hawks (2018-2020)\n\nDerrière lui, on trouve :\n- **Dirk Nowitzki** : 1 522 matchs (19",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 12255,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-013",
+      "category": "stats",
+      "question": "Combien de fois Michael Jordan a-t-il ete meilleur marqueur de la NBA ?",
+      "golden": "10 fois champion marqueur",
+      "answer": "Michael Jordan a été meilleur marqueur de la NBA **10 fois** au cours de sa carrière :\n\n1. 1986-87 : 37.1 PPG\n2. 1987-88 : 35.0 PPG  \n3. 1988-89 : 32.5 PPG\n4. 1989-90 : 33.6 PPG\n5. 1990-91 : 31.5 PPG\n6. 1991-92 : 30.1 PPG\n7. 1992-93 : 32.6 PPG\n8. 1995-96 : 30.4 PPG\n9. 1996-97 : 29.6 PPG\n10. 1997-98 : 28.7 PPG\n\nSource : Basketball Reference\n\nCe record de 10 titres de meilleur marqueur est le plus élevé de l'histoire de la NBA. Il devance Wilt Chamberlain (7 fois) et Allen Iverson (4 fois). Jordan",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 8247,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-002",
+      "category": "stats",
+      "question": "Who holds the NBA record for most career assists?",
+      "golden": "John Stockton with 15,806 career assists",
+      "answer": "John Stockton holds the NBA record for most career assists with 15,806 assists over his 19-year career with the Utah Jazz (1984-2003).\n\nKey stats:\n- Games played: 1,504\n- Career average: 10.5 assists per game\n- Seasons leading the league in assists: 6 (1987-88, 1989-90, 1991-92, 1994-95, 1995-96, 1996-97)\n- Career assists per game rank: 1st all-time\n\nJason Kidd is second with 12,091 assists, followed by:\n1. Steve Nash - 10,335\n2. Chris Paul - 10,977\n3. Magic Johnson - 10,141\n\nSource: Basketball ",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 15490,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-004",
+      "category": "stats",
+      "question": "What is LeBron James' career scoring average?",
+      "golden": "Approximately 27.1 points per game",
+      "answer": "LeBron James' career scoring average is **27.1 points per game**.\n\nThis ranks him 5th all-time in NBA history for career scoring average among players with at least 200 games played.\n\nHis scoring has evolved throughout his career:\n- Rookie season (2003-04): 20.9 PPG\n- Peak scoring years (2005-2010): 27.7-31.4 PPG\n- Miami Heat years (2010-2014): 25.7-27.1 PPG\n- Cleveland return (2014-2018): 26.6-27.5 PPG\n- Lakers years (2018-present): 27.0-30.3 PPG\n\nAs of the 2023-24 season, he has scored **38,65",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 16010,
+      "sources": 0
+    }
+  ]
+}

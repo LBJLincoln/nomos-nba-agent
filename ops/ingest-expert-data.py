@@ -179,6 +179,8 @@ def get_embeddings_batch(texts, batch_size=16, max_chars=8000):
             # Fallback: embed one by one
             for t in batch:
                 emb = get_embedding(t, max_chars)
+                if emb is None:
+                    log(f"Skipping text with failed embedding ({len(t)} chars)", "WARN")
                 all_embeddings.append(emb)
             continue
 
