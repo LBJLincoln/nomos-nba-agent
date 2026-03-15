@@ -1,0 +1,121 @@
+{
+  "timestamp": "2026-03-15T07:28:47.374879+00:00",
+  "total": 10,
+  "passed": 10,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "stats",
+  "avg_latency_ms": 12554,
+  "results": [
+    {
+      "id": "nba-stats-004",
+      "category": "stats",
+      "question": "What is LeBron James' career scoring average?",
+      "golden": "Approximately 27.1 points per game",
+      "answer": "LeBron James' career scoring average is **27.1 points per game** through the 2022-23 season.\n\nThis ranks him 5th all-time in career scoring average among players with at least 200 games played, behind:\n- Michael Jordan (30.1)\n- Wilt Chamberlain (30.1)\n- Elgin Baylor (27.4)\n- Kevin Durant (27.2)\n\nHis scoring has evolved throughout his career:\n- Rookie season (2003-04): 20.9 PPG\n- Peak scoring (2005-06 to 2009-10): 27.3 to 31.4 PPG\n- Recent seasons (ages 35+): 25.0 to 29.8 PPG\n\nSource: Basketball ",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 7614,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-009",
+      "category": "stats",
+      "question": "Combien de triple-doubles Russell Westbrook a-t-il en carriere ?",
+      "golden": "198 triple-doubles (record NBA)",
+      "answer": "Russell Westbrook détient le record absolu de triple-doubles en carrière dans l'histoire de la NBA.\n\n**Statistiques officielles au 15 avril 2023 :**\n- **198 triple-doubles en carrière**\n- Moyenne de 22.4 points, 8.4 rebonds et 8.5 passes décisives par match\n\n**Détails importants :**\n- Il a dépassé Oscar Robertson (181) le 2 mai 2021\n- Il a atteint 180 triple-doubles en 971 matchs (Robertson en avait eu besoin de 971)\n- Sa saison record : 42 triple-doubles en 2016-17 (MVP)\n- Il a eu 5 saisons con",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 12496,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-007",
+      "category": "stats",
+      "question": "Quel joueur a le meilleur PER de tous les temps en saison reguliere ?",
+      "golden": "Nikola Jokic avec un PER de 31.3 (2023-24) ou Michael Jordan career 27.9",
+      "answer": "Le joueur avec le meilleur PER (Player Efficiency Rating) de tous les temps en saison régulière est **Wilt Chamberlain** avec un PER de **31.82** sur sa carrière.\n\nVoici le top 5 :\n\n1. **Wilt Chamberlain** - 31.82\n2. **Michael Jordan** - 27.91\n3. **LeBron James** - 27.36\n4. **Anthony Davis** - 27.36\n5. **Shaquille O'Neal** - 26.43\n\nSource : Basketball Reference\n\nLe PER est une statistique qui mesure l'efficacité d'un joueur par minute, ajustée pour le rythme et normalisée de sorte que la moyenne",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 3201,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-015",
+      "category": "stats",
+      "question": "Quel joueur a le plus de matchs joues en carriere NBA ?",
+      "golden": "Robert Parish avec 1,611 matchs (ou Vince Carter 1,541)",
+      "answer": "Voici les joueurs avec le plus de matchs joués en carrière NBA :\n\n1. **Vince Carter** - 1 541 matchs (1998-2020)\n   - Joué 22 saisons, record de longévité\n   - 8 équipes différentes\n\n2. **Robert Parish** - 1 611 matchs (1976-1997)\n   - 21 saisons\n   - 4 titres avec les Celtics\n\n3. **Kevin Garnett** - 1 462 matchs (1995-2016)\n   - 21 saisons\n   - 1 titre avec les Celtics\n\n4. **Kareem Abdul-Jabbar** - 1 560 matchs (1969-1989)\n   - 20 saisons\n   - 6 titres, 6 MVP\n\n5. **Dirk Nowitzki** - 1 522 match",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 11928,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-011",
+      "category": "stats",
+      "question": "Quel est le True Shooting % le plus eleve pour une saison (min 1000 pts) ?",
+      "golden": "Environ 73-74% TS% (plusieurs joueurs modernes)",
+      "answer": "Le True Shooting Percentage (TS%) le plus élevé pour une saison avec un minimum de 1000 points marqués est détenu par **Stephen Curry** lors de la saison 2015-2016 avec les Golden State Warriors.\n\n**Statistiques de Curry en 2015-2016 :**\n- TS% : **66.9%**\n- Points marqués : 1,853\n- Matchs joués : 79\n- Tirs réussis : 52.4% FG\n- Tirs à 3 points : 45.4% 3P\n- Lancers francs : 91.4% FT\n\n**Contexte :**\nCette saison est considérée comme l'apogée de l'efficacité offensive de Curry. Il a remporté son deu",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 35536,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-010",
+      "category": "stats",
+      "question": "What is the NBA record for most blocks in a single game?",
+      "golden": "Elmore Smith with 17 blocks on October 28, 1973",
+      "answer": "Le record NBA de contres en un seul match est de **17 blocs**, détenu par **Elmore Smith** des Los Angeles Lakers. Il l'a établi le 28 octobre 1973 contre les Portland Trail Blazers.\n\nVoici le top 5 des performances :\n1. **17 blocs** - Elmore Smith (LAL) vs Portland, 1973\n2. **15 blocs** - Elmore Smith (LAL) vs Detroit, 1973\n3. **14 blocs** - Manute Bol (PHI) vs Denver, 1987\n4. **14 blocs** - Elmore Smith (LAL) vs Atlanta, 1974\n5. **14 blocs** - Mark Eaton (UTA) vs Atlanta, 1987\n\nNotez que Smith",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 13434,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-003",
+      "category": "stats",
+      "question": "Quel joueur a le plus de titres MVP en saison reguliere ?",
+      "golden": "Kareem Abdul-Jabbar avec 6 MVP",
+      "answer": "Le joueur qui détient le record du plus grand nombre de titres de MVP en saison régulière est **Kareem Abdul-Jabbar** avec **6 MVP**.\n\nVoici le classement complet des joueurs avec le plus de MVP :\n\n1. **Kareem Abdul-Jabbar** - 6 MVP (1971, 1972, 1974, 1976, 1977, 1980)\n2. **LeBron James** - 4 MVP (2009, 2010, 2012, 2013)\n3. **Michael Jordan** - 5 MVP (1988, 1991, 1992, 1996, 1998)\n4. **Bill Russell** - 5 MVP (1958, 1961, 1962, 1963, 1965)\n5. **Wilt Chamberlain** - 4 MVP (1960, 1966, 1967, 1968)\n",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 29128,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-013",
+      "category": "stats",
+      "question": "Combien de fois Michael Jordan a-t-il ete meilleur marqueur de la NBA ?",
+      "golden": "10 fois champion marqueur",
+      "answer": "Michael Jordan a été meilleur marqueur de la NBA **10 fois** :\n\n1. 1986-87 : 37.1 PPG\n2. 1987-88 : 35.0 PPG  \n3. 1988-89 : 32.5 PPG\n4. 1989-90 : 33.6 PPG\n5. 1990-91 : 31.5 PPG\n6. 1991-92 : 30.1 PPG\n7. 1992-93 : 32.6 PPG\n8. 1995-96 : 30.4 PPG\n9. 1996-97 : 29.6 PPG\n10. 1997-98 : 28.7 PPG\n\n**Record NBA** : Jordan détient le record absolu de titres de meilleur marqueur, devant Wilt Chamberlain (7 fois) et Allen Iverson (4 fois).\n\n**Stats de carrière** : Jordan termine sa carrière avec une moyenne de",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 4694,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-005",
+      "category": "stats",
+      "question": "Qui detient le record du plus grand nombre de rebonds en carriere ?",
+      "golden": "Wilt Chamberlain avec 23,924 rebonds",
+      "answer": "Le record du plus grand nombre de rebonds en carrière en NBA est détenu par **Wilt Chamberlain** avec **23 924 rebonds**.\n\nVoici le top 5 des meilleurs rebondeurs de l'histoire :\n\n1. **Wilt Chamberlain** - 23 924 (1959-1973)\n2. **Bill Russell** - 21 620 (1956-1969)\n3. **Kareem Abdul-Jabbar** - 17 440 (1969-1989)\n4. **Elvin Hayes** - 16 279 (1968-1984)\n5. **Robert Parish** - 14 715 (1976-1997)\n\nWilt Chamberlain détient également le record de moyenne de rebonds par match en carrière avec **22,9 RP",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 5216,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-006",
+      "category": "stats",
+      "question": "What is Stephen Curry's career three-point shooting percentage?",
+      "golden": "Approximately 42-43%",
+      "answer": "Selon Basketball Reference, le pourcentage de tirs à trois points en carrière de Stephen Curry est de 43,8% (3 570 tirs réussis sur 8 149 tentatives). Cette statistique est à jour jusqu'à la fin de la saison 2020-2021. \n\nSource : Basketball Reference (https://www.basketball-reference.com/players/c/curryst01.html)",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 2297,
+      "sources": 0
+    }
+  ]
+}

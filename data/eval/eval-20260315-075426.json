@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-03-15T07:54:26.499180+00:00",
+  "total": 3,
+  "passed": 2,
+  "failed": 1,
+  "accuracy": 66.7,
+  "category": "predictions",
+  "avg_latency_ms": 17157,
+  "results": [
+    {
+      "id": "nba-pred-001",
+      "category": "predictions",
+      "question": "Qui a ete le premier choix de la Draft 2023 ?",
+      "golden": "Victor Wembanyama, selectionne par les San Antonio Spurs",
+      "answer": "Victor Wembanyama a ete selectionne en premier choix de la Draft NBA 2023 par les San Antonio Spurs.\n\nWembanyama, pivot de 2m24 originaire de France, etait considere comme un prospect generational. Voici ses principales stats avant la draft :\n\n- Saison 2022-23 avec Metropolitans 92 (France) : 21.6 PTS, 10.4 REB, 3.0 BLK, 2.4 AST par match\n- Tirs : 47.1% du terrain, 27.5% à 3-points, 82.5% aux lancers\n- PER : 33.3 (elite level)\n- RAPTOR : +8.7 (meilleur prospect depuis des annees)\n\nLes Spurs ont ",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 6956,
+      "sources": 0
+    },
+    {
+      "id": "nba-pred-002",
+      "category": "predictions",
+      "question": "What factors predict NBA draft success?",
+      "golden": "College stats, physical measurements, age, conference strength, combine performance, intangibles",
+      "answer": "Les facteurs prédictifs du succès en NBA draft varient selon les positions et les époques, mais voici les corrélations statistiques les plus solides :\n\n**Pour les meneurs (PG) :**\n- Taux d'assists en NCAA : r=0.42 avec la réussite NBA\n- Ratio AST/TO : r=0.38\n- Pick-and-roll efficiency : r=0.35\n- Taille des mains : r=0.31 (contre les défenseurs plus grands)\n\n**Pour les ailiers (SG/SF) :**\n- True Shooting % : r=0.51 (meilleure corrélation globale)\n- Steal rate : r=0.39 (compétitivité défensive)\n- ",
+      "keywords_matched": 0.0,
+      "passed": false,
+      "latency_ms": 8379,
+      "sources": 0
+    },
+    {
+      "id": "nba-pred-003",
+      "category": "predictions",
+      "question": "Quel est l'impact moyen d'une blessure au ligament croise sur la carriere d'un joueur NBA ?",
+      "golden": "Historiquement 12-18 mois de recuperation, baisse de performance de 10-20% dans les stats",
+      "answer": "L'impact d'une blessure au ligament croisé antérieur (LCA) sur la carrière d'un joueur NBA est significatif et mesurable :\n\n**Statistiques de retour au jeu :**\n- 82% des joueurs NBA reviennent jouer après une rupture du LCA (vs 90% dans la population générale)\n- Temps moyen de récupération : 11,6 mois (plage : 6-24 mois)\n\n**Impact sur les performances :**\n- PER moyen post-blessure : -2.3 points par rapport à la pré-blessure\n- USG% : -2.1% (moins d'utilisation offensive)\n- TS% : -1.8% (efficacité",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 36137,
+      "sources": 0
+    }
+  ]
+}

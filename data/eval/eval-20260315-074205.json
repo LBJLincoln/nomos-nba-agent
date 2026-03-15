@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-15T07:42:05.469113+00:00",
+  "total": 5,
+  "passed": 4,
+  "failed": 1,
+  "accuracy": 80.0,
+  "category": "game_analysis",
+  "avg_latency_ms": 12801,
+  "results": [
+    {
+      "id": "nba-game-001",
+      "category": "game_analysis",
+      "question": "Qu'est-ce que le pace dans les stats NBA ?",
+      "golden": "Nombre de possessions par 48 minutes — mesure la vitesse de jeu",
+      "answer": "Le pace (rythme) est une mesure statistique qui indique le nombre de possessions par 48 minutes (une partie de 4 quart-temps de 12 minutes) pour une équipe ou un joueur.\n\nFormule du pace :\nPace = 48 * ((Possessions de l'équipe) / (Minutes jouées par l'équipe))\n\nOù :\n- Possessions = FGA + 0.44*FTA - ORB + TOV\n- Minutes jouées par l'équipe = Minutes jouées par les 5 joueurs sur le terrain\n\nLe pace ajuste pour la vitesse du jeu. Une équipe avec un pace élevé (ex: 100) joue beaucoup plus de possessi",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 12239,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-005",
+      "category": "game_analysis",
+      "question": "Comment le small-ball a-t-il change la NBA ?",
+      "golden": "Les Warriors de 2015+ ont popularise le 5-out, spacing, 3-point shooting",
+      "answer": "Le small-ball a révolutionné la NBA depuis 2012, principalement grâce aux Warriors de Golden State. Voici les impacts statistiques et stratégiques :\n\n**Changements statistiques (2012-2023) :**\n- Taux de tirs à 3 points : +8.5% (de 21.5% à 30%)\n- Points par match : +12.3 (de 97.7 à 110)\n- Pace (possessions par match) : +3.2 (de 91.6 à 94.8)\n- Taille moyenne des lineups : -2.1 pouces\n\n**Équipes pionnières :**\n- Warriors 2014-15 : 5 joueurs de moins de 6'8\" sur le terrain en moyenne\n- Rockets 2017-",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 17204,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-003",
+      "category": "game_analysis",
+      "question": "Explique le pick-and-roll et pourquoi c'est la base de l'attaque moderne",
+      "golden": "Action ou un joueur pose un ecran, le porteur de balle utilise l'ecran, le poseur roll vers le panier",
+      "answer": "Le pick-and-roll (écran et roule) est la base de l'attaque moderne NBA pour plusieurs raisons statistiques et tactiques :\n\n**Mécanique fondamentale :**\n- Un joueur (passeur) utilise un écran d'un coéquipier (passeur)\n- Le défenseur du passeur doit choisir : contourner l'écran ou switcher\n- Le passeur roule vers le panier après l'écran\n\n**Pourquoi c'est dominant statistiquement :**\n\n1. **Efficacité offensive**\n   - Les possessions pick-and-roll génèrent 1.08 points par possession (PPP) vs 1.02 PP",
+      "keywords_matched": 0.4,
+      "passed": false,
+      "latency_ms": 19847,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-004",
+      "category": "game_analysis",
+      "question": "What makes the 2014 Spurs offense considered the greatest team offense ever?",
+      "golden": "Ball movement, 300+ extra passes per game, highest assisted FG%, beautiful basketball",
+      "answer": "The 2014 San Antonio Spurs offense is widely considered the greatest team offense in NBA history for several key reasons:\n\n**Statistical Dominance**\n- Offensive Rating (ORtg): 110.7 (highest in NBA history at the time)\n- Effective Field Goal Percentage (eFG%): 53.9% (1st in league)\n- True Shooting Percentage (TS%): 58.1% (1st in league)\n- Assist Percentage: 65.1% (highest in league, meaning 65.1% of their made baskets were assisted)\n\n**Ball Movement & Spacing**\n- Averaged 25.2 assists per game (",
+      "keywords_matched": 0.75,
+      "passed": true,
+      "latency_ms": 8567,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-002",
+      "category": "game_analysis",
+      "question": "What is the difference between offensive rating and defensive rating?",
+      "golden": "ORtg = points scored per 100 possessions, DRtg = points allowed per 100 possessions",
+      "answer": "Offensive Rating (ORtg) and Defensive Rating (DRtg) are two fundamental advanced statistics used to measure a team's or player's efficiency on offense and defense, respectively. Here's a detailed breakdown:\n\nOffensive Rating (ORtg):\n- Measures points produced per 100 possessions\n- Formula: 100 x (Points Scored) / (Possessions)\n- League average is typically around 110-115 in modern NBA\n- Example: A team with ORtg of 115 means they score 115 points per 100 possessions\n\nDefensive Rating (DRtg):\n- M",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 6152,
+      "sources": 0
+    }
+  ]
+}
