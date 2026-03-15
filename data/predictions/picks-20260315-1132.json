@@ -1,0 +1,120 @@
+{
+  "timestamp": "2026-03-15T11:32:51.383770+00:00",
+  "bankroll": 100.0,
+  "total_opportunities": 40,
+  "selected_bets": 2,
+  "total_exposure": "2.0%",
+  "expected_ev": 0.17,
+  "picks": [
+    {
+      "description": "OKC ML vs CHA",
+      "bookmaker": "Fanduel",
+      "odds": 1.2,
+      "estimated_prob": "97.8%",
+      "edge": "17.4%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 97.8%"
+    },
+    {
+      "description": "SAC ML vs WAS",
+      "bookmaker": "Betclic",
+      "odds": 1.17,
+      "estimated_prob": "97.3%",
+      "edge": "13.8%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Cotes trop basses: 1.17 < 1.20"
+    },
+    {
+      "description": "SAC ML vs WAS",
+      "bookmaker": "Draftkings",
+      "odds": 1.15,
+      "estimated_prob": "97.3%",
+      "edge": "11.8%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Cotes trop basses: 1.15 < 1.20"
+    },
+    {
+      "description": "OKC ML vs CHA",
+      "bookmaker": "Pinnacle",
+      "odds": 1.14,
+      "estimated_prob": "97.8%",
+      "edge": "11.5%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Cotes trop basses: 1.14 < 1.20"
+    },
+    {
+      "description": "SAC ML vs WAS",
+      "bookmaker": "Winamax",
+      "odds": 1.14,
+      "estimated_prob": "97.3%",
+      "edge": "10.9%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Cotes trop basses: 1.14 < 1.20"
+    },
+    {
+      "description": "OKC ML vs CHA",
+      "bookmaker": "Betclic",
+      "odds": 1.12,
+      "estimated_prob": "97.8%",
+      "edge": "9.6%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Cotes trop basses: 1.12 < 1.20"
+    },
+    {
+      "description": "CHI ML vs IND",
+      "bookmaker": "Pinnacle",
+      "odds": 3.12,
+      "estimated_prob": "34.9%",
+      "edge": "9.0%",
+      "kelly_fraction": "1.06%",
+      "stake": 1.06,
+      "is_bet": true,
+      "reason": "+EV confirme: edge 9.0%, Kelly 1.06%"
+    },
+    {
+      "description": "SAC ML vs WAS",
+      "bookmaker": "Fanduel",
+      "odds": 1.11,
+      "estimated_prob": "97.3%",
+      "edge": "8.0%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Cotes trop basses: 1.11 < 1.20"
+    },
+    {
+      "description": "CHI ML vs IND",
+      "bookmaker": "Betclic",
+      "odds": 3.08,
+      "estimated_prob": "34.9%",
+      "edge": "7.6%",
+      "kelly_fraction": "0.92%",
+      "stake": 0.92,
+      "is_bet": true,
+      "reason": "+EV confirme: edge 7.6%, Kelly 0.92%"
+    },
+    {
+      "description": "OKC ML vs CHA",
+      "bookmaker": "Winamax",
+      "odds": 1.1,
+      "estimated_prob": "97.8%",
+      "edge": "7.6%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Cotes trop basses: 1.10 < 1.20"
+    }
+  ]
+}
