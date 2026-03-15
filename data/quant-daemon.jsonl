@@ -71,3 +71,15 @@
 {"ts": "2026-03-15T15:01:07.150387+00:00", "level": "INFO", "msg": "Value bets: 0/247 opportunities | exposure 0.0% | EV $0.00"}
 {"ts": "2026-03-15T15:01:07.380493+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 10 papers, 0 picks"}
 {"ts": "2026-03-15T15:01:07.380752+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE #1 DONE (28s) \u2014 10 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T15:58:33.174069+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T15:58:37.938408+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T15:58:41.445534+00:00", "level": "INFO", "msg": "Live odds: 7 games fetched from Odds API"}
+{"ts": "2026-03-15T15:58:41.959926+00:00", "level": "INFO", "msg": "Value bets: 0/231 opportunities | exposure 0.0% | EV $0.00"}
+{"ts": "2026-03-15T15:58:42.715289+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 10 papers, 0 picks"}
+{"ts": "2026-03-15T15:58:42.715448+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (10s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T16:58:42.985770+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T16:58:55.966800+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T16:58:59.225279+00:00", "level": "INFO", "msg": "Live odds: 7 games fetched from Odds API"}
+{"ts": "2026-03-15T16:58:59.476414+00:00", "level": "INFO", "msg": "Value bets: 0/229 opportunities | exposure 0.0% | EV $0.00"}
+{"ts": "2026-03-15T16:58:59.494606+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 10 papers, 0 picks"}
+{"ts": "2026-03-15T16:58:59.494758+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (17s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
