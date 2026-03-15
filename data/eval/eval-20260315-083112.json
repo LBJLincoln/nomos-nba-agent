@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-15T08:31:12.511966+00:00",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "betting",
+  "avg_latency_ms": 27048,
+  "results": [
+    {
+      "id": "nba-bet-004",
+      "category": "betting",
+      "question": "What are player props in NBA betting?",
+      "golden": "Bets on individual player performance: points over/under, rebounds, assists, 3-pointers made, etc.",
+      "answer": "Les player props (propositions de joueurs) sont des paris spécifiques sur la performance individuelle d'un joueur NBA, distincts du résultat du match. Voici les types principaux avec des exemples concrets :\n\n**Statistiques individuelles**\n- Points : Over/Under sur le total de points d'un joueur (ex: LeBron James - Over/Under 26.5 points)\n- Rebonds : Total de rebonds offensifs/défensifs (ex: Nikola Jokic - Over/Under 12.5 rebonds)\n- Passes : Assists totaux (ex: Chris Paul - Over/Under 8.5 passes)",
+      "keywords_matched": 0.8,
+      "passed": true,
+      "latency_ms": 13753,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-001",
+      "category": "betting",
+      "question": "Qu'est-ce que le Kelly Criterion en paris sportifs NBA ?",
+      "golden": "Formule de gestion de bankroll: f* = (bp - q) / b, ou b=cote decimale-1, p=proba victoire, q=1-p",
+      "answer": "Le Kelly Criterion est une formule mathématique utilisée pour déterminer la taille optimale d'un pari en fonction de la probabilité estimée de victoire et des cotes proposées. En NBA, cela permet de maximiser la croissance du capital à long terme tout en minimisant le risque de ruine.\n\nLa formule est : **f* = (bp - q) / b**\n\nOù :\n- f* = fraction du capital à parier\n- b = cote décimale - 1 (ex: cote 2.5 → b = 1.5)\n- p = probabilité estimée de victoire\n- q = 1 - p (probabilité de perte)\n\n**Exemple",
+      "keywords_matched": 0.75,
+      "passed": true,
+      "latency_ms": 29750,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-003",
+      "category": "betting",
+      "question": "Comment fonctionnent les spreads NBA ?",
+      "golden": "Le favori doit gagner par plus de X points, l'outsider doit perdre par moins de X points ou gagner",
+      "answer": "Les spreads NBA fonctionnent comme suit :\n\n**Définition du spread**\n- Le spread (écart) est un handicap appliqué par les bookmakers pour équilibrer les chances de chaque équipe\n- Exemple : Team A -7.5 vs Team B +7.5\n  - Team A doit gagner par 8+ points pour \"couvrir\" le spread\n  - Team B peut perdre par 7 points ou moins, ou gagner, pour couvrir\n\n**Calcul du spread**\nLes bookmakers prennent en compte :\n- Forme récente des équipes\n- Avantages du terrain (home court)\n- Matchups spécifiques\n- Bless",
+      "keywords_matched": 0.75,
+      "passed": true,
+      "latency_ms": 63240,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-002",
+      "category": "betting",
+      "question": "What is CLV (Closing Line Value) in NBA betting?",
+      "golden": "Difference between the odds you bet at and the closing odds — positive CLV indicates long-term profitability",
+      "answer": "CLV (Closing Line Value) measures the difference between the line you bet at versus the closing line when the game starts. It's a key metric for evaluating betting skill over time.\n\n**How to calculate CLV:**\n- Point spread: (Your line - Closing line) × 100\n- Moneyline: (Your implied probability - Closing implied probability) × 100\n- Over/Under: (Your line - Closing line) × 100\n\n**Example:**\nYou bet Lakers -3.5, closing line is -2.5\nCLV = (-3.5 - (-2.5)) × 100 = -100\n\n**Why CLV matters:**\n- The c",
+      "keywords_matched": 0.75,
+      "passed": true,
+      "latency_ms": 19497,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-005",
+      "category": "betting",
+      "question": "Quelle est la marge typique d'un bookmaker NBA ?",
+      "golden": "3-5% de vig (vigorish/juice) sur les cotes standard, spreads -110/-110",
+      "answer": "La marge typique d'un bookmaker NBA varie entre **4% et 6%** pour les paris standards sur le moneyline, le spread et le total.\n\nVoici les marges moyennes par type de pari :\n\n**Moneyline** : 4-5%\n- Exemple : Un match équilibré (-110 / -110) = 4.55% de marge\n\n**Point Spread** : 4-5%\n- Même structure que le moneyline, juste avec le handicap\n\n**Over/Under** : 4-5%\n- Identique au moneyline en termes de marge\n\n**Player Props** : 6-8%\n- Plus élevée car plus volatile et moins efficace\n\n**Parlays** : 10-",
+      "keywords_matched": 0.6,
+      "passed": true,
+      "latency_ms": 9002,
+      "sources": 0
+    }
+  ]
+}
