@@ -1,0 +1,121 @@
+{
+  "timestamp": "2026-03-15T02:33:39.813102+00:00",
+  "total": 10,
+  "passed": 10,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "stats",
+  "avg_latency_ms": 10384,
+  "results": [
+    {
+      "id": "nba-stats-014",
+      "category": "stats",
+      "question": "What is Nikola Jokic's career assist average?",
+      "golden": "Approximately 7-8 assists per game",
+      "answer": "Nikola Jokic's career assist average is **7.5 assists per game** through the 2023-24 season.\n\nHere are his assist stats by season:\n- 2015-16: 2.4 APG\n- 2016-17: 2.9 APG  \n- 2017-18: 4.9 APG\n- 2018-19: 7.0 APG\n- 2019-20: 7.0 APG\n- 2020-21: 8.6 APG\n- 2021-22: 8.3 APG\n- 2022-23: 9.8 APG\n- 2023-24: 8.5 APG\n\nHis 7.5 career APG ranks him among the highest-assisting big men in NBA history. For comparison, Wilt Chamberlain averaged 4.4 APG, Kareem Abdul-Jabbar 3.6 APG, and Shaquille O'Neal 2.5 APG.\n\nSou",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 7305,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-008",
+      "category": "stats",
+      "question": "Who has the most career steals in NBA history?",
+      "golden": "John Stockton with 3,265 career steals",
+      "answer": "John Stockton holds the NBA record for most career steals with 3,265 steals in 1,504 games played over 19 seasons (1984-2003) with the Utah Jazz.\n\nHis steal rate of 2.17 per game ranks 3rd all-time behind Chris Paul (2.49) and Michael Jordan (2.35). Stockton's combination of quick hands, anticipation, and defensive positioning allowed him to accumulate steals at an elite rate while also leading the league in assists for 9 consecutive seasons.\n\nThe top 5 career steals leaders are:\n1. John Stockto",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 6724,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-010",
+      "category": "stats",
+      "question": "What is the NBA record for most blocks in a single game?",
+      "golden": "Elmore Smith with 17 blocks on October 28, 1973",
+      "answer": "The NBA record for most blocks in a single game is **17 blocks**, shared by two players:\n\n1. **Elmore Smith** (Los Angeles Lakers) - October 28, 1973 vs Portland Trail Blazers\n2. **Dikembe Mutombo** (Denver Nuggets) - December 23, 1995 vs Detroit Pistons\n\n**Elmore Smith's game:**\n- 17 blocks in 39 minutes\n- Also recorded 5 points and 5 rebounds\n- Lakers won 111-100\n\n**Dikembe Mutombo's game:**\n- 17 blocks in 39 minutes\n- Also recorded 20 points and 10 rebounds\n- Nuggets won 117-105\n\nFor comparis",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 14253,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-002",
+      "category": "stats",
+      "question": "Who holds the NBA record for most career assists?",
+      "golden": "John Stockton with 15,806 career assists",
+      "answer": "John Stockton holds the NBA record for most career assists with 15,806 assists over his 19-year career with the Utah Jazz (1984-2003).\n\nKey stats:\n- 13,620 assists with Karl Malone (most assists between two teammates in NBA history)\n- 10x NBA assists leader (1988, 1989, 1991-1995, 1997-1999)\n- 7x NBA steals leader (1988-1992, 1996-1997)\n- 2x NBA All-Star (1989, 1993)\n- 2x NBA All-Defensive First Team (1988, 1990)\n\nHe surpassed Magic Johnson's previous record of 10,141 assists in 1995 and finishe",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 2712,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-004",
+      "category": "stats",
+      "question": "What is LeBron James' career scoring average?",
+      "golden": "Approximately 27.1 points per game",
+      "answer": "LeBron James' career scoring average is **27.1 points per game** through the 2022-23 season.\n\nThis ranks him 5th all-time in career scoring average among players with at least 200 games played, behind:\n- Michael Jordan (30.1)\n- Wilt Chamberlain (30.1)\n- Elgin Baylor (27.4)\n- Kevin Durant (27.2)\n\nHis scoring has evolved throughout his career:\n- Rookie season (2003-04): 20.9 PPG\n- Peak scoring (2005-06 to 2009-10): 27.3 to 31.4 PPG\n- Recent seasons (2020-21 to 2022-23): 25.0 to 28.9 PPG\n\nSource: B",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 5178,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-012",
+      "category": "stats",
+      "question": "Who scored the most points in their rookie season?",
+      "golden": "Wilt Chamberlain with 2,707 points (37.6 PPG) in 1959-60",
+      "answer": "The record for most points scored in a rookie season is held by Wilt Chamberlain, who scored 3,013 points during the 1959-60 season with the Philadelphia Warriors.\n\nThis record has stood for over 60 years. Here are some key details:\n\n- Chamberlain averaged 37.6 points per game that season\n- He played in all 79 games the Warriors played that year\n- His scoring average that season is also the highest in NBA history for a single season\n\nThe closest any rookie has come to this record in the modern e",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 6370,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-011",
+      "category": "stats",
+      "question": "Quel est le True Shooting % le plus eleve pour une saison (min 1000 pts) ?",
+      "golden": "Environ 73-74% TS% (plusieurs joueurs modernes)",
+      "answer": "Voici les meilleures saisons en True Shooting Percentage (TS%) avec un minimum de 1000 points marqués :\n\n**1. Stephen Curry - 2015-16 Warriors**\n- TS% : **66.9%**\n- Points : 2375\n- Équipe : Golden State Warriors (73-9)\n- Contexte : MVP unanime, 402 tirs à 3 points réussis\n\n**2. Tyson Chandler - 2013-14 Mavericks**\n- TS% : **66.4%**\n- Points : 1138\n- Équipe : Dallas Mavericks\n- Contexte : Roll man parfait dans le système pick-and-roll de Dirk Nowitzki\n\n**3. Stephen Curry - 2015-16 Warriors** (sai",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 16962,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-013",
+      "category": "stats",
+      "question": "Combien de fois Michael Jordan a-t-il ete meilleur marqueur de la NBA ?",
+      "golden": "10 fois champion marqueur",
+      "answer": "Michael Jordan a été meilleur marqueur de la NBA **10 fois** :\n\n1. 1986-87 : 37.1 PPG\n2. 1987-88 : 35.0 PPG  \n3. 1988-89 : 32.5 PPG\n4. 1989-90 : 33.6 PPG\n5. 1990-91 : 31.5 PPG\n6. 1991-92 : 30.1 PPG\n7. 1992-93 : 32.6 PPG\n8. 1995-96 : 30.4 PPG\n9. 1996-97 : 29.6 PPG\n10. 1997-98 : 28.7 PPG\n\n**Record NBA** : Jordan détient le record absolu de titres de meilleur marqueur, devant Wilt Chamberlain (7 fois) et Allen Iverson (4 fois).\n\n**Statistiques de carrière** : Jordan termine sa carrière avec une moy",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 8854,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-007",
+      "category": "stats",
+      "question": "Quel joueur a le meilleur PER de tous les temps en saison reguliere ?",
+      "golden": "Nikola Jokic avec un PER de 31.3 (2023-24) ou Michael Jordan career 27.9",
+      "answer": "Le meilleur PER (Player Efficiency Rating) de tous les temps en saison régulière est détenu par **Wilt Chamberlain** avec un PER de **31.82** sur sa carrière.\n\nVoici le top 5 :\n\n1. **Wilt Chamberlain** - 31.82\n2. **Michael Jordan** - 27.91\n3. **LeBron James** - 27.85\n4. **Anthony Davis** - 27.68\n5. **Shaquille O'Neal** - 26.43\n\nLe PER de Chamberlain est particulièrement impressionnant car il a maintenu cette moyenne sur 1 045 matchs de saison régulière. Son meilleur PER sur une saison est de 31.",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 20910,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-005",
+      "category": "stats",
+      "question": "Qui detient le record du plus grand nombre de rebonds en carriere ?",
+      "golden": "Wilt Chamberlain avec 23,924 rebonds",
+      "answer": "Le record du plus grand nombre de rebonds en carrière en NBA est détenu par **Wilt Chamberlain** avec **23 924 rebonds**.\n\nVoici le top 5 des meilleurs rebondeurs de l'histoire :\n\n1. **Wilt Chamberlain** - 23 924 (1959-1973)\n2. **Bill Russell** - 21 620 (1956-1969)\n3. **Kareem Abdul-Jabbar** - 17 440 (1969-1989)\n4. **Elvin Hayes** - 16 279 (1968-1984)\n5. **Robert Parish** - 14 715 (1976-1997)\n\nChamberlain détient également le record du plus grand nombre de rebonds en une saison (2 149 en 1960-61",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 14575,
+      "sources": 0
+    }
+  ]
+}

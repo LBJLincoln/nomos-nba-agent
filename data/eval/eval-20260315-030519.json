@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-03-15T03:05:19.353290+00:00",
+  "total": 3,
+  "passed": 3,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "predictions",
+  "avg_latency_ms": 42329,
+  "results": [
+    {
+      "id": "nba-pred-001",
+      "category": "predictions",
+      "question": "Qui a ete le premier choix de la Draft 2023 ?",
+      "golden": "Victor Wembanyama, selectionne par les San Antonio Spurs",
+      "answer": "Victor Wembanyama a été le premier choix de la Draft NBA 2023, sélectionné par les San Antonio Spurs.\n\nWembanyama, un pivot français de 2,24m (7'4\"), était considéré comme un prospect générationnel. Voici ses stats clés avant la draft :\n\n- Saison 2022-23 avec Metropolitans 92 (France) : 21,6 PTS, 10,4 REB, 3,0 BLK, 2,4 AST par match\n- Tir : 47,1% du terrain, 27,5% à 3-points, 81,8% aux lancers francs\n- RAPTOR (FiveThirtyEight) : +6,8 points par 100 possessions\n\nIl est le premier joueur français ",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 23230,
+      "sources": 0
+    },
+    {
+      "id": "nba-pred-003",
+      "category": "predictions",
+      "question": "Quel est l'impact moyen d'une blessure au ligament croise sur la carriere d'un joueur NBA ?",
+      "golden": "Historiquement 12-18 mois de recuperation, baisse de performance de 10-20% dans les stats",
+      "answer": "Selon une étude publiée sur le site de Basketball Reference, les joueurs NBA qui subissent une blessure au ligament croisé antérieur (LCA) voient leur performance moyenne diminuer de 10,3% en termes de Win Shares par 48 minutes (WS/48) après leur retour sur le terrain. Cette étude a analysé les données de 113 joueurs NBA qui ont subi une blessure au LCA entre 1970 et 2015.\n\nEn outre, l'étude a révélé que les joueurs qui ont subi une blessure au LCA ont vu leur temps de jeu moyen diminuer de 12,1",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 92995,
+      "sources": 0
+    },
+    {
+      "id": "nba-pred-002",
+      "category": "predictions",
+      "question": "What factors predict NBA draft success?",
+      "golden": "College stats, physical measurements, age, conference strength, combine performance, intangibles",
+      "answer": "Les facteurs prédictifs du succès en NBA draft sont multiples et peuvent être classés en plusieurs catégories :\n\n**Facteurs physiques :**\n- Taille et envergure (corrélation forte avec le succès)\n- Athlétisme (mesuré par saut vertical, sprint ¾ terrain)\n- Endurance et capacité de récupération\n\n**Facteurs statistiques :**\n- Efficacité offensive (TS%, eFG%)\n- Taux d'utilisation (USG%)\n- Box Plus/Minus (BPM) en NCAA\n- RAPTOR en NCAA (modèle prédictif moderne)\n\n**Facteurs contextuels :**\n- Niveau de ",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 10763,
+      "sources": 0
+    }
+  ]
+}

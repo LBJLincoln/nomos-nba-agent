@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-15T02:58:10.172939+00:00",
+  "total": 5,
+  "passed": 3,
+  "failed": 2,
+  "accuracy": 60.0,
+  "category": "betting",
+  "avg_latency_ms": 30167,
+  "results": [
+    {
+      "id": "nba-bet-004",
+      "category": "betting",
+      "question": "What are player props in NBA betting?",
+      "golden": "Bets on individual player performance: points over/under, rebounds, assists, 3-pointers made, etc.",
+      "answer": "Les player props (propositions de joueurs) sont des paris spécifiques sur la performance individuelle d'un joueur NBA, indépendamment du résultat du match. Voici les types principaux :\n\n**Statistiques individuelles :**\n- Points marqués (ex: +2.5)\n- Rebonds totaux\n- Passes décisives\n- 3-points réussis\n- Contres\n- Interceptions\n\n**Combinaisons (double/double/triple-double) :**\n- Plus de 10 points ET 10 rebonds\n- Plus de 10 points, 10 rebonds ET 10 passes\n\n**Records et performances :**\n- Premier pa",
+      "keywords_matched": 0.4,
+      "passed": false,
+      "latency_ms": 13957,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-002",
+      "category": "betting",
+      "question": "What is CLV (Closing Line Value) in NBA betting?",
+      "golden": "Difference between the odds you bet at and the closing odds — positive CLV indicates long-term profitability",
+      "answer": "CLV (Closing Line Value) est une mesure qui évalue la qualité d'un pari en fonction de la différence entre le cours auquel vous avez parié et le cours de fermeture (c'est-à-dire le cours juste avant le début du match). \n\nSelon Sports Insights, un site spécialisé dans les données de paris sportifs, le CLV est calculé comme suit : \n\nCLV = (Cours de fermeture - Cours de pari) / |Cours de pari|\n\nPar exemple, si vous avez parié sur les Lakers à -5,5 et que le cours de fermeture est de -6,5, votre CLV",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 83377,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-001",
+      "category": "betting",
+      "question": "Qu'est-ce que le Kelly Criterion en paris sportifs NBA ?",
+      "golden": "Formule de gestion de bankroll: f* = (bp - q) / b, ou b=cote decimale-1, p=proba victoire, q=1-p",
+      "answer": "Le Kelly Criterion est une formule mathématique utilisée pour déterminer la taille optimale d'un pari afin de maximiser la croissance à long terme du capital. Dans le contexte des paris sportifs NBA, elle permet de calculer le pourcentage de votre bankroll à miser sur un pari donné.\n\nLa formule est : f* = (bp - q) / b\n\nOù :\n- f* = fraction de votre bankroll à parier\n- b = cote décimal du pari (ex: 2.0 pour un pari à 1:1)\n- p = probabilité de gagner (selon votre estimation)\n- q = probabilité de p",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 12055,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-003",
+      "category": "betting",
+      "question": "Comment fonctionnent les spreads NBA ?",
+      "golden": "Le favori doit gagner par plus de X points, l'outsider doit perdre par moins de X points ou gagner",
+      "answer": "Les spreads NBA sont des handicaps de points appliqués par les bookmakers pour équilibrer les paris sur un match. Voici comment ça fonctionne :\n\n**Principe de base**\n- L'équipe favorite a un handicap négatif (ex: -7.5)\n- L'équipe outsider a un handicap positif (ex: +7.5)\n- Pour gagner un pari sur le spread, il faut que ton équipe \"couvre\" le handicap\n\n**Exemple concret**\nMatch Lakers vs Warriors :\n- Spread : Warriors -7.5\n- Score final : Warriors 112, Lakers 105\n- Résultat pour le spread : Warri",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 23964,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-005",
+      "category": "betting",
+      "question": "Quelle est la marge typique d'un bookmaker NBA ?",
+      "golden": "3-5% de vig (vigorish/juice) sur les cotes standard, spreads -110/-110",
+      "answer": "La marge typique d'un bookmaker NBA varie généralement entre 4% et 5% pour les matchs à deux équipes, ce qui signifie que pour chaque 100 $ misés, le bookmaker gagne environ 4 $ à 5 $ en moyenne. Cependant, cette marge peut varier en fonction du type de pari, du bookmaker et de la compétition.\n\nSelon une étude de SportsInsights, la marge moyenne pour les paris sur les matchs de la NBA est d'environ 4,5% pour les spreads et 4,2% pour les over/under. Pour les moneylines, la marge peut être plus él",
+      "keywords_matched": 0.4,
+      "passed": false,
+      "latency_ms": 17482,
+      "sources": 0
+    }
+  ]
+}
