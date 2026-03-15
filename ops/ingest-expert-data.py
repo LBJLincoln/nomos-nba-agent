@@ -101,7 +101,11 @@ def http_get(url, headers=None, timeout=30):
                 return {"error": "HTML response (not JSON)"}, resp.status
             return json.loads(raw), resp.status
     except urllib.error.HTTPError as e:
-        return {"error": f"HTTP {e.code}: {e.reason}"}, e.code
+        try:
+            err_body = e.read().decode("utf-8")[:500]
+        except Exception:
+            err_body = ""
+        return {"error": f"HTTP {e.code}: {e.reason} — {err_body}"}, e.code
     except Exception as e:
         return {"error": str(e)}, 0
 
