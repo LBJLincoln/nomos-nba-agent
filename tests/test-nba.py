@@ -69,6 +69,56 @@ SCENARIOS = [
     },
 ]
 
+# ── Infrastructure health & security tests ────────────────────────────────────
+
+def run_infra_checks():
+    """Check credential storage, error handling, and repo hygiene."""
+    checks = []
+
+    # 1. .env files must be gitignored
+    gitignore = (ROOT / ".gitignore").read_text() if (ROOT / ".gitignore").exists() else ""
+    checks.append(("env_gitignored", ".env" in gitignore or ".env.local" in gitignore))
+
+    # 2. No hardcoded secrets committed in Python files (skip .env*)
+    import re
+    secret_pattern = re.compile(r"""(?:sk-|ghp_|xoxb-|Bearer\s+)[A-Za-z0-9_\-]{10,}""")
+    leaked = []
+    for py_file in ROOT.rglob("*.py"):
+        if ".env" in py_file.name:
+            continue
+        for lineno, line in enumerate(py_file.read_text().splitlines(), 1):
+            if "environ" in line or "getenv" in line or "default" in line.lower():
+                continue  # env lookups with fallbacks are OK
+            if secret_pattern.search(line):
+                leaked.append(f"{py_file.relative_to(ROOT)}:{lineno}")
+    checks.append(("no_hardcoded_secrets", len(leaked) == 0))
+
+    # 3. Critical dirs exist
+    for d in ["agents", "ops", "models", "tests", "data"]:
+        checks.append((f"dir_{d}_exists", (ROOT / d).is_dir()))
+
+    # 4. Agent answer_question handles errors without crashing
+    try:
+        result = nba_agent.answer_question("")
+        checks.append(("empty_query_handled", isinstance(result, dict) and "answer" in result))
+    except Exception:
+        checks.append(("empty_query_handled", False))
+
+    print(f"\n{'─'*50}")
+    print("INFRA & SECURITY CHECKS")
+    print(f"{'─'*50}")
+    passed = 0
+    for name, ok in checks:
+        status = "PASS" if ok else "FAIL"
+        if not ok and name == "no_hardcoded_secrets":
+            print(f"  {status} {name} — leaked in: {leaked[:3]}")
+        else:
+            print(f"  {status} {name}")
+        passed += ok
+    print(f"\n  Result: {passed}/{len(checks)} checks passed")
+    return {"passed": passed, "total": len(checks), "checks": checks}
+
+
 # ── Run tests ─────────────────────────────────────────────────────────────────
 
 def run_scenario(scenario):
@@ -169,9 +219,12 @@ if __name__ == "__main__":
     parser.add_argument("--all", action="store_true", help="Run all scenarios")
     parser.add_argument("--scenario", type=str, help="Run specific scenario by name")
     parser.add_argument("--quick", action="store_true", help="Run first scenario only")
+    parser.add_argument("--infra", action="store_true", help="Run infra & security checks only")
     args = parser.parse_args()
 
-    if args.scenario:
+    if args.infra:
+        run_infra_checks()
+    elif args.scenario:
         match = [s for s in SCENARIOS if s["name"] == args.scenario]
         if match:
             run_scenario(match[0])
