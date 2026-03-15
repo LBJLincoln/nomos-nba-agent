@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-15T10:05:21.437778+00:00",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "goat",
+  "avg_latency_ms": 18147,
+  "results": [
+    {
+      "id": "nba-goat-002",
+      "category": "goat",
+      "question": "Is Steph Curry the greatest shooter of all time?",
+      "golden": "Yes by consensus — career 42-43% from 3, 3,747+ career threes (record), revolutionized the game",
+      "answer": "Steph Curry is unquestionably the greatest shooter in NBA history, and the statistical evidence is overwhelming:\n\n**Career 3-point records:**\n- 3,701 made threes (2,348 more than Ray Allen, previous record holder)\n- 43.7% career 3P% on high volume (minimum 6.0 attempts/game)\n- 31.2 points per 100 possessions as a spot-up shooter (NBA.com)\n\n**Advanced shooting metrics:**\n- 68.3 TS% career (top 10 all-time for guards)\n- 62.8 eFG% on threes (league average ~56%)\n- 4.6 3PM/game career (no one else a",
+      "keywords_matched": 0.8333333333333334,
+      "passed": true,
+      "latency_ms": 15014,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-004",
+      "category": "goat",
+      "question": "Who is the greatest defensive player in NBA history?",
+      "golden": "Bill Russell (11 titles, 5 MVPs), Hakeem Olajuwon, Ben Wallace, or Tim Duncan depending on era",
+      "answer": "The greatest defensive player in NBA history is unequivocally **Dikembe Mutombo**.\n\nHere's the statistical case:\n\n**Defensive Win Shares (DWS):**\n- Mutombo: 72.6 DWS (highest all-time)\n- Tim Duncan: 65.6 DWS\n- Kevin Garnett: 63.7 DWS\n- Hakeem Olajuwon: 58.8 DWS\n\n**Defensive Rating (points allowed per 100 possessions):**\n- Mutombo: 99.6 career (elite for his era)\n- Led league in blocks per game 3x (3.9 career average)\n- Led league in rebounds per game 4x (11.5 career average)\n\n**Accolades:**\n- 4x",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 9473,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-001",
+      "category": "goat",
+      "question": "Compare Michael Jordan et LeBron James en termes de stats de carriere",
+      "golden": "MJ: 30.1 PPG, 6 titres, 5 MVP, 6 Finals MVP. LBJ: 27.1 PPG, 4 titres, 4 MVP, 4 Finals MVP, meilleur marqueur all-time",
+      "answer": "Voici une comparaison statistique précise entre Michael Jordan et LeBron James en carrière :\n\n**Michael Jordan (1984-1993, 1995-1998, 2001-2003)**\n- Matchs joués : 1,072\n- Points : 32,292 (30.1 ppg)\n- Rebonds : 6,672 (6.2 rpg)\n- Passes : 5,633 (5.3 apg)\n- FG% : 49.7%\n- 3P% : 32.7%\n- FT% : 83.5%\n- PER : 27.9\n- WS : 214.0\n- VORP : 116.7\n\n**LeBron James (2003-2024)**\n- Matchs joués : 1,453\n- Points : 40,474 (27.8 ppg)\n- Rebonds : 11,226 (7.7 rpg)\n- Passes : 11,002 (7.6 apg)\n- FG% : 50.4%\n- 3P% : 34",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 12499,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-005",
+      "category": "goat",
+      "question": "Compare la dynastie Warriors (2015-2022) avec la dynastie Bulls (1991-1998)",
+      "golden": "Warriors: 4 titres/6 Finals, shooting revolution. Bulls: 6 titres/6 Finals, deux three-peats, MJ domination",
+      "answer": "Comparaison des dynasties Warriors (2015-2022) vs Bulls (1991-1998) :\n\n**Palmarès**\nBulls : 6 titres en 8 saisons (1991, 1992, 1993, 1996, 1997, 1998)\nWarriors : 4 titres en 8 saisons (2015, 2017, 2018, 2022)\n\n**Performances en Finals**\nBulls : 6-0, moyenne de 12.3 points d'avance par match\nWarriors : 4-2, moyenne de 6.8 points d'avance par match\n\n**Joueurs clés**\nBulls : Michael Jordan (5 MVP), Scottie Pippen (7x All-Star), Dennis Rodman (7x champion)\nWarriors : Stephen Curry (2x MVP), Klay Tho",
+      "keywords_matched": 0.8,
+      "passed": true,
+      "latency_ms": 15005,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-003",
+      "category": "goat",
+      "question": "Pourquoi Nikola Jokic est-il considere comme le meilleur centre offensif de l'histoire ?",
+      "golden": "Triple-double machine, 3x MVP, playmaking historique pour un centre, PER record",
+      "answer": "Nikola Jokic est considéré comme le meilleur centre offensif de l'histoire pour plusieurs raisons statistiques et qualitatives :\n\n**Statistiques avancées :**\n- RAPTOR offensive : 8.9 (meilleur score jamais enregistré pour un pivot)\n- PER (Player Efficiency Rating) : 28.3 en carrière (1er chez les pivots)\n- TS% (True Shooting) : 63.7% (élite pour un joueur de son volume)\n- AST% (taux d'assists) : 28.9% (plus élevé que la plupart des meneurs)\n\n**Records et performances :**\n- Seul joueur de l'histo",
+      "keywords_matched": 0.8,
+      "passed": true,
+      "latency_ms": 38744,
+      "sources": 0
+    }
+  ]
+}

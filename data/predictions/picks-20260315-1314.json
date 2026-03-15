@@ -1,0 +1,120 @@
+{
+  "timestamp": "2026-03-15T13:14:05.524379+00:00",
+  "bankroll": 100.0,
+  "total_opportunities": 224,
+  "selected_bets": 0,
+  "total_exposure": "0.0%",
+  "expected_ev": 0,
+  "picks": [
+    {
+      "description": "Philadelphia 76ers ML vs Portland Trail Blazers",
+      "bookmaker": "FanDuel",
+      "odds": 3.85,
+      "estimated_prob": "95.0%",
+      "edge": "265.8%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 95.0%"
+    },
+    {
+      "description": "Philadelphia 76ers ML vs Portland Trail Blazers",
+      "bookmaker": "Matchbook",
+      "odds": 3.85,
+      "estimated_prob": "95.0%",
+      "edge": "265.8%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 95.0%"
+    },
+    {
+      "description": "Philadelphia 76ers ML vs Portland Trail Blazers",
+      "bookmaker": "Betfair",
+      "odds": 3.85,
+      "estimated_prob": "95.0%",
+      "edge": "265.8%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 95.0%"
+    },
+    {
+      "description": "Philadelphia 76ers ML vs Portland Trail Blazers",
+      "bookmaker": "Betfair",
+      "odds": 3.85,
+      "estimated_prob": "95.0%",
+      "edge": "265.8%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 95.0%"
+    },
+    {
+      "description": "Philadelphia 76ers ML vs Portland Trail Blazers",
+      "bookmaker": "BetAnything",
+      "odds": 3.8,
+      "estimated_prob": "95.0%",
+      "edge": "261.0%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 95.0%"
+    },
+    {
+      "description": "Philadelphia 76ers ML vs Portland Trail Blazers",
+      "bookmaker": "Everygame",
+      "odds": 3.8,
+      "estimated_prob": "95.0%",
+      "edge": "261.0%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 95.0%"
+    },
+    {
+      "description": "Philadelphia 76ers ML vs Portland Trail Blazers",
+      "bookmaker": "Betclic (FR)",
+      "odds": 3.75,
+      "estimated_prob": "95.0%",
+      "edge": "256.3%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 95.0%"
+    },
+    {
+      "description": "Philadelphia 76ers ML vs Portland Trail Blazers",
+      "bookmaker": "Winamax (DE)",
+      "odds": 3.75,
+      "estimated_prob": "95.0%",
+      "edge": "256.3%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 95.0%"
+    },
+    {
+      "description": "Philadelphia 76ers ML vs Portland Trail Blazers",
+      "bookmaker": "Smarkets",
+      "odds": 3.75,
+      "estimated_prob": "95.0%",
+      "edge": "256.3%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 95.0%"
+    },
+    {
+      "description": "Philadelphia 76ers ML vs Portland Trail Blazers",
+      "bookmaker": "Unibet (FR)",
+      "odds": 3.75,
+      "estimated_prob": "95.0%",
+      "edge": "256.3%",
+      "kelly_fraction": "0.00%",
+      "stake": 0.0,
+      "is_bet": false,
+      "reason": "Probabilite estimee aberrante: 95.0%"
+    }
+  ]
+}

@@ -151,7 +151,7 @@ def ingest_latest_research():
             try:
                 data, status = http_get(
                     f"https://api.search.brave.com/res/v1/web/search?q={urllib.parse.quote(query)}&count=5",
-                    headers={"Accept": "application/json", "Accept-Encoding": "gzip", "X-Subscription-Token": BRAVE_API_KEY},
+                    headers={"Accept": "application/json", "X-Subscription-Token": BRAVE_API_KEY},
                     timeout=20
                 )
                 if status == 200 and "web" in data:
@@ -374,6 +374,10 @@ def find_value_bets(games_odds: list, max_bets: int = 10) -> list:
 
     opportunities = []
 
+    # Market-blending: our model is 70%, market consensus 30%
+    MODEL_WEIGHT = 0.70
+    MARKET_WEIGHT = 0.30
+
     for game in games_odds:
         home = game.get("home_team", "")
         away = game.get("away_team", "")
@@ -387,7 +391,44 @@ def find_value_bets(games_odds: list, max_bets: int = 10) -> list:
 
         # home_win_prob is already decimal (0.0-1.0) from power_ratings
         raw = pred.get("home_win_prob", 0.5)
-        home_prob = raw if raw <= 1.0 else raw / 100  # handle both formats
+        model_home_prob = raw if raw <= 1.0 else raw / 100
+
+        # Calculate market consensus from average bookmaker odds
+        home_odds_list = []
+        away_odds_list = []
+        for bookmaker in game.get("bookmakers", []):
+            for market in bookmaker.get("markets", []):
+                if market.get("key") != "h2h":
+                    continue
+                outcomes = market.get("outcomes", [])
+                if len(outcomes) >= 2:
+                    # Match outcomes to home/away
+                    for o in outcomes:
+                        name = o.get("name", "")
+                        price = o.get("price", 0)
+                        if price <= 1.0:
+                            continue
+                        if name == home:
+                            home_odds_list.append(price)
+                        elif name == away:
+                            away_odds_list.append(price)
+
+        # Blend model with market consensus (Bayesian market-aware)
+        if home_odds_list:
+            avg_home_odds = sum(home_odds_list) / len(home_odds_list)
+            market_home_prob = 1.0 / avg_home_odds
+            # Normalize market probs (remove vig)
+            if away_odds_list:
+                avg_away_odds = sum(away_odds_list) / len(away_odds_list)
+                market_away_prob = 1.0 / avg_away_odds
+                vig = market_home_prob + market_away_prob
+                market_home_prob /= vig
+            home_prob = MODEL_WEIGHT * model_home_prob + MARKET_WEIGHT * market_home_prob
+        else:
+            home_prob = model_home_prob
+
+        # Cap extreme probabilities at 85/15
+        home_prob = max(0.15, min(0.85, home_prob))
         away_prob = 1 - home_prob
 
         # Scan all bookmakers for best odds
@@ -513,28 +554,52 @@ def sync_to_control_tower():
 # MAIN DAEMON LOOP
 # ══════════════════════════════════════════════════════════════
 
+def run_self_improvement():
+    """Run prediction-vs-results feedback loop."""
+    try:
+        sys.path.insert(0, str(ROOT / "ops"))
+        from importlib import import_module
+        si = import_module("self-improve")
+        metrics = si.run_self_improvement()
+        if metrics:
+            log(f"Self-improvement: accuracy {metrics.get('winner_accuracy', 0):.1%}, "
+                f"Brier {metrics.get('brier_score', 0):.4f}")
+            return metrics
+    except Exception as e:
+        log(f"Self-improvement failed: {e}", "WARN")
+    return {}
+
+
+_cycle_count = 0
+
 def run_cycle():
     """Execute one full quant cycle."""
+    global _cycle_count
+    _cycle_count += 1
     cycle_start = time.time()
-    log("═══ QUANT CYCLE START ═══")
+    log(f"═══ QUANT CYCLE #{_cycle_count} START ═══")
 
     # Step 1: Ingest
     papers = ingest_latest_research()
     odds = ingest_live_odds()
 
-    # Step 2: Recalibrate (every other cycle to save API calls)
+    # Step 2: Self-improvement (every 3rd cycle — compare predictions to actual results)
+    if _cycle_count % 3 == 0:
+        run_self_improvement()
+
+    # Step 3: Recalibrate (every other cycle to save API calls)
     calibration = {}
     if papers > 0:
         calibration = recalibrate_models()
 
-    # Step 3: Find value bets
+    # Step 4: Find value bets
     picks = find_value_bets(odds, max_bets=10)
 
-    # Step 4: Sync
+    # Step 5: Sync
     sync_to_control_tower()
 
     elapsed = time.time() - cycle_start
-    log(f"═══ QUANT CYCLE DONE ({elapsed:.0f}s) — {papers} papers, {len(picks)} picks ═══")
+    log(f"═══ QUANT CYCLE #{_cycle_count} DONE ({elapsed:.0f}s) — {papers} papers, {len(picks)} picks ═══")
 
 
 def main():

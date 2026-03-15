@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-15T10:32:58.678715+00:00",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "betting",
+  "avg_latency_ms": 17696,
+  "results": [
+    {
+      "id": "nba-bet-004",
+      "category": "betting",
+      "question": "What are player props in NBA betting?",
+      "golden": "Bets on individual player performance: points over/under, rebounds, assists, 3-pointers made, etc.",
+      "answer": "Les player props (propositions de joueurs) sont des paris spécifiques sur la performance individuelle d'un joueur NBA pendant un match. Voici les types principaux :\n\n**Statistiques individuelles :**\n- Points : Over/Under sur le total de points marqués\n- Rebonds : Total de rebonds offensifs/déensifs\n- Passes : Total de passes décisives\n- Contres : Total de tirs bloqués\n- Interceptions : Total de ballons volés\n\n**Performances combinées :**\n- Double-double : Plus/Moins 10 dans deux catégories\n- Tri",
+      "keywords_matched": 0.8,
+      "passed": true,
+      "latency_ms": 30504,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-002",
+      "category": "betting",
+      "question": "What is CLV (Closing Line Value) in NBA betting?",
+      "golden": "Difference between the odds you bet at and the closing odds — positive CLV indicates long-term profitability",
+      "answer": "CLV (Closing Line Value) measures the difference between the line you bet at versus the closing line when the game starts. It's a key metric for evaluating betting skill over time.\n\n**Calculation:**\nCLV = (Closing Line - Your Line) × Units Bet\n\n**Example:**\n- You bet Lakers -3 at -110\n- Closing line: Lakers -4.5\n- CLV = (4.5 - 3) × 1 = +1.5 points\n\n**Why it matters:**\n- The closing line is considered the most efficient market price\n- Consistently positive CLV indicates you're beating the market\n",
+      "keywords_matched": 0.75,
+      "passed": true,
+      "latency_ms": 6484,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-005",
+      "category": "betting",
+      "question": "Quelle est la marge typique d'un bookmaker NBA ?",
+      "golden": "3-5% de vig (vigorish/juice) sur les cotes standard, spreads -110/-110",
+      "answer": "La marge typique d'un bookmaker NBA varie entre 4% et 5% sur les paris standards, mais peut aller jusqu'à 7-8% sur certains marchés.\n\nPour les paris moneyline (victoire simple) :\n- Matchs équilibrés : ~4.5% de marge\n- Matchs déséquilibrés : ~5-6% de marge\n\nPour les paris spread (handicap) :\n- Matchs standards : ~4.2% de marge\n- Matchs avec line movement : ~5-6% de marge\n\nPour les paris over/under (total points) :\n- Marché le plus efficace : ~4% de marge\n- Matchs avec tempo élevé : ~4.5% de marge",
+      "keywords_matched": 0.6,
+      "passed": true,
+      "latency_ms": 10743,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-001",
+      "category": "betting",
+      "question": "Qu'est-ce que le Kelly Criterion en paris sportifs NBA ?",
+      "golden": "Formule de gestion de bankroll: f* = (bp - q) / b, ou b=cote decimale-1, p=proba victoire, q=1-p",
+      "answer": "Le Kelly Criterion est une formule mathématique pour déterminer la taille optimale d'un pari afin de maximiser la croissance à long terme du capital. En NBA, il s'applique ainsi :\n\n**Formule de base :**\nf* = (bp - q) / b\n\nOù :\n- f* = fraction du capital à parier\n- b = cote décimal - 1 (ex: cote 2.5 → b = 1.5)\n- p = probabilité estimée de victoire\n- q = 1 - p (probabilité de perte)\n\n**Application NBA :**\nImaginons un match où tu estimes que les Warriors ont 60% de chances de gagner contre une cot",
+      "keywords_matched": 0.75,
+      "passed": true,
+      "latency_ms": 24000,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-003",
+      "category": "betting",
+      "question": "Comment fonctionnent les spreads NBA ?",
+      "golden": "Le favori doit gagner par plus de X points, l'outsider doit perdre par moins de X points ou gagner",
+      "answer": "Les spreads NBA sont des handicaps de points appliqués par les bookmakers pour équilibrer les paris entre deux équipes de niveaux différents.\n\n**Principe de base :**\n- Équipe favorite : -X points (doit gagner de plus de X points)\n- Équipe outsider : +X points (peut perdre de moins de X points ou gagner)\n\n**Exemple concret :**\nGolden State -7.5 vs Houston\n- Golden State gagne 110-102 : le spread est **Golden State -7.5** (110-102 = 8 > 7.5)\n- Golden State gagne 108-102 : le spread est **Houston +",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 16749,
+      "sources": 0
+    }
+  ]
+}

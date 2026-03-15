@@ -1,0 +1,59 @@
+{"ts": "2026-03-15T11:23:52.375743+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T11:23:56.876473+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T11:23:56.876685+00:00", "level": "WARN", "msg": "ODDS_API_KEY not set \u2014 using simulated odds"}
+{"ts": "2026-03-15T11:25:42.138198+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T11:25:45.625043+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T11:25:45.625266+00:00", "level": "WARN", "msg": "ODDS_API_KEY not set \u2014 using simulated odds"}
+{"ts": "2026-03-15T11:25:45.627412+00:00", "level": "INFO", "msg": "Simulated odds: 9 games generated"}
+{"ts": "2026-03-15T11:25:45.881341+00:00", "level": "INFO", "msg": "Value bets: 0/31 opportunities | exposure 0.0% | EV $0.00"}
+{"ts": "2026-03-15T11:25:45.883658+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 0 papers, 0 picks"}
+{"ts": "2026-03-15T11:25:45.883776+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (4s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T11:28:40.630394+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T11:28:46.371753+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T11:28:46.371975+00:00", "level": "WARN", "msg": "ODDS_API_KEY not set \u2014 using simulated odds"}
+{"ts": "2026-03-15T11:28:46.374584+00:00", "level": "INFO", "msg": "Simulated odds: 12 games generated"}
+{"ts": "2026-03-15T11:28:46.623503+00:00", "level": "INFO", "msg": "Value bets: 0/85 opportunities | exposure 0.0% | EV $0.00"}
+{"ts": "2026-03-15T11:28:46.625111+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 0 papers, 0 picks"}
+{"ts": "2026-03-15T11:28:46.625230+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (6s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T11:32:05.897406+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T11:32:09.870173+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T11:32:09.871993+00:00", "level": "WARN", "msg": "ODDS_API_KEY not set \u2014 using simulated odds"}
+{"ts": "2026-03-15T11:32:09.874396+00:00", "level": "INFO", "msg": "Simulated odds: 12 games generated"}
+{"ts": "2026-03-15T11:32:09.895647+00:00", "level": "INFO", "msg": "Value bets: 7/56 opportunities | exposure 5.4% | EV $1.03"}
+{"ts": "2026-03-15T11:32:09.896807+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 0 papers, 7 picks"}
+{"ts": "2026-03-15T11:32:09.896902+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (4s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T11:32:48.138048+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T11:32:51.122314+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T11:32:51.122548+00:00", "level": "WARN", "msg": "ODDS_API_KEY not set \u2014 using simulated odds"}
+{"ts": "2026-03-15T11:32:51.124873+00:00", "level": "INFO", "msg": "Simulated odds: 9 games generated"}
+{"ts": "2026-03-15T11:32:51.384394+00:00", "level": "INFO", "msg": "Value bets: 2/40 opportunities | exposure 2.0% | EV $0.17"}
+{"ts": "2026-03-15T11:32:51.386116+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 0 papers, 2 picks"}
+{"ts": "2026-03-15T11:32:51.386227+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (3s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T11:47:25.912651+00:00", "level": "INFO", "msg": "Starting NBA Quant Daemon \u2014 7200s cycles"}
+{"ts": "2026-03-15T11:47:25.917756+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T11:47:33.649281+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T11:47:33.649462+00:00", "level": "WARN", "msg": "ODDS_API_KEY not set \u2014 using simulated odds"}
+{"ts": "2026-03-15T11:47:33.656192+00:00", "level": "INFO", "msg": "Simulated odds: 10 games generated"}
+{"ts": "2026-03-15T11:47:34.152563+00:00", "level": "INFO", "msg": "Value bets: 2/47 opportunities | exposure 10.0% | EV $1.57"}
+{"ts": "2026-03-15T11:47:34.154676+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 0 papers, 2 picks"}
+{"ts": "2026-03-15T11:47:34.154813+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (8s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T13:13:55.273108+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T13:14:01.768860+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T13:14:04.513275+00:00", "level": "INFO", "msg": "Live odds: 7 games fetched from Odds API"}
+{"ts": "2026-03-15T13:14:05.524904+00:00", "level": "INFO", "msg": "Value bets: 0/224 opportunities | exposure 0.0% | EV $0.00"}
+{"ts": "2026-03-15T13:14:05.532192+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 0 papers, 0 picks"}
+{"ts": "2026-03-15T13:14:05.532353+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (10s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T13:47:34.779598+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T13:47:54.763050+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T13:47:54.780622+00:00", "level": "WARN", "msg": "ODDS_API_KEY not set \u2014 using simulated odds"}
+{"ts": "2026-03-15T13:47:55.279894+00:00", "level": "INFO", "msg": "Simulated odds: 10 games generated"}
+{"ts": "2026-03-15T13:47:56.260671+00:00", "level": "INFO", "msg": "Value bets: 0/47 opportunities | exposure 0.0% | EV $0.00"}
+{"ts": "2026-03-15T13:47:56.519151+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 0 papers, 0 picks"}
+{"ts": "2026-03-15T13:47:56.524944+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (22s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T13:58:09.761707+00:00", "level": "INFO", "msg": "Starting NBA Quant Daemon \u2014 3600s cycles"}
+{"ts": "2026-03-15T13:58:09.764493+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T13:58:13.760953+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T13:58:15.274813+00:00", "level": "INFO", "msg": "Live odds: 7 games fetched from Odds API"}
+{"ts": "2026-03-15T13:58:15.765904+00:00", "level": "INFO", "msg": "Value bets: 0/224 opportunities | exposure 0.0% | EV $0.00"}
+{"ts": "2026-03-15T13:58:15.769851+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 0 papers, 0 picks"}
+{"ts": "2026-03-15T13:58:15.769989+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (6s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}

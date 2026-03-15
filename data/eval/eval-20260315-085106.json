@@ -1,0 +1,121 @@
+{
+  "timestamp": "2026-03-15T08:51:06.401838+00:00",
+  "total": 10,
+  "passed": 10,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "stats",
+  "avg_latency_ms": 9701,
+  "results": [
+    {
+      "id": "nba-stats-009",
+      "category": "stats",
+      "question": "Combien de triple-doubles Russell Westbrook a-t-il en carriere ?",
+      "golden": "198 triple-doubles (record NBA)",
+      "answer": "Russell Westbrook détient le record absolu de triple-doubles en carrière avec **198** triples-doubles en date du 15 avril 2024.\n\nVoici le détail :\n- **198 triple-doubles** (record NBA)\n- Moyenne de carrière : 22.3 points, 8.4 rebonds, 8.5 passes décisives\n- Saisons avec plus de 10 triple-doubles : 9 saisons\n- Record sur une saison : 42 triple-doubles en 2016-2017\n\nIl a dépassé Oscar Robertson (181) en 2021 et détient également le record de triple-doubles consécutifs (11 d'affilée en 2021).\n\nSour",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 16144,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-010",
+      "category": "stats",
+      "question": "What is the NBA record for most blocks in a single game?",
+      "golden": "Elmore Smith with 17 blocks on October 28, 1973",
+      "answer": "Le record NBA de contres en un seul match est de **17 blocs**, détenu par **Elmore Smith** des Los Angeles Lakers, réalisé le 28 octobre 1973 contre les Portland Trail Blazers.\n\nVoici le top 5 des performances :\n1. **17 blocs** - Elmore Smith (LAL) vs Portland, 1973\n2. **15 blocs** - Elmore Smith (LAL) vs Detroit, 1973\n3. **14 blocs** - Manute Bol (PHI) vs Denver, 1985\n4. **14 blocs** - Elmore Smith (LAL) vs Atlanta, 1973\n5. **13 blocs** - Hakeem Olajuwon (HOU) vs Milwaukee, 1990\n\nElmore Smith d",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 8600,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-006",
+      "category": "stats",
+      "question": "What is Stephen Curry's career three-point shooting percentage?",
+      "golden": "Approximately 42-43%",
+      "answer": "Stephen Curry's career three-point shooting percentage is **43.1%** (2,518 made on 5,834 attempts) through the 2022-23 season.\n\nThis ranks him among the greatest shooters in NBA history. For context:\n- His career percentage is higher than Ray Allen (40.0%) and Reggie Miller (39.5%)\n- He's the all-time leader in made three-pointers (3,390+ as of 2023)\n- His 43.1% is particularly impressive given his volume (5,834 attempts is 2nd all-time)\n\nHis single-season best was 44.4% in 2015-16 when he won h",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 16878,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-015",
+      "category": "stats",
+      "question": "Quel joueur a le plus de matchs joues en carriere NBA ?",
+      "golden": "Robert Parish avec 1,611 matchs (ou Vince Carter 1,541)",
+      "answer": "Voici les joueurs avec le plus de matchs joués en carrière NBA :\n\n1. **Vince Carter** - 1 541 matchs (1998-2020)\n   - Joué 22 saisons, record NBA\n   - 16.7 points, 4.3 rebonds, 3.1 passes de moyenne\n\n2. **Dirk Nowitzki** - 1 522 matchs (1998-2019)\n   - 21 saisons avec Dallas\n   - 20.7 points, 7.5 rebonds, 2.4 passes de moyenne\n\n3. **LeBron James** - 1 421 matchs (2003-2024)\n   - 21 saisons (et toujours actif)\n   - 27.2 points, 7.5 rebonds, 7.3 passes de moyenne\n\n4. **Kareem Abdul-Jabbar** - 1 56",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 7515,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-001",
+      "category": "stats",
+      "question": "Quel est le record de points en un seul match NBA ?",
+      "golden": "100 points par Wilt Chamberlain le 2 mars 1962",
+      "answer": "Le record de points en un seul match NBA est de 100 points, établi par Wilt Chamberlain le 2 mars 1962 avec les Philadelphia Warriors contre les New York Knicks.\n\nStatistiques du match :\n- 36/63 aux tirs (57.1%)\n- 28/32 aux lancers francs (87.5%)\n- 25 rebonds\n- 2 passes\n- 48 minutes jouées\n\nLe match s'est terminé sur le score de 169-147 pour les Warriors. Chamberlain a marqué ses 100 points en prolongation, dont 31 points dans le dernier quart-temps.\n\nContexte historique :\n- L'époque avait un ry",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 12575,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-014",
+      "category": "stats",
+      "question": "What is Nikola Jokic's career assist average?",
+      "golden": "Approximately 7-8 assists per game",
+      "answer": "Nikola Jokic's career assist average is **7.2 assists per game** through the 2023-24 season.\n\nCareer stats:\n- Games played: 681\n- Total assists: 4,904\n- Assist percentage (AST%): 32.3% (career)\n- Assist-to-turnover ratio: 2.86\n\nFor comparison:\n- 2023-24 season: 9.6 APG (led NBA)\n- 2021-22 season: 9.8 APG (led NBA)\n- 2020-21 season: 8.0 APG (led NBA)\n\nSource: Basketball Reference (as of April 2024)",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 3519,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-003",
+      "category": "stats",
+      "question": "Quel joueur a le plus de titres MVP en saison reguliere ?",
+      "golden": "Kareem Abdul-Jabbar avec 6 MVP",
+      "answer": "Le joueur avec le plus de titres de MVP en saison régulière est **Kareem Abdul-Jabbar** avec **6 MVP**.\n\nVoici le classement complet des joueurs avec le plus de MVP :\n\n1. **Kareem Abdul-Jabbar** - 6 MVP (1971, 1972, 1974, 1976, 1977, 1980)\n2. **LeBron James** - 4 MVP (2009, 2010, 2012, 2013)\n3. **Michael Jordan** - 5 MVP (1988, 1991, 1992, 1996, 1998)\n4. **Bill Russell** - 5 MVP (1958, 1961, 1962, 1963, 1965)\n5. **Wilt Chamberlain** - 4 MVP (1960, 1966, 1967, 1968)\n6. **Stephen Curry** - 2 MVP (",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 7753,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-008",
+      "category": "stats",
+      "question": "Who has the most career steals in NBA history?",
+      "golden": "John Stockton with 3,265 career steals",
+      "answer": "Hakeem Olajuwon holds the NBA record for most career steals with 3,265 steals over his 18-year career with the Houston Rockets and Toronto Raptors.\n\nHere are the top 5 all-time leaders:\n\n1. Hakeem Olajuwon - 3,265 steals\n2. Karl Malone - 2,685 steals  \n3. Michael Jordan - 2,514 steals\n4. John Stockton - 2,346 steals\n5. Jason Kidd - 2,684 steals\n\nOlajuwon's steal total is particularly impressive considering he played primarily as a center, a position not typically associated with high steal numbe",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 3624,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-005",
+      "category": "stats",
+      "question": "Qui detient le record du plus grand nombre de rebonds en carriere ?",
+      "golden": "Wilt Chamberlain avec 23,924 rebonds",
+      "answer": "Le record du plus grand nombre de rebonds en carrière en NBA est détenu par **Wilt Chamberlain** avec **23 924 rebonds**.\n\nVoici les détails :\n- **Wilt Chamberlain** : 23 924 rebonds en 1 045 matchs (22,9 rebonds de moyenne par match)\n- **Bill Russell** : 21 620 rebonds en 963 matchs (22,5 rebonds de moyenne par match)\n- **Kareem Abdul-Jabbar** : 17 440 rebonds en 1 560 matchs (11,2 rebonds de moyenne par match)\n- **Elvin Hayes** : 16 279 rebonds en 1 303 matchs (12,5 rebonds de moyenne par matc",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 13300,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-012",
+      "category": "stats",
+      "question": "Who scored the most points in their rookie season?",
+      "golden": "Wilt Chamberlain with 2,707 points (37.6 PPG) in 1959-60",
+      "answer": "Voici les meilleures saisons de rookies en termes de points marqués dans l'histoire de la NBA :\n\n**1. Wilt Chamberlain - 1959-60 Philadelphia Warriors**\n- **2,707 points** en 72 matchs\n- Moyenne de **37.6 PPG**\n- Record historique qui tient toujours\n\n**2. Michael Jordan - 1984-85 Chicago Bulls**\n- 2,313 points en 82 matchs\n- Moyenne de 28.2 PPG\n- Rookie de l'année\n\n**3. Rick Barry - 1965-66 San Francisco Warriors**\n- 2,234 points en 80 matchs\n- Moyenne de 27.8 PPG\n- MVP de la saison recrue\n\n**4.",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 7108,
+      "sources": 0
+    }
+  ]
+}

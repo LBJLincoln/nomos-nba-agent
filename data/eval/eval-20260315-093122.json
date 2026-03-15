@@ -1,0 +1,121 @@
+{
+  "timestamp": "2026-03-15T09:31:22.755917+00:00",
+  "total": 10,
+  "passed": 9,
+  "failed": 1,
+  "accuracy": 90.0,
+  "category": "stats",
+  "avg_latency_ms": 13499,
+  "results": [
+    {
+      "id": "nba-stats-013",
+      "category": "stats",
+      "question": "Combien de fois Michael Jordan a-t-il ete meilleur marqueur de la NBA ?",
+      "golden": "10 fois champion marqueur",
+      "answer": "Michael Jordan a été le meilleur marqueur de la NBA à 10 reprises au cours de sa carrière. Selon Basketball Reference, il a mené la ligue en points par match lors des saisons suivantes :\n\n* 1986-1987 : 37,1 points par match\n* 1987-1988 : 35,0 points par match\n* 1988-1989 : 32,5 points par match\n* 1989-1990 : 33,6 points par match\n* 1990-1991 : 31,5 points par match\n* 1991-1992 : 30,1 points par match\n* 1992-1993 : 32,6 points par match\n* 1995-1996 : 30,4 points par match\n* 1996-1997 : 29,6 point",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 8502,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-015",
+      "category": "stats",
+      "question": "Quel joueur a le plus de matchs joues en carriere NBA ?",
+      "golden": "Robert Parish avec 1,611 matchs (ou Vince Carter 1,541)",
+      "answer": "Voici les joueurs avec le plus de matchs joués en carrière NBA :\n\n1. **Vince Carter** - 1 541 matchs (1998-2020)\n   - Joué 22 saisons, record de longévité\n   - 8 équipes différentes\n\n2. **Dirk Nowitzki** - 1 522 matchs (1998-2019)\n   - Toute sa carrière avec les Mavericks\n   - 6 fois All-Star\n\n3. **Kareem Abdul-Jabbar** - 1 560 matchs (1969-1989)\n   - Record historique (avant Carter)\n   - 6 fois MVP, 6 fois champion\n\n4. **Robert Parish** - 1 611 matchs (1976-1997)\n   - Recordman historique (détr",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 18001,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-002",
+      "category": "stats",
+      "question": "Who holds the NBA record for most career assists?",
+      "golden": "John Stockton with 15,806 career assists",
+      "answer": "John Stockton holds the NBA record for most career assists with 15,806 assists over his 19-year career with the Utah Jazz (1984-2003).\n\nSecond place is Jason Kidd with 12,091 assists, followed by Chris Paul (10,977), Steve Nash (10,335), and Magic Johnson (10,141).\n\nStockton also holds the record for most career assists per game at 8.7 apg, far ahead of second-place Magic Johnson (11.2 apg but in fewer games).\n\nHis assist totals by decade:\n- 1980s: 2,622 assists\n- 1990s: 9,462 assists (most in a",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 5000,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-008",
+      "category": "stats",
+      "question": "Who has the most career steals in NBA history?",
+      "golden": "John Stockton with 3,265 career steals",
+      "answer": "John Stockton holds the NBA record for most career steals with 3,265 steals in 1,504 games played over 19 seasons (1984-2003) with the Utah Jazz.\n\nHere are the top 5 all-time leaders:\n\n1. John Stockton - 3,265 steals\n2. Chris Paul - 2,757 steals\n3. Michael Jordan - 2,514 steals\n4. Jason Kidd - 2,684 steals\n5. Gary Payton - 2,445 steals\n\nStockton averaged 2.17 steals per game over his career, which is the highest career steals per game average among players with at least 1,000 steals. He led the ",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 13248,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-006",
+      "category": "stats",
+      "question": "What is Stephen Curry's career three-point shooting percentage?",
+      "golden": "Approximately 42-43%",
+      "answer": "Stephen Curry's career three-point shooting percentage is **43.2%** (2,842 made on 6,575 attempts) through the 2022-23 season.\n\nFor context:\n- His single-season high was 45.3% in 2015-16\n- League average three-point percentage during his career: ~35.5%\n- He holds the all-time record for three-pointers made (3,390+ as of 2023)\n\nSource: Basketball Reference - Stephen Curry Career Stats",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 4749,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-014",
+      "category": "stats",
+      "question": "What is Nikola Jokic's career assist average?",
+      "golden": "Approximately 7-8 assists per game",
+      "answer": "Nikola Jokic's career assist average is **7.3 assists per game** through the 2023-24 season.\n\nHere are his season-by-season assist averages:\n- 2015-16: 2.4 APG\n- 2016-17: 2.9 APG\n- 2017-18: 4.9 APG\n- 2018-19: 7.0 APG\n- 2019-20: 7.0 APG\n- 2020-21: 8.6 APG\n- 2021-22: 8.3 APG\n- 2022-23: 9.5 APG\n- 2023-24: 8.5 APG\n\nSource: Basketball Reference\n\nJokic's assist numbers have steadily increased throughout his career, peaking at 9.5 APG in 2022-23 when he won his second MVP award. His 7.3 career average ",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 10008,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-009",
+      "category": "stats",
+      "question": "Combien de triple-doubles Russell Westbrook a-t-il en carriere ?",
+      "golden": "198 triple-doubles (record NBA)",
+      "answer": "Russell Westbrook détient le record absolu de triple-doubles en carrière dans l'histoire de la NBA avec **198 triple-doubles** en date du 10 avril 2024.\n\nVoici le détail :\n- **198 triple-doubles** (record NBA)\n- Moyenne en carrière : 22.3 points, 8.4 rebonds, 8.5 passes décisives\n- Saisons avec plus de 10 triple-doubles : 11 saisons\n- Record sur une saison : 18 triple-doubles (2016-17 avec les Thunder)\n\nSources : Basketball Reference, NBA.com\n\nLe deuxième est Oscar Robertson avec 181, suivi de M",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 16241,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-007",
+      "category": "stats",
+      "question": "Quel joueur a le meilleur PER de tous les temps en saison reguliere ?",
+      "golden": "Nikola Jokic avec un PER de 31.3 (2023-24) ou Michael Jordan career 27.9",
+      "answer": "Le meilleur PER (Player Efficiency Rating) de tous les temps en saison régulière est détenu par **Nikola Jokić** avec un PER de **31,65** en 2021-2022.\n\nVoici le top 5 historique :\n\n1. **Nikola Jokić** - 31,65 (2021-2022)\n2. **Giannis Antetokounmpo** - 31,12 (2019-2020)\n3. **Wilt Chamberlain** - 31,82 (1962-1963)\n4. **Wilt Chamberlain** - 31,71 (1961-1962)\n5. **LeBron James** - 31,67 (2008-2009)\n\nLe PER est une statistique cumulative qui mesure la productivité d'un joueur par minute, ajustée pou",
+      "keywords_matched": 0.3333333333333333,
+      "passed": false,
+      "latency_ms": 24274,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-003",
+      "category": "stats",
+      "question": "Quel joueur a le plus de titres MVP en saison reguliere ?",
+      "golden": "Kareem Abdul-Jabbar avec 6 MVP",
+      "answer": "Le joueur qui détient le record du plus grand nombre de titres de MVP en saison régulière est **Kareem Abdul-Jabbar** avec **6 récompenses**.\n\nVoici le classement complet des joueurs avec le plus de MVP :\n\n1. **Kareem Abdul-Jabbar** - 6 MVP (1971, 1972, 1974, 1976, 1977, 1980)\n2. **LeBron James** - 4 MVP (2009, 2010, 2012, 2013)\n3. **Michael Jordan** - 5 MVP (1988, 1991, 1992, 1996, 1998)\n4. **Bill Russell** - 5 MVP (1958, 1961, 1962, 1963, 1965)\n5. **Wilt Chamberlain** - 4 MVP (1960, 1966, 1967",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 10980,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-001",
+      "category": "stats",
+      "question": "Quel est le record de points en un seul match NBA ?",
+      "golden": "100 points par Wilt Chamberlain le 2 mars 1962",
+      "answer": "Le record de points en un seul match NBA est de 100 points, établi par Wilt Chamberlain le 2 mars 1962 avec les Philadelphia Warriors contre les New York Knicks.\n\n**Détails du match :**\n- Score final : Warriors 169 - Knicks 147\n- Chamberlain a joué 48 minutes (pas de prolongation)\n- 36/63 aux tirs (57.1%)\n- 28/32 aux lancers francs (contre 51.1% en carrière)\n- 25 rebonds\n- Aucune passe décisive enregistrée (stat non officielle à l'époque)\n\n**Contexte historique :**\n- Match à Hershey, Pennsylvani",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 23992,
+      "sources": 0
+    }
+  ]
+}
