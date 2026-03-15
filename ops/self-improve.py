@@ -102,7 +102,7 @@ def fetch_completed_scores(days_back=3):
 # ══════════════════════════════════════════════════════════════
 
 def match_predictions_to_results(scores):
-    """Match our predictions against actual game results."""
+    """Match predictions against actual game results. Also backtest if no saved predictions."""
     # Load all recent predictions
     predictions = []
     for f in sorted(PREDICTIONS_DIR.glob("pred-*.json"), key=lambda x: x.stat().st_mtime, reverse=True)[:200]:
@@ -111,15 +111,59 @@ def match_predictions_to_results(scores):
         except Exception:
             pass
 
-    if not predictions:
-        # Also check JSONL log
-        jsonl_file = PREDICTIONS_DIR / "predictions.jsonl"
-        if jsonl_file.exists():
-            for line in jsonl_file.read_text().splitlines()[-200:]:
-                try:
-                    predictions.append(json.loads(line))
-                except Exception:
-                    pass
+    # Also check JSONL log
+    jsonl_file = PREDICTIONS_DIR / "predictions.jsonl"
+    if jsonl_file.exists():
+        for line in jsonl_file.read_text().splitlines()[-200:]:
+            try:
+                predictions.append(json.loads(line))
+            except Exception:
+                pass
+
+    # BACKTEST MODE: if no saved predictions OR none match completed MATCHUPS,
+    # generate predictions retroactively to bootstrap the feedback loop
+    has_matching_games = False
+    if predictions:
+        completed_matchups = set()
+        for score in scores:
+            h = score.get("home_team", "").lower().strip()
+            a = score.get("away_team", "").lower().strip()
+            completed_matchups.add((h, a))
+        for p in predictions:
+            ph = p.get("home_team", p.get("home", "")).lower().strip()
+            pa = p.get("away_team", p.get("away", "")).lower().strip()
+            if (ph, pa) in completed_matchups:
+                has_matching_games = True
+                break
+
+    if not predictions or not has_matching_games:
+        print("[SELF-IMPROVE] No saved predictions — running BACKTEST mode")
+        try:
+            from power_ratings import predict_matchup, get_team
+            from predictor import ensemble_predict
+            for score in scores:
+                home = score.get("home_team", "")
+                away = score.get("away_team", "")
+                home_abbrev, _ = get_team(home)
+                away_abbrev, _ = get_team(away)
+                if home_abbrev and away_abbrev:
+                    pred = ensemble_predict(home_abbrev, away_abbrev)
+                    if pred:
+                        predictions.append({
+                            "home_team": home,
+                            "away_team": away,
+                            "home_win_prob": pred["ensemble_home_win_prob"],
+                            "ensemble_home_win_prob": pred["ensemble_home_win_prob"],
+                            "predicted_spread": pred["predicted_spread"],
+                            "predicted_total": pred["predicted_total"],
+                            "confidence": pred["confidence"],
+                            "individual_models": pred["individual_models"],
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                            "backtest": True,
+                        })
+            print(f"[SELF-IMPROVE] Generated {len(predictions)} backtest predictions")
+        except Exception as e:
+            print(f"[SELF-IMPROVE] Backtest failed: {e}")
 
     if not predictions:
         print("[SELF-IMPROVE] No predictions found to evaluate")

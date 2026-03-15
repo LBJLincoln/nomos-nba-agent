@@ -1,0 +1,1338 @@
+{
+  "metrics": {
+    "timestamp": "2026-03-15T15:07:47.634640+00:00",
+    "sample_size": 22,
+    "winner_accuracy": 0.6364,
+    "brier_score": 0.2095,
+    "log_loss": 0.5971,
+    "avg_spread_error": 13.1,
+    "avg_total_error": 20.8,
+    "calibration": {
+      "0.2": {
+        "predicted": 0.234,
+        "actual": 0.0,
+        "n": 1
+      },
+      "0.3": {
+        "predicted": 0.334,
+        "actual": 1.0,
+        "n": 2
+      },
+      "0.4": {
+        "predicted": 0.41,
+        "actual": 0.5,
+        "n": 6
+      },
+      "0.5": {
+        "predicted": 0.513,
+        "actual": 0.5,
+        "n": 4
+      },
+      "0.6": {
+        "predicted": 0.612,
+        "actual": 0.5,
+        "n": 2
+      },
+      "0.7": {
+        "predicted": 0.691,
+        "actual": 1.0,
+        "n": 4
+      },
+      "0.8": {
+        "predicted": 0.764,
+        "actual": 1.0,
+        "n": 1
+      },
+      "0.9": {
+        "predicted": 0.891,
+        "actual": 1.0,
+        "n": 1
+      },
+      "1.0": {
+        "predicted": 0.95,
+        "actual": 1.0,
+        "n": 1
+      }
+    },
+    "model_accuracy": {
+      "power_ratings": {
+        "correct": 14,
+        "total": 22,
+        "accuracy": 0.6364
+      },
+      "elo": {
+        "correct": 13,
+        "total": 22,
+        "accuracy": 0.5909
+      },
+      "poisson": {
+        "correct": 13,
+        "total": 22,
+        "accuracy": 0.5909
+      },
+      "monte_carlo": {
+        "correct": 13,
+        "total": 22,
+        "accuracy": 0.5909
+      }
+    },
+    "best_model": "power_ratings",
+    "worst_model": "elo"
+  },
+  "results": [
+    {
+      "game": "Phoenix Suns @ Indiana Pacers",
+      "actual_home_score": 108,
+      "actual_away_score": 123,
+      "actual_margin": -15,
+      "actual_total": 231,
+      "actual_home_won": false,
+      "predicted_home_prob": 0.6447,
+      "predicted_spread": 1.0,
+      "predicted_total": 237.6,
+      "predicted_winner_correct": false,
+      "spread_error": 14.0,
+      "total_error": 6.599999999999994,
+      "brier_score": 0.41563809000000007,
+      "confidence": "MEDIUM",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.7381,
+          "predicted_spread": -4.5,
+          "predicted_total": 237.5
+        },
+        "elo": {
+          "home_win_prob": 0.6788
+        },
+        "poisson": {
+          "home_win_prob": 0.6047,
+          "predicted_total": 238.0
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.533,
+          "predicted_spread": -1.0,
+          "predicted_total": 237.6,
+          "margin_stdev": 16.6,
+          "percentiles": {
+            "5th": -28.0,
+            "25th": -10.0,
+            "median": 1.0,
+            "75th": 12.0,
+            "95th": 28.0
+          },
+          "spread_covers": {
+            "-10": 0.284,
+            "-7": 0.351,
+            "-5": 0.393,
+            "-3": 0.437,
+            "-1": 0.499,
+            "0": 0.533,
+            "1": 0.533,
+            "3": 0.58,
+            "5": 0.633,
+            "7": 0.679,
+            "10": 0.738
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:39.639819+00:00"
+    },
+    {
+      "game": "Washington Wizards @ Orlando Magic",
+      "actual_home_score": 136,
+      "actual_away_score": 131,
+      "actual_margin": 5,
+      "actual_total": 267,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.8915,
+      "predicted_spread": 13.6,
+      "predicted_total": 218.9,
+      "predicted_winner_correct": true,
+      "spread_error": 18.6,
+      "total_error": 48.099999999999994,
+      "brier_score": 0.011772250000000008,
+      "confidence": "MEDIUM",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.9833,
+          "predicted_spread": -17.7,
+          "predicted_total": 218.4
+        },
+        "elo": {
+          "home_win_prob": 0.9062
+        },
+        "poisson": {
+          "home_win_prob": 0.8765,
+          "predicted_total": 223.0
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.782,
+          "predicted_spread": -13.6,
+          "predicted_total": 218.9,
+          "margin_stdev": 17.3,
+          "percentiles": {
+            "5th": -16.0,
+            "25th": 2.8,
+            "median": 14.0,
+            "75th": 25.0,
+            "95th": 41.0
+          },
+          "spread_covers": {
+            "-10": 0.593,
+            "-7": 0.658,
+            "-5": 0.702,
+            "-3": 0.732,
+            "-1": 0.765,
+            "0": 0.782,
+            "1": 0.782,
+            "3": 0.807,
+            "5": 0.844,
+            "7": 0.867,
+            "10": 0.897
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:40.384988+00:00"
+    },
+    {
+      "game": "Philadelphia 76ers @ Detroit Pistons",
+      "actual_home_score": 131,
+      "actual_away_score": 109,
+      "actual_margin": 22,
+      "actual_total": 240,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.3403,
+      "predicted_spread": -7.0,
+      "predicted_total": 223.5,
+      "predicted_winner_correct": false,
+      "spread_error": 15.0,
+      "total_error": 16.5,
+      "brier_score": 0.43520408999999993,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.2709,
+          "predicted_spread": 4.3,
+          "predicted_total": 223.4
+        },
+        "elo": {
+          "home_win_prob": 0.4342
+        },
+        "poisson": {
+          "home_win_prob": 0.3719,
+          "predicted_total": 229.4
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.343,
+          "predicted_spread": 7.0,
+          "predicted_total": 223.5,
+          "margin_stdev": 17.3,
+          "percentiles": {
+            "5th": -35.0,
+            "25th": -19.0,
+            "median": -7.0,
+            "75th": 5.0,
+            "95th": 21.0
+          },
+          "spread_covers": {
+            "-10": 0.157,
+            "-7": 0.204,
+            "-5": 0.241,
+            "-3": 0.282,
+            "-1": 0.321,
+            "0": 0.343,
+            "1": 0.343,
+            "3": 0.397,
+            "5": 0.445,
+            "7": 0.494,
+            "10": 0.568
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:40.402373+00:00"
+    },
+    {
+      "game": "Brooklyn Nets @ Atlanta Hawks",
+      "actual_home_score": 108,
+      "actual_away_score": 97,
+      "actual_margin": 11,
+      "actual_total": 205,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.6992,
+      "predicted_spread": 4.2,
+      "predicted_total": 230.1,
+      "predicted_winner_correct": true,
+      "spread_error": 15.2,
+      "total_error": 25.099999999999994,
+      "brier_score": 0.09048063999999997,
+      "confidence": "MEDIUM",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.7992,
+          "predicted_spread": -6.0,
+          "predicted_total": 229.5
+        },
+        "elo": {
+          "home_win_prob": 0.7153
+        },
+        "poisson": {
+          "home_win_prob": 0.6469,
+          "predicted_total": 233.4
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.598,
+          "predicted_spread": -4.2,
+          "predicted_total": 230.1,
+          "margin_stdev": 16.9,
+          "percentiles": {
+            "5th": -24.0,
+            "25th": -6.0,
+            "median": 4.0,
+            "75th": 16.0,
+            "95th": 32.0
+          },
+          "spread_covers": {
+            "-10": 0.354,
+            "-7": 0.428,
+            "-5": 0.469,
+            "-3": 0.52,
+            "-1": 0.571,
+            "0": 0.598,
+            "1": 0.598,
+            "3": 0.656,
+            "5": 0.71,
+            "7": 0.751,
+            "10": 0.798
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:40.893546+00:00"
+    },
+    {
+      "game": "Milwaukee Bucks @ Miami Heat",
+      "actual_home_score": 112,
+      "actual_away_score": 105,
+      "actual_margin": 7,
+      "actual_total": 217,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.5011,
+      "predicted_spread": -2.6,
+      "predicted_total": 226.5,
+      "predicted_winner_correct": true,
+      "spread_error": 4.4,
+      "total_error": 9.5,
+      "brier_score": 0.24890121,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.5173,
+          "predicted_spread": -0.3,
+          "predicted_total": 226.5
+        },
+        "elo": {
+          "home_win_prob": 0.5658
+        },
+        "poisson": {
+          "home_win_prob": 0.4974,
+          "predicted_total": 230.9
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.441,
+          "predicted_spread": 2.6,
+          "predicted_total": 226.5,
+          "margin_stdev": 16.9,
+          "percentiles": {
+            "5th": -31.0,
+            "25th": -14.0,
+            "median": -3.0,
+            "75th": 9.0,
+            "95th": 25.0
+          },
+          "spread_covers": {
+            "-10": 0.216,
+            "-7": 0.275,
+            "-5": 0.309,
+            "-3": 0.363,
+            "-1": 0.408,
+            "0": 0.441,
+            "1": 0.441,
+            "3": 0.493,
+            "5": 0.545,
+            "7": 0.591,
+            "10": 0.668
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:41.378731+00:00"
+    },
+    {
+      "game": "Dallas Mavericks @ Memphis Grizzlies",
+      "actual_home_score": 112,
+      "actual_away_score": 120,
+      "actual_margin": -8,
+      "actual_total": 232,
+      "actual_home_won": false,
+      "predicted_home_prob": 0.3712,
+      "predicted_spread": -6.0,
+      "predicted_total": 231.1,
+      "predicted_winner_correct": true,
+      "spread_error": 14.0,
+      "total_error": 0.9000000000000057,
+      "brier_score": 0.13778943999999999,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.3187,
+          "predicted_spread": 3.3,
+          "predicted_total": 231.1
+        },
+        "elo": {
+          "home_win_prob": 0.4627
+        },
+        "poisson": {
+          "home_win_prob": 0.3983,
+          "predicted_total": 233.8
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.358,
+          "predicted_spread": 6.0,
+          "predicted_total": 231.1,
+          "margin_stdev": 17.4,
+          "percentiles": {
+            "5th": -35.0,
+            "25th": -18.0,
+            "median": -6.0,
+            "75th": 6.0,
+            "95th": 22.0
+          },
+          "spread_covers": {
+            "-10": 0.183,
+            "-7": 0.215,
+            "-5": 0.252,
+            "-3": 0.294,
+            "-1": 0.336,
+            "0": 0.358,
+            "1": 0.358,
+            "3": 0.398,
+            "5": 0.459,
+            "7": 0.509,
+            "10": 0.588
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:41.397924+00:00"
+    },
+    {
+      "game": "Denver Nuggets @ San Antonio Spurs",
+      "actual_home_score": 131,
+      "actual_away_score": 136,
+      "actual_margin": -5,
+      "actual_total": 267,
+      "actual_home_won": false,
+      "predicted_home_prob": 0.2345,
+      "predicted_spread": -11.2,
+      "predicted_total": 227.2,
+      "predicted_winner_correct": true,
+      "spread_error": 16.2,
+      "total_error": 39.80000000000001,
+      "brier_score": 0.05499024999999999,
+      "confidence": "MEDIUM",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.1368,
+          "predicted_spread": 8.0,
+          "predicted_total": 226.2
+        },
+        "elo": {
+          "home_win_prob": 0.3339
+        },
+        "poisson": {
+          "home_win_prob": 0.2827,
+          "predicted_total": 232.6
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.258,
+          "predicted_spread": 11.2,
+          "predicted_total": 227.2,
+          "margin_stdev": 17.2,
+          "percentiles": {
+            "5th": -38.0,
+            "25th": -23.0,
+            "median": -11.0,
+            "75th": 1.0,
+            "95th": 17.0
+          },
+          "spread_covers": {
+            "-10": 0.112,
+            "-7": 0.159,
+            "-5": 0.189,
+            "-3": 0.219,
+            "-1": 0.243,
+            "0": 0.258,
+            "1": 0.258,
+            "3": 0.297,
+            "5": 0.358,
+            "7": 0.394,
+            "10": 0.461
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:41.635824+00:00"
+    },
+    {
+      "game": "Boston Celtics @ Oklahoma City Thunder",
+      "actual_home_score": 104,
+      "actual_away_score": 102,
+      "actual_margin": 2,
+      "actual_total": 206,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.659,
+      "predicted_spread": 2.3,
+      "predicted_total": 231.3,
+      "predicted_winner_correct": true,
+      "spread_error": 4.3,
+      "total_error": 25.30000000000001,
+      "brier_score": 0.11628099999999998,
+      "confidence": "MEDIUM",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.7425,
+          "predicted_spread": -4.6,
+          "predicted_total": 232.0
+        },
+        "elo": {
+          "home_win_prob": 0.6813
+        },
+        "poisson": {
+          "home_win_prob": 0.6084,
+          "predicted_total": 236.1
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.572,
+          "predicted_spread": -2.3,
+          "predicted_total": 231.3,
+          "margin_stdev": 16.9,
+          "percentiles": {
+            "5th": -25.0,
+            "25th": -9.0,
+            "median": 3.0,
+            "75th": 13.0,
+            "95th": 30.0
+          },
+          "spread_covers": {
+            "-10": 0.297,
+            "-7": 0.376,
+            "-5": 0.434,
+            "-3": 0.49,
+            "-1": 0.55,
+            "0": 0.572,
+            "1": 0.572,
+            "3": 0.616,
+            "5": 0.656,
+            "7": 0.701,
+            "10": 0.753
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:41.652728+00:00"
+    },
+    {
+      "game": "Chicago Bulls @ Los Angeles Lakers",
+      "actual_home_score": 142,
+      "actual_away_score": 130,
+      "actual_margin": 12,
+      "actual_total": 272,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.7038,
+      "predicted_spread": 3.9,
+      "predicted_total": 224.5,
+      "predicted_winner_correct": true,
+      "spread_error": 15.9,
+      "total_error": 47.5,
+      "brier_score": 0.08773444000000001,
+      "confidence": "MEDIUM",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.8065,
+          "predicted_spread": -6.2,
+          "predicted_total": 224.5
+        },
+        "elo": {
+          "home_win_prob": 0.7199
+        },
+        "poisson": {
+          "home_win_prob": 0.6504,
+          "predicted_total": 228.7
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.6,
+          "predicted_spread": -3.9,
+          "predicted_total": 224.5,
+          "margin_stdev": 16.6,
+          "percentiles": {
+            "5th": -24.0,
+            "25th": -7.0,
+            "median": 4.0,
+            "75th": 15.0,
+            "95th": 31.0
+          },
+          "spread_covers": {
+            "-10": 0.345,
+            "-7": 0.418,
+            "-5": 0.471,
+            "-3": 0.517,
+            "-1": 0.576,
+            "0": 0.6,
+            "1": 0.6,
+            "3": 0.651,
+            "5": 0.7,
+            "7": 0.737,
+            "10": 0.79
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:42.134713+00:00"
+    },
+    {
+      "game": "Memphis Grizzlies @ Detroit Pistons",
+      "actual_home_score": 126,
+      "actual_away_score": 110,
+      "actual_margin": 16,
+      "actual_total": 236,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.4463,
+      "predicted_spread": -4.2,
+      "predicted_total": 225.5,
+      "predicted_winner_correct": false,
+      "spread_error": 11.8,
+      "total_error": 10.5,
+      "brier_score": 0.3065836900000001,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.4314,
+          "predicted_spread": 1.2,
+          "predicted_total": 225.0
+        },
+        "elo": {
+          "home_win_prob": 0.523
+        },
+        "poisson": {
+          "home_win_prob": 0.4532,
+          "predicted_total": 228.8
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.409,
+          "predicted_spread": 4.2,
+          "predicted_total": 225.5,
+          "margin_stdev": 17.6,
+          "percentiles": {
+            "5th": -32.0,
+            "25th": -17.0,
+            "median": -4.0,
+            "75th": 8.0,
+            "95th": 25.0
+          },
+          "spread_covers": {
+            "-10": 0.211,
+            "-7": 0.261,
+            "-5": 0.287,
+            "-3": 0.337,
+            "-1": 0.379,
+            "0": 0.409,
+            "1": 0.409,
+            "3": 0.449,
+            "5": 0.501,
+            "7": 0.542,
+            "10": 0.614
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:42.390532+00:00"
+    },
+    {
+      "game": "New York Knicks @ Indiana Pacers",
+      "actual_home_score": 92,
+      "actual_away_score": 101,
+      "actual_margin": -9,
+      "actual_total": 193,
+      "actual_home_won": false,
+      "predicted_home_prob": 0.5033,
+      "predicted_spread": -1.7,
+      "predicted_total": 239.0,
+      "predicted_winner_correct": false,
+      "spread_error": 10.7,
+      "total_error": 46.0,
+      "brier_score": 0.25331088999999996,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.5115,
+          "predicted_spread": -0.2,
+          "predicted_total": 238.2
+        },
+        "elo": {
+          "home_win_prob": 0.563
+        },
+        "poisson": {
+          "home_win_prob": 0.4889,
+          "predicted_total": 237.3
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.461,
+          "predicted_spread": 1.7,
+          "predicted_total": 239.0,
+          "margin_stdev": 17.0,
+          "percentiles": {
+            "5th": -30.0,
+            "25th": -13.0,
+            "median": -2.0,
+            "75th": 10.0,
+            "95th": 26.0
+          },
+          "spread_covers": {
+            "-10": 0.235,
+            "-7": 0.298,
+            "-5": 0.334,
+            "-3": 0.374,
+            "-1": 0.434,
+            "0": 0.461,
+            "1": 0.461,
+            "3": 0.518,
+            "5": 0.568,
+            "7": 0.611,
+            "10": 0.677
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:42.889507+00:00"
+    },
+    {
+      "game": "Phoenix Suns @ Toronto Raptors",
+      "actual_home_score": 122,
+      "actual_away_score": 115,
+      "actual_margin": 7,
+      "actual_total": 237,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.3286,
+      "predicted_spread": -8.2,
+      "predicted_total": 228.2,
+      "predicted_winner_correct": false,
+      "spread_error": 1.1999999999999993,
+      "total_error": 8.800000000000011,
+      "brier_score": 0.45077796,
+      "confidence": "MEDIUM",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.2619,
+          "predicted_spread": 4.5,
+          "predicted_total": 227.8
+        },
+        "elo": {
+          "home_win_prob": 0.4285
+        },
+        "poisson": {
+          "home_win_prob": 0.3665,
+          "predicted_total": 233.1
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.321,
+          "predicted_spread": 8.2,
+          "predicted_total": 228.2,
+          "margin_stdev": 16.9,
+          "percentiles": {
+            "5th": -36.0,
+            "25th": -20.0,
+            "median": -8.0,
+            "75th": 4.0,
+            "95th": 19.0
+          },
+          "spread_covers": {
+            "-10": 0.138,
+            "-7": 0.177,
+            "-5": 0.218,
+            "-3": 0.257,
+            "-1": 0.303,
+            "0": 0.321,
+            "1": 0.321,
+            "3": 0.375,
+            "5": 0.419,
+            "7": 0.465,
+            "10": 0.538
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:43.400424+00:00"
+    },
+    {
+      "game": "Cleveland Cavaliers @ Dallas Mavericks",
+      "actual_home_score": 105,
+      "actual_away_score": 138,
+      "actual_margin": -33,
+      "actual_total": 243,
+      "actual_home_won": false,
+      "predicted_home_prob": 0.4471,
+      "predicted_spread": -4.0,
+      "predicted_total": 230.5,
+      "predicted_winner_correct": true,
+      "spread_error": 37.0,
+      "total_error": 12.5,
+      "brier_score": 0.19989841,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.4314,
+          "predicted_spread": 1.2,
+          "predicted_total": 230.3
+        },
+        "elo": {
+          "home_win_prob": 0.523
+        },
+        "poisson": {
+          "home_win_prob": 0.453,
+          "predicted_total": 236.2
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.412,
+          "predicted_spread": 4.0,
+          "predicted_total": 230.5,
+          "margin_stdev": 16.6,
+          "percentiles": {
+            "5th": -32.0,
+            "25th": -15.0,
+            "median": -4.0,
+            "75th": 7.0,
+            "95th": 23.0
+          },
+          "spread_covers": {
+            "-10": 0.194,
+            "-7": 0.243,
+            "-5": 0.281,
+            "-3": 0.338,
+            "-1": 0.395,
+            "0": 0.412,
+            "1": 0.412,
+            "3": 0.463,
+            "5": 0.514,
+            "7": 0.569,
+            "10": 0.634
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:44.139991+00:00"
+    },
+    {
+      "game": "New Orleans Pelicans @ Houston Rockets",
+      "actual_home_score": 107,
+      "actual_away_score": 105,
+      "actual_margin": 2,
+      "actual_total": 212,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.5798,
+      "predicted_spread": -0.3,
+      "predicted_total": 221.9,
+      "predicted_winner_correct": true,
+      "spread_error": 1.7,
+      "total_error": 9.900000000000006,
+      "brier_score": 0.17656804,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.6401,
+          "predicted_spread": -2.5,
+          "predicted_total": 221.5
+        },
+        "elo": {
+          "home_win_prob": 0.6267
+        },
+        "poisson": {
+          "home_win_prob": 0.5544,
+          "predicted_total": 228.0
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.491,
+          "predicted_spread": 0.3,
+          "predicted_total": 221.9,
+          "margin_stdev": 16.6,
+          "percentiles": {
+            "5th": -27.0,
+            "25th": -12.0,
+            "median": -1.0,
+            "75th": 10.2,
+            "95th": 27.0
+          },
+          "spread_covers": {
+            "-10": 0.25,
+            "-7": 0.313,
+            "-5": 0.36,
+            "-3": 0.416,
+            "-1": 0.468,
+            "0": 0.491,
+            "1": 0.491,
+            "3": 0.546,
+            "5": 0.604,
+            "7": 0.65,
+            "10": 0.712
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:44.883505+00:00"
+    },
+    {
+      "game": "Utah Jazz @ Portland Trail Blazers",
+      "actual_home_score": 124,
+      "actual_away_score": 114,
+      "actual_margin": 10,
+      "actual_total": 238,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.5037,
+      "predicted_spread": -2.2,
+      "predicted_total": 222.7,
+      "predicted_winner_correct": true,
+      "spread_error": 7.8,
+      "total_error": 15.300000000000011,
+      "brier_score": 0.24631368999999997,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.5288,
+          "predicted_spread": -0.5,
+          "predicted_total": 222.6
+        },
+        "elo": {
+          "home_win_prob": 0.5715
+        },
+        "poisson": {
+          "home_win_prob": 0.4999,
+          "predicted_total": 226.8
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.431,
+          "predicted_spread": 2.2,
+          "predicted_total": 222.7,
+          "margin_stdev": 16.6,
+          "percentiles": {
+            "5th": -29.0,
+            "25th": -13.0,
+            "median": -3.0,
+            "75th": 10.0,
+            "95th": 25.0
+          },
+          "spread_covers": {
+            "-10": 0.236,
+            "-7": 0.283,
+            "-5": 0.329,
+            "-3": 0.378,
+            "-1": 0.417,
+            "0": 0.431,
+            "1": 0.431,
+            "3": 0.478,
+            "5": 0.53,
+            "7": 0.582,
+            "10": 0.666
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:45.375263+00:00"
+    },
+    {
+      "game": "Minnesota Timberwolves @ Golden State Warriors",
+      "actual_home_score": 117,
+      "actual_away_score": 127,
+      "actual_margin": -10,
+      "actual_total": 244,
+      "actual_home_won": false,
+      "predicted_home_prob": 0.4221,
+      "predicted_spread": -4.9,
+      "predicted_total": 223.0,
+      "predicted_winner_correct": true,
+      "spread_error": 14.9,
+      "total_error": 21.0,
+      "brier_score": 0.17816840999999997,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.3978,
+          "predicted_spread": 1.8,
+          "predicted_total": 223.1
+        },
+        "elo": {
+          "home_win_prob": 0.5058
+        },
+        "poisson": {
+          "home_win_prob": 0.4354,
+          "predicted_total": 228.2
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.388,
+          "predicted_spread": 4.9,
+          "predicted_total": 223.0,
+          "margin_stdev": 16.6,
+          "percentiles": {
+            "5th": -33.0,
+            "25th": -16.0,
+            "median": -5.0,
+            "75th": 7.0,
+            "95th": 22.0
+          },
+          "spread_covers": {
+            "-10": 0.18,
+            "-7": 0.229,
+            "-5": 0.28,
+            "-3": 0.321,
+            "-1": 0.367,
+            "0": 0.388,
+            "1": 0.388,
+            "3": 0.441,
+            "5": 0.492,
+            "7": 0.544,
+            "10": 0.619
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:45.399127+00:00"
+    },
+    {
+      "game": "Brooklyn Nets @ Philadelphia 76ers",
+      "actual_home_score": 104,
+      "actual_away_score": 97,
+      "actual_margin": 7,
+      "actual_total": 201,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.7644,
+      "predicted_spread": 5.4,
+      "predicted_total": 224.2,
+      "predicted_winner_correct": true,
+      "spread_error": 12.4,
+      "total_error": 23.19999999999999,
+      "brier_score": 0.05550736000000001,
+      "confidence": "MEDIUM",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.8835,
+          "predicted_spread": -8.8,
+          "predicted_total": 223.9
+        },
+        "elo": {
+          "home_win_prob": 0.7762
+        },
+        "poisson": {
+          "home_win_prob": 0.7133,
+          "predicted_total": 229.3
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.643,
+          "predicted_spread": -5.4,
+          "predicted_total": 224.2,
+          "margin_stdev": 17.2,
+          "percentiles": {
+            "5th": -23.0,
+            "25th": -6.0,
+            "median": 5.0,
+            "75th": 17.0,
+            "95th": 34.0
+          },
+          "spread_covers": {
+            "-10": 0.376,
+            "-7": 0.44,
+            "-5": 0.496,
+            "-3": 0.562,
+            "-1": 0.612,
+            "0": 0.643,
+            "1": 0.643,
+            "3": 0.693,
+            "5": 0.731,
+            "7": 0.759,
+            "10": 0.801
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:45.887829+00:00"
+    },
+    {
+      "game": "Milwaukee Bucks @ Atlanta Hawks",
+      "actual_home_score": 122,
+      "actual_away_score": 99,
+      "actual_margin": 23,
+      "actual_total": 221,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.365,
+      "predicted_spread": -6.7,
+      "predicted_total": 237.9,
+      "predicted_winner_correct": false,
+      "spread_error": 16.3,
+      "total_error": 16.900000000000006,
+      "brier_score": 0.403225,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.3137,
+          "predicted_spread": 3.4,
+          "predicted_total": 237.9
+        },
+        "elo": {
+          "home_win_prob": 0.4598
+        },
+        "poisson": {
+          "home_win_prob": 0.3944,
+          "predicted_total": 239.4
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.347,
+          "predicted_spread": 6.7,
+          "predicted_total": 237.9,
+          "margin_stdev": 17.3,
+          "percentiles": {
+            "5th": -35.0,
+            "25th": -19.0,
+            "median": -7.0,
+            "75th": 5.0,
+            "95th": 21.0
+          },
+          "spread_covers": {
+            "-10": 0.156,
+            "-7": 0.208,
+            "-5": 0.245,
+            "-3": 0.286,
+            "-1": 0.326,
+            "0": 0.347,
+            "1": 0.347,
+            "3": 0.392,
+            "5": 0.434,
+            "7": 0.489,
+            "10": 0.565
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:46.626657+00:00"
+    },
+    {
+      "game": "Charlotte Hornets @ San Antonio Spurs",
+      "actual_home_score": 115,
+      "actual_away_score": 102,
+      "actual_margin": 13,
+      "actual_total": 217,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.7019,
+      "predicted_spread": 2.9,
+      "predicted_total": 222.9,
+      "predicted_winner_correct": true,
+      "spread_error": 15.9,
+      "total_error": 5.900000000000006,
+      "brier_score": 0.08886361000000002,
+      "confidence": "MEDIUM",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.8171,
+          "predicted_spread": -6.5,
+          "predicted_total": 222.0
+        },
+        "elo": {
+          "home_win_prob": 0.7268
+        },
+        "poisson": {
+          "home_win_prob": 0.66,
+          "predicted_total": 225.8
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.572,
+          "predicted_spread": -2.9,
+          "predicted_total": 222.9,
+          "margin_stdev": 16.3,
+          "percentiles": {
+            "5th": -24.0,
+            "25th": -8.0,
+            "median": 3.0,
+            "75th": 14.0,
+            "95th": 31.0
+          },
+          "spread_covers": {
+            "-10": 0.313,
+            "-7": 0.383,
+            "-5": 0.435,
+            "-3": 0.497,
+            "-1": 0.544,
+            "0": 0.572,
+            "1": 0.572,
+            "3": 0.618,
+            "5": 0.665,
+            "7": 0.728,
+            "10": 0.783
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:46.643365+00:00"
+    },
+    {
+      "game": "Washington Wizards @ Boston Celtics",
+      "actual_home_score": 111,
+      "actual_away_score": 100,
+      "actual_margin": 11,
+      "actual_total": 211,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.9502,
+      "predicted_spread": 21.4,
+      "predicted_total": 230.5,
+      "predicted_winner_correct": true,
+      "spread_error": 32.4,
+      "total_error": 19.5,
+      "brier_score": 0.0024800399999999954,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.9959,
+          "predicted_spread": -23.9,
+          "predicted_total": 230.0
+        },
+        "elo": {
+          "home_win_prob": 0.9517
+        },
+        "poisson": {
+          "home_win_prob": 0.942,
+          "predicted_total": 232.5
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.9,
+          "predicted_spread": -21.4,
+          "predicted_total": 230.5,
+          "margin_stdev": 16.9,
+          "percentiles": {
+            "5th": -7.0,
+            "25th": 10.0,
+            "median": 21.0,
+            "75th": 33.0,
+            "95th": 50.0
+          },
+          "spread_covers": {
+            "-10": 0.748,
+            "-7": 0.805,
+            "-5": 0.834,
+            "-3": 0.858,
+            "-1": 0.882,
+            "0": 0.9,
+            "1": 0.9,
+            "3": 0.918,
+            "5": 0.931,
+            "7": 0.947,
+            "10": 0.963
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:46.881982+00:00"
+    },
+    {
+      "game": "Orlando Magic @ Miami Heat",
+      "actual_home_score": 117,
+      "actual_away_score": 121,
+      "actual_margin": -4,
+      "actual_total": 238,
+      "actual_home_won": false,
+      "predicted_home_prob": 0.5446,
+      "predicted_spread": -1.4,
+      "predicted_total": 213.6,
+      "predicted_winner_correct": false,
+      "spread_error": 5.4,
+      "total_error": 24.400000000000006,
+      "brier_score": 0.29658915999999996,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.5855,
+          "predicted_spread": -1.5,
+          "predicted_total": 213.2
+        },
+        "elo": {
+          "home_win_prob": 0.5994
+        },
+        "poisson": {
+          "home_win_prob": 0.5273,
+          "predicted_total": 221.0
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.469,
+          "predicted_spread": 1.4,
+          "predicted_total": 213.6,
+          "margin_stdev": 17.0,
+          "percentiles": {
+            "5th": -29.0,
+            "25th": -13.0,
+            "median": -2.0,
+            "75th": 10.0,
+            "95th": 27.0
+          },
+          "spread_covers": {
+            "-10": 0.231,
+            "-7": 0.29,
+            "-5": 0.329,
+            "-3": 0.38,
+            "-1": 0.441,
+            "0": 0.469,
+            "1": 0.469,
+            "3": 0.526,
+            "5": 0.566,
+            "7": 0.607,
+            "10": 0.678
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:46.898733+00:00"
+    },
+    {
+      "game": "Denver Nuggets @ Los Angeles Lakers",
+      "actual_home_score": 127,
+      "actual_away_score": 125,
+      "actual_margin": 2,
+      "actual_total": 252,
+      "actual_home_won": true,
+      "predicted_home_prob": 0.4062,
+      "predicted_spread": -4.5,
+      "predicted_total": 228.6,
+      "predicted_winner_correct": false,
+      "spread_error": 2.5,
+      "total_error": 23.400000000000006,
+      "brier_score": 0.35259844,
+      "confidence": "HIGH",
+      "individual_models": {
+        "power_ratings": {
+          "home_win_prob": 0.3599,
+          "predicted_spread": 2.5,
+          "predicted_total": 227.4
+        },
+        "elo": {
+          "home_win_prob": 0.4856
+        },
+        "poisson": {
+          "home_win_prob": 0.4205,
+          "predicted_total": 233.0
+        },
+        "monte_carlo": {
+          "home_win_prob": 0.4,
+          "predicted_spread": 4.5,
+          "predicted_total": 228.6,
+          "margin_stdev": 17.1,
+          "percentiles": {
+            "5th": -33.0,
+            "25th": -16.0,
+            "median": -5.0,
+            "75th": 7.0,
+            "95th": 24.0
+          },
+          "spread_covers": {
+            "-10": 0.188,
+            "-7": 0.243,
+            "-5": 0.287,
+            "-3": 0.334,
+            "-1": 0.378,
+            "0": 0.4,
+            "1": 0.4,
+            "3": 0.456,
+            "5": 0.499,
+            "7": 0.547,
+            "10": 0.62
+          }
+        }
+      },
+      "timestamp": "2026-03-15T15:07:47.391020+00:00"
+    }
+  ]
+}

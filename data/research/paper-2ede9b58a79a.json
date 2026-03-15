@@ -1,0 +1,8 @@
+{
+  "title": "A Systematic Review of Machine Learning in Sports Betting: Techniques, Challenges, and Future Directions",
+  "url": "https://arxiv.org/html/2410.21484v1",
+  "snippet": "By developing models that can accurately predict match outcomes and compare them with the odds offered by bookmakers, bettors can identify instances where the odds are mispriced, allowing them to place bets with a positive expected value. Recently, anomaly detection models have been developed to identify suspicious betting patterns that may indicate match-fixing Kim et al. (2024); Ramirez et al. (2023); Mravec (2021). These models analyze a range of variables including sports results, team ranki",
+  "source": "brave",
+  "query": "sports betting value detection algorithms",
+  "ingested_at": "2026-03-15T15:00:43.139054+00:00"
+}

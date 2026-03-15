@@ -373,6 +373,7 @@ def find_value_bets(games_odds: list, max_bets: int = 10) -> list:
         bankroll = state.get("balance", 100.0)
 
     opportunities = []
+    all_predictions = []  # Save ALL predictions for self-improvement feedback
 
     # Market-blending: our model is 70%, market consensus 30%
     MODEL_WEIGHT = 0.70
@@ -431,6 +432,19 @@ def find_value_bets(games_odds: list, max_bets: int = 10) -> list:
         home_prob = max(0.15, min(0.85, home_prob))
         away_prob = 1 - home_prob
 
+        # Save prediction for self-improvement tracking
+        all_predictions.append({
+            "home_team": home,
+            "away_team": away,
+            "home_win_prob": round(home_prob, 4),
+            "model_raw_prob": round(model_home_prob, 4),
+            "market_prob": round(market_home_prob, 4) if home_odds_list else None,
+            "predicted_spread": pred.get("spread", 0),
+            "predicted_total": pred.get("predicted_total", 220),
+            "confidence": pred.get("confidence", "UNKNOWN"),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
         # Scan all bookmakers for best odds
         for bookmaker in game.get("bookmakers", []):
             bk_name = bookmaker.get("title", bookmaker.get("key", "unknown"))
@@ -459,6 +473,14 @@ def find_value_bets(games_odds: list, max_bets: int = 10) -> list:
                             bookmaker=bk_name,
                         )
                         opportunities.append(opp)
+
+    # Save ALL game predictions for self-improvement feedback loop
+    if all_predictions:
+        pred_jsonl = PREDICTIONS_DIR / "predictions.jsonl"
+        with open(pred_jsonl, "a") as f:
+            for p in all_predictions:
+                f.write(json.dumps(p) + "\n")
+        log(f"Saved {len(all_predictions)} game predictions for self-improvement tracking")
 
     if not opportunities:
         log("No value bets found with edge >= 2%")

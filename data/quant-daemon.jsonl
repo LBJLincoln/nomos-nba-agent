@@ -57,3 +57,17 @@
 {"ts": "2026-03-15T13:58:15.765904+00:00", "level": "INFO", "msg": "Value bets: 0/224 opportunities | exposure 0.0% | EV $0.00"}
 {"ts": "2026-03-15T13:58:15.769851+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 0 papers, 0 picks"}
 {"ts": "2026-03-15T13:58:15.769989+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (6s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T14:58:16.129905+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T14:58:27.876798+00:00", "level": "INFO", "msg": "Research ingestion: 0 new papers found"}
+{"ts": "2026-03-15T14:58:32.648954+00:00", "level": "INFO", "msg": "Live odds: 7 games fetched from Odds API"}
+{"ts": "2026-03-15T14:58:33.127758+00:00", "level": "INFO", "msg": "Value bets: 0/225 opportunities | exposure 0.0% | EV $0.00"}
+{"ts": "2026-03-15T14:58:33.137348+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 0 papers, 0 picks"}
+{"ts": "2026-03-15T14:58:33.137513+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE DONE (17s) \u2014 0 papers, 10 picks \u2550\u2550\u2550"}
+{"ts": "2026-03-15T15:00:39.625368+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE #1 START \u2550\u2550\u2550"}
+{"ts": "2026-03-15T15:00:43.140070+00:00", "level": "INFO", "msg": "Research ingestion: 10 new papers found"}
+{"ts": "2026-03-15T15:00:46.891664+00:00", "level": "INFO", "msg": "Live odds: 7 games fetched from Odds API"}
+{"ts": "2026-03-15T15:01:05.383293+00:00", "level": "INFO", "msg": "Model recalibration suggested: {\"elo_k_factor\": 22, \"home_court_advantage\": 2.8, \"monte_carlo_stdev\": 11.5, \"avg_team_score\": 114.2, \"kelly_fraction\": 0.25, \"min_edge\": 0.02, \"weight_power\": 0.35, \"weight_elo\": 0.2, \"weight_poisson"}
+{"ts": "2026-03-15T15:01:07.145107+00:00", "level": "INFO", "msg": "Saved 7 game predictions for self-improvement tracking"}
+{"ts": "2026-03-15T15:01:07.150387+00:00", "level": "INFO", "msg": "Value bets: 0/247 opportunities | exposure 0.0% | EV $0.00"}
+{"ts": "2026-03-15T15:01:07.380493+00:00", "level": "INFO", "msg": "Synced to mon-ipad: bankroll=$100.0, 10 papers, 0 picks"}
+{"ts": "2026-03-15T15:01:07.380752+00:00", "level": "INFO", "msg": "\u2550\u2550\u2550 QUANT CYCLE #1 DONE (28s) \u2014 10 papers, 10 picks \u2550\u2550\u2550"}
