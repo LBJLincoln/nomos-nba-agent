@@ -1,5 +1,4 @@
 # Environment & secrets
-.env.local
 .env
 .env.*
 *.pid
@@ -7,7 +6,9 @@ credentials.json
 **/credentials*.json
 *.pem
 *.key
+*.token
 secrets/
+*.secret
 
 # Python
 __pycache__/
@@ -18,12 +19,27 @@ dist/
 build/
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 *.egg
 
-# Logs & data (generated)
+# Logs & generated data
 logs/
+*.log
+data/eval/
+data/predictions/
+data/odds-*.json
+data/calibration/
+data/bankroll/
+data/ingest/
+data/performance/
+data/research/
+data/results/
 data/cache/
-data/eval/results/
+data/*.jsonl
+data/*-state.json
+data/*-output.log
 users/
 reports/
 
