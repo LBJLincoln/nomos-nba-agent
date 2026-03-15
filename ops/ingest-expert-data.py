@@ -109,7 +109,7 @@ def http_get(url, headers=None, timeout=30):
     except json.JSONDecodeError as e:
         return {"error": f"Invalid JSON response from {url}: {e}"}, 0
     except Exception as e:
-        return {"error": str(e)}, 0
+        return {"error": f"GET {url} failed ({type(e).__name__}): {e}"}, 0
 
 def http_post(url, data, headers=None, timeout=60):
     body = json.dumps(data).encode("utf-8")
@@ -132,7 +132,7 @@ def http_post(url, data, headers=None, timeout=60):
     except json.JSONDecodeError as e:
         return {"error": f"Invalid JSON response from {url}: {e}"}, 0
     except Exception as e:
-        return {"error": str(e)}, 0
+        return {"error": f"POST {url} failed ({type(e).__name__}): {e}"}, 0
 
 
 # ══════════════════════════════════════════════════════════════════════════════

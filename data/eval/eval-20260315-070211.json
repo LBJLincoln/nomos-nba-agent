@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-15T07:02:11.197678+00:00",
+  "total": 5,
+  "passed": 4,
+  "failed": 1,
+  "accuracy": 80.0,
+  "category": "game_analysis",
+  "avg_latency_ms": 28631,
+  "results": [
+    {
+      "id": "nba-game-004",
+      "category": "game_analysis",
+      "question": "What makes the 2014 Spurs offense considered the greatest team offense ever?",
+      "golden": "Ball movement, 300+ extra passes per game, highest assisted FG%, beautiful basketball",
+      "answer": "The 2014 San Antonio Spurs offense is widely considered the greatest team offense in NBA history for several key reasons:\n\n**Statistical Dominance**\n- Led the league with 105.5 offensive rating (points per 100 possessions)\n- Shot 52.0% from the field (highest in the league)\n- 39.7% from three-point range (2nd in the league)\n- 67.3% true shooting percentage (highest in the league)\n- Averaged 24.7 assists per game (highest in the league)\n\n**Ball Movement & Spacing**\n- Averaged 353 passes per game ",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 13980,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-003",
+      "category": "game_analysis",
+      "question": "Explique le pick-and-roll et pourquoi c'est la base de l'attaque moderne",
+      "golden": "Action ou un joueur pose un ecran, le porteur de balle utilise l'ecran, le poseur roll vers le panier",
+      "answer": "Le pick-and-roll (écran et roule) est la base de l'attaque moderne NBA pour plusieurs raisons statistiques et tactiques :\n\n**Efficacité pure**\n- Les actions P&R génèrent 1.08 points par possession (PPP) en moyenne, contre 1.02 PPP pour les isolations\n- Les joueurs en rouleau convertissent à 68% près du cercle (contre 52% pour les tirs spot-up)\n- Les passes issues du P&R créent des tirs ouverts à 42% (contre 35% pour les passes isolées)\n\n**Création d'avantages**\n- Le défenseur sur le porteur doit",
+      "keywords_matched": 0.2,
+      "passed": false,
+      "latency_ms": 32204,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-002",
+      "category": "game_analysis",
+      "question": "What is the difference between offensive rating and defensive rating?",
+      "golden": "ORtg = points scored per 100 possessions, DRtg = points allowed per 100 possessions",
+      "answer": "Offensive Rating (ORTG) and Defensive Rating (DRTG) are two fundamental advanced statistics used to measure a team's or player's efficiency on each end of the court.\n\n**Offensive Rating (ORTG)**\n- Measures points scored per 100 possessions\n- Formula: 100 × (Points Scored / Possessions)\n- League average is typically around 110-115 (varies by season)\n- Higher is better (indicates more efficient offense)\n\n**Defensive Rating (DRTG)**\n- Measures points allowed per 100 possessions\n- Formula: 100 × (Po",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 17390,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-005",
+      "category": "game_analysis",
+      "question": "Comment le small-ball a-t-il change la NBA ?",
+      "golden": "Les Warriors de 2015+ ont popularise le 5-out, spacing, 3-point shooting",
+      "answer": "Le small-ball a révolutionné la NBA depuis l'ère \"7 seconds or less\" des Suns (2004-2010) et l'équipe championne des Warriors en 2015. Voici les impacts statistiques et stratégiques :\n\n**Changements statistiques majeurs :**\n- Le nombre de tirs à 3 points par match a explosé : de 13.1 en 2000-01 à 35.3 en 2022-23\n- Le pourcentage de tirs à 3 points tentés est passé de 13.2% à 38.9% sur la même période\n- La taille moyenne des effectifs a diminué : de 6'7\" (2.01m) à 6'5\" (1.96m) pour les ailiers\n\n*",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 47337,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-001",
+      "category": "game_analysis",
+      "question": "Qu'est-ce que le pace dans les stats NBA ?",
+      "golden": "Nombre de possessions par 48 minutes — mesure la vitesse de jeu",
+      "answer": "Le pace (ou rythme) est une statistique avancée qui mesure le nombre de possessions par 48 minutes (un match NBA standard). C'est une métrique cruciale pour comprendre le style de jeu d'une équipe et contextualiser les performances individuelles et collectives.\n\n**Définition technique :**\nPace = (Possessions par match) x (48 / Minutes jouées)\n\n**Pourquoi c'est important :**\n- Une équipe à haut pace (ex: 100+) joue un basket rapide, avec plus de tirs et de points\n- Une équipe à bas pace (ex: 90-9",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 32245,
+      "sources": 0
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-03-15T07:15:12.867446+00:00",
+  "total": 3,
+  "passed": 1,
+  "failed": 2,
+  "accuracy": 33.3,
+  "category": "predictions",
+  "avg_latency_ms": 27407,
+  "results": [
+    {
+      "id": "nba-pred-003",
+      "category": "predictions",
+      "question": "Quel est l'impact moyen d'une blessure au ligament croise sur la carriere d'un joueur NBA ?",
+      "golden": "Historiquement 12-18 mois de recuperation, baisse de performance de 10-20% dans les stats",
+      "answer": "L'impact d'une rupture du ligament croisé antérieur (LCA) sur la carrière d'un joueur NBA est significatif mais varie selon plusieurs facteurs. Voici les données précises :\n\n**Statistiques générales :**\n- 81% des joueurs NBA reviennent jouer après une rupture du LCA\n- Temps moyen de récupération : 11,6 mois\n- 64% retrouvent leur niveau de performance pré-blessure\n- 36% ne retrouvent jamais leur niveau antérieur\n\n**Impact sur les performances :**\n- Perte moyenne de 4,2 points par match la premièr",
+      "keywords_matched": 0.16666666666666666,
+      "passed": false,
+      "latency_ms": 16239,
+      "sources": 0
+    },
+    {
+      "id": "nba-pred-002",
+      "category": "predictions",
+      "question": "What factors predict NBA draft success?",
+      "golden": "College stats, physical measurements, age, conference strength, combine performance, intangibles",
+      "answer": "Les facteurs prédictifs du succès en NBA draft sont multiples et varient selon les positions. Voici les principaux indicateurs statistiques et qualitatifs :\n\n**Facteurs quantitatifs :**\n\n1. **Taille et envergure**\n   - Joueurs de 7 pieds+ : 17% de probabilité d'être All-Star vs 1% pour les joueurs <6'5\"\n   - Envergure > taille : +15% de probabilité de succès (surtout pour les ailiers/pivots)\n\n2. **Efficacité universitaire**\n   - TS% > 60% pour les pivots : fort indicateur de réussite NBA\n   - AS",
+      "keywords_matched": 0.0,
+      "passed": false,
+      "latency_ms": 46555,
+      "sources": 0
+    },
+    {
+      "id": "nba-pred-001",
+      "category": "predictions",
+      "question": "Qui a ete le premier choix de la Draft 2023 ?",
+      "golden": "Victor Wembanyama, selectionne par les San Antonio Spurs",
+      "answer": "Le premier choix de la Draft NBA 2023 a été Victor Wembanyama, sélectionné par les San Antonio Spurs.\n\nWembanyama, pivot français de 2m24, était considéré comme un prospect générationnel depuis plusieurs années. Il a été drafté le 22 juin 2023 au Barclays Center de Brooklyn.\n\nStatistiques universitaires (Pro A, Metropolitans 92) :\n- 2022-2023 : 21.6 PTS, 10.4 REB, 3.0 BLK, 2.4 AST par match\n- 55.8% de réussite aux tirs\n- 82.6% aux lancers francs\n\nAvantages :\n- Envergure exceptionnelle (2m24 avec",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 19428,
+      "sources": 0
+    }
+  ]
+}
