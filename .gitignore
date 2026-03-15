@@ -51,6 +51,19 @@ Thumbs.db
 *.swp
 *.swo
 
+# Serialized data & databases
+*.pickle
+*.pkl
+*.sqlite3
+*.db
+
+# Archives
+*.tar.gz
+*.zip
+
+# Jupyter
+.ipynb_checkpoints/
+
 # Dependencies
 node_modules/
 venv/

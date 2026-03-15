@@ -1,8 +1,0 @@
-{
-  "title": "Machine learning for sports betting: Should model selection be based on accuracy or calibration? - ScienceDirect",
-  "url": "https://www.sciencedirect.com/science/article/pii/S266682702400015X",
-  "snippet": "We follow this approach and implement and evaluate betting systems which aim to identify value bets and capitalise on them. We measure the success of a system by the return on investment (ROI) achieved over the course of an NBA season. The predictive model is perhaps the most important part of a sports betting system, and there are many algorithms available to bettors (Zdravevski and Kulakov, 2010; Cao, 2012; Zimmermann, Moorthy, and Shi, 2013; Alonso and Babac, 2022; Cheng, Zhang, Kyebambe, and",
-  "source": "brave",
-  "query": "sports betting value detection algorithms",
-  "ingested_at": "2026-03-15T15:00:43.138495+00:00"
-}

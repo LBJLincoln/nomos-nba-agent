@@ -1,1 +1,0 @@
-{"ts": "2026-03-15T15:07:47.634640+00:00", "n": 22, "accuracy": 0.6364, "brier": 0.2095, "log_loss": 0.5971, "spread_err": 13.1, "total_err": 20.8, "best_model": "power_ratings"}

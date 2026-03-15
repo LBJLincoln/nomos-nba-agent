@@ -1,2 +1,0 @@
-usage: self-improve.py [-h] [--once] [--daemon] [--days DAYS] [--history]
-self-improve.py: error: unrecognized arguments: --repo /home/termius/nomos-nba-agent 900
