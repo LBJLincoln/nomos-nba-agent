@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-14T21:15:49.471456+00:00",
+  "total": 5,
+  "passed": 4,
+  "failed": 1,
+  "accuracy": 80.0,
+  "category": "game_analysis",
+  "avg_latency_ms": 18649,
+  "results": [
+    {
+      "id": "nba-game-001",
+      "category": "game_analysis",
+      "question": "Qu'est-ce que le pace dans les stats NBA ?",
+      "golden": "Nombre de possessions par 48 minutes — mesure la vitesse de jeu",
+      "answer": "Le pace (ou rythme) est une statistique avancée qui mesure le nombre de possessions par 48 minutes (durée d'un match NBA). C'est une métrique cruciale pour contextualiser les performances offensives et défensives.\n\n**Définition précise :**\nPace = 48 * ((Possessions par équipe) / (Minutes jouées par équipe))\n\n**Pourquoi c'est important :**\n- Permet de comparer des équipes de différentes époques (avant/après chronomètre à 24 secondes)\n- Explique les différences de points marqués (une équipe rapide",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 10497,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-005",
+      "category": "game_analysis",
+      "question": "Comment le small-ball a-t-il change la NBA ?",
+      "golden": "Les Warriors de 2015+ ont popularise le 5-out, spacing, 3-point shooting",
+      "answer": "Le small-ball a révolutionné la NBA depuis 2012, principalement grâce à :\n\n**Impact statistique :**\n- Augmentation du rythme de jeu : 91.6 possessions/game (2012) → 100.2 (2023)\n- Taux de tirs à 3 points : 20.1% (2012) → 38.9% (2023)\n- Points par match : 96.3 (2012) → 114.7 (2023)\n\n**Joueurs clés :**\n- Warriors 2015 : 6'7\" Draymond Green comme pivot, 43.8% à 3 points\n- Rockets 2018 : \"Positionless\" avec 5 joueurs capables de tirer\n- Heat 2020 : \"Bam Adebayo\" comme pivot moderne\n\n**Changements ta",
+      "keywords_matched": 0.75,
+      "passed": true,
+      "latency_ms": 11981,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-002",
+      "category": "game_analysis",
+      "question": "What is the difference between offensive rating and defensive rating?",
+      "golden": "ORtg = points scored per 100 possessions, DRtg = points allowed per 100 possessions",
+      "answer": "Offensive Rating (ORtg) and Defensive Rating (DRtg) are two fundamental advanced statistics in basketball that measure a team's or player's efficiency on each end of the court.\n\n**Offensive Rating (ORtg)**\n- Measures points produced per 100 possessions\n- Formula: ORtg = (Points Scored × 100) / Possessions\n- League average is typically around 110-115 in modern NBA\n- Higher is better (indicates more efficient offense)\n\n**Defensive Rating (DRtg)**\n- Measures points allowed per 100 possessions\n- For",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 8750,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-003",
+      "category": "game_analysis",
+      "question": "Explique le pick-and-roll et pourquoi c'est la base de l'attaque moderne",
+      "golden": "Action ou un joueur pose un ecran, le porteur de balle utilise l'ecran, le poseur roll vers le panier",
+      "answer": "Le pick-and-roll (écran et roule) est la base de l'attaque moderne NBA pour plusieurs raisons statistiques et tactiques :\n\n**Mécanique fondamentale :**\n- Un joueur (passeur) utilise un écran d'un coéquipier (piqueur)\n- Le défenseur du piqueur doit choisir entre :\n  - Glisser sous l'écran (laisser un tir extérieur)\n  - Passer par-dessus l'écran (laisser de la place au drive)\n  - Changer de défense (créer des mismatches)\n\n**Pourquoi c'est dominant statistiquement :**\n\n1. **Efficacité offensive**\n ",
+      "keywords_matched": 0.2,
+      "passed": false,
+      "latency_ms": 43762,
+      "sources": 0
+    },
+    {
+      "id": "nba-game-004",
+      "category": "game_analysis",
+      "question": "What makes the 2014 Spurs offense considered the greatest team offense ever?",
+      "golden": "Ball movement, 300+ extra passes per game, highest assisted FG%, beautiful basketball",
+      "answer": "The 2014 San Antonio Spurs offense is widely considered the greatest team offense in NBA history for several key reasons:\n\n**Statistical Dominance**\n- Offensive Rating (ORtg): 110.7 (highest ever at the time)\n- Effective Field Goal Percentage (eFG%): 53.7% (1st in NBA)\n- True Shooting Percentage (TS%): 58.2% (1st in NBA)\n- Assist Rate: 65.9% (highest in league)\n\n**Key Metrics That Set Them Apart**\n\n1. **Ball Movement Excellence**\n   - Averaged 25.2 assists per game (2nd in NBA)\n   - 1,336 total ",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 18258,
+      "sources": 0
+    }
+  ]
+}

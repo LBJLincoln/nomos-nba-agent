@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-03-14T22:08:00.799003+00:00",
+  "total": 3,
+  "passed": 3,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "predictions",
+  "avg_latency_ms": 15657,
+  "results": [
+    {
+      "id": "nba-pred-001",
+      "category": "predictions",
+      "question": "Qui a ete le premier choix de la Draft 2023 ?",
+      "golden": "Victor Wembanyama, selectionne par les San Antonio Spurs",
+      "answer": "Victor Wembanyama a été sélectionné en 1er choix de la Draft NBA 2023 par les San Antonio Spurs.\n\nLe pivot français de 2m24 originaire de Levallois-Perret a été choisi devant :\n\n2. Brandon Miller (Charlotte Hornets)\n3. Scoot Henderson (Portland Trail Blazers)\n4. Amen Thompson (Houston Rockets)\n5. Ausar Thompson (Detroit Pistons)\n\nWembanyama tournait à 21.6 points, 10.4 rebonds et 3.6 contres par match avec Metropolitans 92 en Jeep Elite la saison précédant la draft. Il a été considéré comme un p",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 4518,
+      "sources": 0
+    },
+    {
+      "id": "nba-pred-002",
+      "category": "predictions",
+      "question": "What factors predict NBA draft success?",
+      "golden": "College stats, physical measurements, age, conference strength, combine performance, intangibles",
+      "answer": "Les facteurs prédictifs du succès en NBA draft sont multiples et varient selon les positions. Voici une analyse détaillée basée sur les données historiques :\n\n**Taille et morphologie**\n- Taille idéale : 2m08-2m13 pour les ailiers, 1m98-2m06 pour les arrières\n- Envergure supérieure à +7cm par rapport à la taille (ex: Kawhi Leonard +18cm)\n- Envergure debout > 2m40 pour les intérieurs\n- Poids optimal : 95-105kg pour les ailiers, 85-95kg pour les arrières\n\n**Stats universitaires (ajustées pour le ry",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 22120,
+      "sources": 0
+    },
+    {
+      "id": "nba-pred-003",
+      "category": "predictions",
+      "question": "Quel est l'impact moyen d'une blessure au ligament croise sur la carriere d'un joueur NBA ?",
+      "golden": "Historiquement 12-18 mois de recuperation, baisse de performance de 10-20% dans les stats",
+      "answer": "L'impact d'une blessure au ligament croisé antérieur (LCA) sur la carrière d'un joueur NBA est significatif et mesurable :\n\n**Résultats statistiques après blessure :**\n- **Perte de performance** : -7.3% de PER en moyenne (source : étude de 2015 par Spindler et al.)\n- **Réduction du temps de jeu** : -13.2% de minutes par match la saison suivant la blessure\n- **Durée d'absence** : 11.6 mois en moyenne avant retour sur les parquets\n- **Taux de retour au jeu** : 82% des joueurs NBA reviennent au niv",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 20334,
+      "sources": 0
+    }
+  ]
+}

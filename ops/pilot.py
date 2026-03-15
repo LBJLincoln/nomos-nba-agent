@@ -73,9 +73,12 @@ def handle_command(cmd):
 
     elif action == "start_daemon":
         interval = params.get("interval", 300)
+        log_dir = ROOT / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_fh = open(log_dir / "daemon.log", "a")
         subprocess.Popen(
             ["python3", "-u", str(ROOT / "agents" / "nba-agent.py"), "--daemon", str(interval)],
-            stdout=open(ROOT / "logs" / "daemon.log", "a"),
+            stdout=log_fh,
             stderr=subprocess.STDOUT,
             cwd=str(ROOT),
             env={**os.environ},

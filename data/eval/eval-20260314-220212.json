@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-14T22:02:12.317009+00:00",
+  "total": 5,
+  "passed": 4,
+  "failed": 1,
+  "accuracy": 80.0,
+  "category": "betting",
+  "avg_latency_ms": 22790,
+  "results": [
+    {
+      "id": "nba-bet-001",
+      "category": "betting",
+      "question": "Qu'est-ce que le Kelly Criterion en paris sportifs NBA ?",
+      "golden": "Formule de gestion de bankroll: f* = (bp - q) / b, ou b=cote decimale-1, p=proba victoire, q=1-p",
+      "answer": "Le Kelly Criterion est une formule mathématique utilisée pour déterminer la taille optimale d'un pari en fonction de la probabilité estimée de victoire et des cotes offertes. En NBA, il permet de maximiser la croissance du capital à long terme tout en minimisant le risque de ruine.\n\nLa formule est : f* = (bp - q) / b\n\nOù :\n- f* = fraction du capital à parier\n- b = cote décimale - 1 (ex: cote 2.5 → b = 1.5)\n- p = probabilité estimée de victoire\n- q = 1 - p (probabilité de perte)\n\nExemple pratique",
+      "keywords_matched": 0.75,
+      "passed": true,
+      "latency_ms": 11505,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-003",
+      "category": "betting",
+      "question": "Comment fonctionnent les spreads NBA ?",
+      "golden": "Le favori doit gagner par plus de X points, l'outsider doit perdre par moins de X points ou gagner",
+      "answer": "Les spreads NBA sont des handicaps de points appliqués par les bookmakers pour équilibrer les mises entre deux équipes. Voici comment ça fonctionne :\n\n**Principe de base**\n- L'équipe favorite a un handicap négatif (ex: -7.5)\n- L'équipe outsider a un handicap positif (ex: +7.5)\n- Pour gagner un pari sur le spread, l'équipe doit couvrir l'handicap\n\n**Exemple concret**\nMatch Lakers vs Warriors avec un spread de Warriors -5.5 :\n- Si vous pariez sur Warriors -5.5 : ils doivent gagner par 6+ points\n- ",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 27808,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-002",
+      "category": "betting",
+      "question": "What is CLV (Closing Line Value) in NBA betting?",
+      "golden": "Difference between the odds you bet at and the closing odds — positive CLV indicates long-term profitability",
+      "answer": "CLV (Closing Line Value) measures the difference between the line you bet at versus the closing line when the game starts. It's a key metric for evaluating betting skill over time.\n\n**How to calculate CLV:**\n- Point spread: (Your line - Closing line) × 100\n- Moneyline: (Implied probability difference) × 100\n- Over/Under: (Your line - Closing line) × 100\n\n**Example:**\nYou bet Lakers -4.5, closing line is -3.5\nCLV = (-4.5 - (-3.5)) × 100 = -100\n\n**Why CLV matters:**\n- Closing lines are considered ",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 23295,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-005",
+      "category": "betting",
+      "question": "Quelle est la marge typique d'un bookmaker NBA ?",
+      "golden": "3-5% de vig (vigorish/juice) sur les cotes standard, spreads -110/-110",
+      "answer": "La marge typique d'un bookmaker NBA varie entre 4% et 5% pour les paris standards sur le spread et le total.\n\nPour un match avec un spread de -110/-110 (par exemple : Lakers -5.5 @ -110 vs Celtics +5.5 @ -110), voici le calcul :\n\n- Si vous pariez 110$ sur chaque cote\n- Le bookmaker collecte 220$\n- Il doit payer 210$ au gagnant (100$ de profit + 110$ de mise)\n- Marge = (220 - 210) / 220 = 4.5%\n\nPour les paris moneyline, la marge est similaire mais varie selon l'ecart percu entre les equipes. Un m",
+      "keywords_matched": 0.6,
+      "passed": true,
+      "latency_ms": 7579,
+      "sources": 0
+    },
+    {
+      "id": "nba-bet-004",
+      "category": "betting",
+      "question": "What are player props in NBA betting?",
+      "golden": "Bets on individual player performance: points over/under, rebounds, assists, 3-pointers made, etc.",
+      "answer": "Les player props (propositions de joueurs) sont des paris spécifiques sur la performance individuelle d'un joueur NBA pendant un match. Voici les types principaux et leurs mécanismes :\n\n**Types de player props :**\n\n1. **Points + Rebonds + Passes (PRP)**\n   - Exemple : Plus/Moins de 25.5 PRP pour LeBron James\n   - Les cotes typiques : -110 (mise de 110$ pour gagner 100$)\n   - Variance élevée selon le rythme de jeu\n\n2. **Marqueur de points (Leading Scorer)**\n   - Parier sur qui aura le plus de poi",
+      "keywords_matched": 0.4,
+      "passed": false,
+      "latency_ms": 43765,
+      "sources": 0
+    }
+  ]
+}

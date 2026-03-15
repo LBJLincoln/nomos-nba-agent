@@ -138,7 +138,11 @@ def search_pinecone(query, top_k=5, namespace="nba"):
     if not embedding:
         return []
 
+    # Fallback: PINECONE_NBA_HOST → PINECONE_HOST (strip https:// prefix if present)
     index_host = os.environ.get("PINECONE_NBA_HOST", "")
+    if not index_host:
+        fallback = os.environ.get("PINECONE_HOST", "")
+        index_host = fallback.replace("https://", "").replace("http://", "").strip("/")
     if not index_host:
         return []
 
@@ -163,6 +167,68 @@ def search_pinecone(query, top_k=5, namespace="nba"):
         }
         for m in matches
         if m.get("score", 0) > 0.3
+    ]
+
+# ── Local Knowledge Base Search ──────────────────────────────────────────────
+_LOCAL_KB_CACHE = None
+
+def _load_local_kb():
+    """Load expert documents from data/ingest/*.json files."""
+    docs = []
+    ingest_dir = ROOT / "data" / "ingest"
+    if not ingest_dir.exists():
+        return docs
+
+    for f in sorted(ingest_dir.glob("*.json"), reverse=True):
+        try:
+            data = json.loads(f.read_text())
+            for doc in data.get("documents", []):
+                if doc.get("text") and len(doc["text"]) > 50:
+                    docs.append(doc)
+        except Exception:
+            continue
+
+    # Deduplicate by id
+    seen = set()
+    unique = []
+    for d in docs:
+        did = d.get("id", "")
+        if did and did not in seen:
+            seen.add(did)
+            unique.append(d)
+        elif not did:
+            unique.append(d)
+
+    return unique
+
+def search_local_kb(query, top_k=3):
+    """Search local expert knowledge base with keyword matching."""
+    global _LOCAL_KB_CACHE
+    if _LOCAL_KB_CACHE is None:
+        _LOCAL_KB_CACHE = _load_local_kb()
+
+    if not _LOCAL_KB_CACHE:
+        return []
+
+    q_tokens = set(w.lower() for w in query.split() if len(w) > 2)
+    if not q_tokens:
+        return []
+
+    scored = []
+    for doc in _LOCAL_KB_CACHE:
+        text_lower = doc["text"].lower()
+        hits = sum(1 for t in q_tokens if t in text_lower)
+        if hits > 0:
+            scored.append((hits / len(q_tokens), doc))
+
+    scored.sort(key=lambda x: -x[0])
+    return [
+        {
+            "text": d["text"][:1000],
+            "source": d.get("source", "local-kb"),
+            "score": round(s, 2),
+        }
+        for s, d in scored[:top_k]
     ]
 
 # ── NBA Data Fetcher (balldontlie + nba_api fallback) ────────────────────────

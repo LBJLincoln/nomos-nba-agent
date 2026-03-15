@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-14T22:53:58.745726+00:00",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "goat",
+  "avg_latency_ms": 14750,
+  "results": [
+    {
+      "id": "nba-goat-001",
+      "category": "goat",
+      "question": "Compare Michael Jordan et LeBron James en termes de stats de carriere",
+      "golden": "MJ: 30.1 PPG, 6 titres, 5 MVP, 6 Finals MVP. LBJ: 27.1 PPG, 4 titres, 4 MVP, 4 Finals MVP, meilleur marqueur all-time",
+      "answer": "Voici une comparaison détaillée des stats de carrière de Michael Jordan et LeBron James :\n\n**Michael Jordan (1984-2003)**\n- Matchs joués : 1,072\n- Points : 32,292 (30.1 PPG)\n- Rebonds : 6,672 (6.2 RPG)\n- Passes : 5,633 (5.3 APG)\n- FG% : 49.7%\n- 3P% : 32.7%\n- FT% : 83.5%\n- PER : 27.9\n- WS : 214.0\n- VORP : 114.1\n\n**LeBron James (2003-2024)**\n- Matchs joués : 1,421\n- Points : 40,474 (28.4 PPG)\n- Rebonds : 11,226 (7.9 RPG)\n- Passes : 11,002 (7.7 APG)\n- FG% : 50.5%\n- 3P% : 38.6%\n- FT% : 74.4%\n- PER :",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 10048,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-003",
+      "category": "goat",
+      "question": "Pourquoi Nikola Jokic est-il considere comme le meilleur centre offensif de l'histoire ?",
+      "golden": "Triple-double machine, 3x MVP, playmaking historique pour un centre, PER record",
+      "answer": "Nikola Jokic est considéré comme le meilleur centre offensif de l'histoire pour plusieurs raisons statistiques et qualitatives :\n\n**Efficacité offensive sans précédent**\n- TS% en carrière : 63.4% (meilleur que Kareem Abdul-Jabbar à 57.6%, Wilt Chamberlain à 54.0%)\n- USG% : 30.3% avec un TS% de 63.4% (seul joueur à maintenir cette efficacité avec un tel volume)\n- PER en carrière : 26.8 (meilleur que Shaq à 26.4, Kareem à 24.7)\n\n**Création de jeu révolutionnaire**\n- 8.5 passes décisives par match ",
+      "keywords_matched": 0.6,
+      "passed": true,
+      "latency_ms": 14427,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-002",
+      "category": "goat",
+      "question": "Is Steph Curry the greatest shooter of all time?",
+      "golden": "Yes by consensus — career 42-43% from 3, 3,747+ career threes (record), revolutionized the game",
+      "answer": "Steph Curry est incontestablement le plus grand shooteur de l'histoire de la NBA, avec des stats qui le placent au-dessus de tous ses concurrents.\n\n**Preuves statistiques :**\n\n**3-points :**\n- 3 390 paniers à 3-points (1er de tous les temps)\n- 43.0% de réussite en carrière (meilleur ratio pour un shooteur prolifique)\n- 5 saisons à +40% avec 300+ tentatives (record NBA)\n- 402 paniers à 3-points en 2015-16 (record absolu)\n\n**Statistiques avancées :**\n- TS% en carrière : 62.8% (élite pour un arrièr",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 19280,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-004",
+      "category": "goat",
+      "question": "Who is the greatest defensive player in NBA history?",
+      "golden": "Bill Russell (11 titles, 5 MVPs), Hakeem Olajuwon, Ben Wallace, or Tim Duncan depending on era",
+      "answer": "Le plus grand joueur defensif de l'histoire de la NBA est **Dikembe Mutombo**, avec une avance significative sur les autres candidats.\n\n**Statistiques defensives de Mutombo :**\n- 5x DPOY (1995, 1997, 1998, 2001, 2002) - record absolu\n- 3248 contres en carrière (17e de tous les temps)\n- 12.8 RPG en carrière\n- 1.3 BPG en carrière\n- 9x All-Defensive Team (4 First Team, 5 Second Team)\n\n**Pourquoi Mutombo domine :**\n- Son impact defensif était constant sur 18 saisons\n- Il a transformé des equipes méd",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 11276,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-005",
+      "category": "goat",
+      "question": "Compare la dynastie Warriors (2015-2022) avec la dynastie Bulls (1991-1998)",
+      "golden": "Warriors: 4 titres/6 Finals, shooting revolution. Bulls: 6 titres/6 Finals, deux three-peats, MJ domination",
+      "answer": "Comparaison des dynasties Warriors (2015-2022) vs Bulls (1991-1998) :\n\n**Titres et domination**\n- Bulls : 6 titres en 8 saisons (1991, 1992, 1993, 1996, 1997, 1998)\n- Warriors : 4 titres en 8 saisons (2015, 2017, 2018, 2022)\n\n**Saison régulière**\n- Bulls 1995-96 : 72-10 (meilleur record NBA à l'époque)\n- Warriors 2015-16 : 73-9 (a battu le record des Bulls)\n- Warriors 2015-16 : +10.4 Net Rating (meilleur de l'histoire NBA)\n- Bulls 1996-97 : +11.9 Net Rating (meilleur de l'histoire à l'époque)\n\n*",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 18722,
+      "sources": 0
+    }
+  ]
+}

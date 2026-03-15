@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-03-14T21:34:52.210261+00:00",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "goat",
+  "avg_latency_ms": 23895,
+  "results": [
+    {
+      "id": "nba-goat-004",
+      "category": "goat",
+      "question": "Who is the greatest defensive player in NBA history?",
+      "golden": "Bill Russell (11 titles, 5 MVPs), Hakeem Olajuwon, Ben Wallace, or Tim Duncan depending on era",
+      "answer": "Le plus grand joueur defensif de l'histoire de la NBA est **Dikembe Mutombo**, avec une avance significative sur les autres candidats.\n\n**Statistiques defensives de Mutombo :**\n- 5x All-Defensive Team (3x 1ere equipe)\n- 4x DPOY (record ex-aequo avec Ben Wallace et Dwight Howard)\n- 3,289 contres (2e de tous les temps)\n- 12.8 RPG en carrière\n- 1,196 interceptions\n\n**Pourquoi Mutombo est au-dessus :**\n- Son impact defensif par minute est le plus eleve de l'histoire (BPM defensif : 4.5)\n- A mene la ",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 6753,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-003",
+      "category": "goat",
+      "question": "Pourquoi Nikola Jokic est-il considere comme le meilleur centre offensif de l'histoire ?",
+      "golden": "Triple-double machine, 3x MVP, playmaking historique pour un centre, PER record",
+      "answer": "Nikola Jokic est considéré comme le meilleur centre offensif de l'histoire pour plusieurs raisons statistiques et techniques :\n\n**Polyvalence inégalée**\n- Seul joueur de l'histoire à avoir compilé 20 points, 10 rebonds et 10 passes décisives en moyenne sur une saison complète (2021-22)\n- 5 saisons avec plus de 8 passes par match en tant que pivot, record absolu\n- Capable de créer son propre tir, de distribuer comme un meneur et de scorer dans la raquette\n\n**Efficacité offensive exceptionnelle**\n",
+      "keywords_matched": 0.6,
+      "passed": true,
+      "latency_ms": 43342,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-002",
+      "category": "goat",
+      "question": "Is Steph Curry the greatest shooter of all time?",
+      "golden": "Yes by consensus — career 42-43% from 3, 3,747+ career threes (record), revolutionized the game",
+      "answer": "Steph Curry is unequivocally the greatest shooter in NBA history. Here's the statistical evidence:\n\n**Career 3P%**: 42.6% (2,986 makes on 7,001 attempts)\n- Next closest: Steve Nash 42.8% (383 makes on 895 attempts)\n\n**Career 3PA per game**: 5.5 (league average in his era: 3.1)\n- No other great shooter attempted this volume historically\n\n**Career 3P% on high volume**: 42.6% on 7,000+ attempts\n- Ray Allen: 40.0% on 7,429 attempts\n- Reggie Miller: 39.5% on 6,486 attempts\n\n**Record-breaking seasons*",
+      "keywords_matched": 0.8333333333333334,
+      "passed": true,
+      "latency_ms": 7278,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-005",
+      "category": "goat",
+      "question": "Compare la dynastie Warriors (2015-2022) avec la dynastie Bulls (1991-1998)",
+      "golden": "Warriors: 4 titres/6 Finals, shooting revolution. Bulls: 6 titres/6 Finals, deux three-peats, MJ domination",
+      "answer": "Comparaison des dynasties Warriors (2015-2022) vs Bulls (1991-1998) :\n\n**Dominance Statistique :**\n\nBulls (1991-1998) :\n- 6 titres en 8 saisons (6-0 en Finales)\n- 5 MVP pour Jordan (1988-1998)\n- 3 meilleures défenses de la ligue (1991, 1996, 1997)\n- 72 victoires en saison régulière (1995-96)\n- +8.2 points d'écart moyen en Finales\n\nWarriors (2015-2022) :\n- 4 titres en 8 saisons (4-2 en Finales)\n- 2 MVP pour Curry (2015, 2016)\n- 1 meilleure défense (2022)\n- 73 victoires en saison régulière (2015-1",
+      "keywords_matched": 0.8,
+      "passed": true,
+      "latency_ms": 43369,
+      "sources": 0
+    },
+    {
+      "id": "nba-goat-001",
+      "category": "goat",
+      "question": "Compare Michael Jordan et LeBron James en termes de stats de carriere",
+      "golden": "MJ: 30.1 PPG, 6 titres, 5 MVP, 6 Finals MVP. LBJ: 27.1 PPG, 4 titres, 4 MVP, 4 Finals MVP, meilleur marqueur all-time",
+      "answer": "Voici une comparaison détaillée des stats de carrière de Michael Jordan et LeBron James :\n\n**Michael Jordan (1984-2003)**\n- Matchs joués : 1,072\n- Points : 32,292 (30.1 ppg)\n- Rebonds : 6,672 (6.2 rpg)\n- Passes : 5,633 (5.3 apg)\n- FG% : 49.7%\n- 3P% : 32.7%\n- FT% : 83.5%\n- PER : 27.9\n- WS : 214.0\n- MVP : 5\n- Champion : 6 (6 Finals MVP)\n- All-Star : 14\n- All-NBA : 11 (10 First Team)\n\n**LeBron James (2003-2023)**\n- Matchs joués : 1,421\n- Points : 39,212 (27.1 ppg)\n- Rebonds : 10,735 (7.5 rpg)\n- Pas",
+      "keywords_matched": 0.8333333333333334,
+      "passed": true,
+      "latency_ms": 18734,
+      "sources": 0
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-03-14T23:26:06.098303+00:00",
+  "total": 3,
+  "passed": 2,
+  "failed": 1,
+  "accuracy": 66.7,
+  "category": "predictions",
+  "avg_latency_ms": 16659,
+  "results": [
+    {
+      "id": "nba-pred-001",
+      "category": "predictions",
+      "question": "Qui a ete le premier choix de la Draft 2023 ?",
+      "golden": "Victor Wembanyama, selectionne par les San Antonio Spurs",
+      "answer": "Victor Wembanyama a été sélectionné en première position de la Draft NBA 2023 par les San Antonio Spurs.\n\nLe pivot français de 2m24 originaire de Levallois-Perret était considéré comme un prospect générationnel depuis plusieurs années. Il a évolué la saison précédente avec Metropolitans 92 en Jeep Élite (championnat de France) où il tournait à 21,6 points, 10,4 rebonds et 3,0 contres par match.\n\nWembanyama est le deuxième joueur français drafté en première position après Joakim Noah en 2007 (bie",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 8985,
+      "sources": 0
+    },
+    {
+      "id": "nba-pred-003",
+      "category": "predictions",
+      "question": "Quel est l'impact moyen d'une blessure au ligament croise sur la carriere d'un joueur NBA ?",
+      "golden": "Historiquement 12-18 mois de recuperation, baisse de performance de 10-20% dans les stats",
+      "answer": "L'impact d'une rupture du ligament croisé antérieur (LCA) sur une carrière NBA est significatif mais varie selon plusieurs facteurs. Voici les données précises :\n\n**Résultats statistiques :**\n- Temps de récupération moyen : 11-12 mois\n- Joueurs revenant au même niveau : ~75-80%\n- Joueurs revenant à 90%+ de leur niveau pré-blessure : ~60-65%\n- Joueurs revenant à 100% : ~40-45%\n\n**Impact sur les performances :**\n- Perte moyenne de points par match la première saison post-retour : -3.2 pts\n- Diminu",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 8242,
+      "sources": 0
+    },
+    {
+      "id": "nba-pred-002",
+      "category": "predictions",
+      "question": "What factors predict NBA draft success?",
+      "golden": "College stats, physical measurements, age, conference strength, combine performance, intangibles",
+      "answer": "Les facteurs prédictifs du succès en NBA draft sont multiples et varient selon les positions. Voici les principaux indicateurs statistiques et contextuels :\n\n**Taille et physique**\n- Taille sans chaussures : +0.25 à +0.5 points de PER par pouce au-dessus de la moyenne\n- Envergure : +0.15 à +0.3 points de PER par pouce au-dessus de la moyenne\n- Athlétisme (saut vertical, sprint) : corrélation modérée avec PER (r² ≈ 0.15-0.20)\n\n**Performances universitaires/collegiales**\n- USG% (Usage Rate) : les ",
+      "keywords_matched": 0.25,
+      "passed": false,
+      "latency_ms": 32751,
+      "sources": 0
+    }
+  ]
+}

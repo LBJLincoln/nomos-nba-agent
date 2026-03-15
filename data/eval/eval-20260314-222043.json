@@ -1,0 +1,121 @@
+{
+  "timestamp": "2026-03-14T22:20:43.462359+00:00",
+  "total": 10,
+  "passed": 9,
+  "failed": 1,
+  "accuracy": 90.0,
+  "category": "stats",
+  "avg_latency_ms": 8291,
+  "results": [
+    {
+      "id": "nba-stats-005",
+      "category": "stats",
+      "question": "Qui detient le record du plus grand nombre de rebonds en carriere ?",
+      "golden": "Wilt Chamberlain avec 23,924 rebonds",
+      "answer": "Le record du plus grand nombre de rebonds en carrière en NBA est détenu par **Wilt Chamberlain** avec **23 924 rebonds**.\n\nVoici le top 5 des meilleurs rebondeurs de l'histoire :\n\n1. **Wilt Chamberlain** - 23 924 (1 045 matchs)\n2. **Bill Russell** - 21 620 (963 matchs) \n3. **Kareem Abdul-Jabbar** - 17 440 (1 560 matchs)\n4. **Elvin Hayes** - 16 279 (1 303 matchs)\n5. **Robert Parish** - 14 715 (1 611 matchs)\n\nChamberlain a maintenu une moyenne de 22,9 rebonds par match sur sa carrière, ce qui rest",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 5938,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-011",
+      "category": "stats",
+      "question": "Quel est le True Shooting % le plus eleve pour une saison (min 1000 pts) ?",
+      "golden": "Environ 73-74% TS% (plusieurs joueurs modernes)",
+      "answer": "Le True Shooting Percentage (TS%) le plus élevé pour une saison avec un minimum de 1000 points marqués est détenu par **Stephen Curry** lors de la saison 2015-2016.\n\n**Stephen Curry - 2015-2016**\n- TS% : **66.9%**\n- Points marqués : 2,375\n- Équipe : Golden State Warriors\n- Saison record des Warriors (73-9)\n\nCurry a atteint ce chiffre exceptionnel en combinant une efficacité extrême au tir (50.4% au field goal), une précision démentielle à 3-points (45.4%) et une très bonne réussite aux lancers f",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 5664,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-013",
+      "category": "stats",
+      "question": "Combien de fois Michael Jordan a-t-il ete meilleur marqueur de la NBA ?",
+      "golden": "10 fois champion marqueur",
+      "answer": "Michael Jordan a été meilleur marqueur de la NBA **10 fois** :\n\n1. 1986-87 : 37.1 PPG\n2. 1987-88 : 35.0 PPG  \n3. 1988-89 : 32.5 PPG\n4. 1989-90 : 33.6 PPG\n5. 1990-91 : 31.5 PPG\n6. 1991-92 : 30.1 PPG\n7. 1992-93 : 32.6 PPG\n8. 1995-96 : 30.4 PPG\n9. 1996-97 : 29.6 PPG\n10. 1997-98 : 28.7 PPG\n\nRecord NBA détenu avec Wilt Chamberlain (10 fois également). Seul joueur à avoir remporté le titre de MVP et meilleur marqueur la même saison (5 fois : 1987-88, 1990-91, 1995-96, 1996-97, 1997-98).",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 10623,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-002",
+      "category": "stats",
+      "question": "Who holds the NBA record for most career assists?",
+      "golden": "John Stockton with 15,806 career assists",
+      "answer": "John Stockton holds the NBA record for most career assists with 15,806 assists over his 19-year career with the Utah Jazz (1984-2003).\n\nKey stats:\n- 13,620 assists with Karl Malone (most assists between two teammates in NBA history)\n- 10x NBA assists leader\n- 2x NBA steals leader (also holds record with 3,265 career steals)\n- 19 consecutive seasons averaging 10+ assists\n\nNext closest players:\n1. Jason Kidd - 12,091 assists\n2. Steve Nash - 10,335 assists  \n3. Mark Jackson - 10,334 assists\n4. Chri",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 5600,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-004",
+      "category": "stats",
+      "question": "What is LeBron James' career scoring average?",
+      "golden": "Approximately 27.1 points per game",
+      "answer": "LeBron James' career scoring average is **27.1 points per game** through the 2022-23 season.\n\nThis ranks him 4th all-time in career scoring average among players with at least 200 games played, behind only Michael Jordan (30.1), Wilt Chamberlain (30.1), and Elgin Baylor (27.4).\n\nHis scoring has evolved throughout his career:\n- Rookie season (2003-04): 20.9 PPG\n- Peak scoring years (2005-2010): 27.2 to 31.4 PPG\n- Recent seasons (2020-23): 25.0 to 30.3 PPG\n\nAt age 38 in 2022-23, he became the olde",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 6062,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-012",
+      "category": "stats",
+      "question": "Who scored the most points in their rookie season?",
+      "golden": "Wilt Chamberlain with 2,707 points (37.6 PPG) in 1959-60",
+      "answer": "The NBA rookie single-season scoring record is held by Wilt Chamberlain, who scored 3,013 points during the 1959-60 season with the Philadelphia Warriors.\n\nThis record has stood for over 60 years and is considered one of the most unbreakable records in NBA history. Chamberlain averaged 37.6 points per game in his rookie season, playing in all 79 games the Warriors played that year.\n\nFor context on how dominant this was:\n- Second place: Michael Jordan (1984-85) - 2,313 points\n- Third place: Allen",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 8457,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-003",
+      "category": "stats",
+      "question": "Quel joueur a le plus de titres MVP en saison reguliere ?",
+      "golden": "Kareem Abdul-Jabbar avec 6 MVP",
+      "answer": "Le joueur avec le plus de titres de MVP en saison régulière est **Kareem Abdul-Jabbar** avec **6 MVP**.\n\nVoici le classement complet des joueurs avec le plus de MVP :\n\n1. **Kareem Abdul-Jabbar** - 6 MVP (1971, 1972, 1974, 1976, 1977, 1980)\n2. **LeBron James** - 4 MVP (2009, 2010, 2012, 2013)\n3. **Michael Jordan** - 5 MVP (1988, 1991, 1992, 1996, 1998)\n4. **Bill Russell** - 5 MVP (1958, 1961, 1962, 1963, 1965)\n5. **Wilt Chamberlain** - 4 MVP (1960, 1966, 1967, 1968)\n6. **Stephen Curry** - 2 MVP (",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 16143,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-001",
+      "category": "stats",
+      "question": "Quel est le record de points en un seul match NBA ?",
+      "golden": "100 points par Wilt Chamberlain le 2 mars 1962",
+      "answer": "Le record de points en un seul match NBA est de 100 points, établi par Wilt Chamberlain le 2 mars 1962 avec les Philadelphia Warriors contre les New York Knicks.\n\nStatistiques du match :\n- 36/63 aux tirs (57.1%)\n- 28/32 aux lancers francs (87.5%)\n- 25 rebonds\n- 0 passe décisive\n- 48 minutes jouées\n\nLe match s'est terminé sur le score de 169-147. Chamberlain a marqué ses 100 points dans les dernières minutes, dont 13 points dans les 2 dernières minutes.\n\nContexte :\n- Le match s'est joué à Hershey",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 12473,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-007",
+      "category": "stats",
+      "question": "Quel joueur a le meilleur PER de tous les temps en saison reguliere ?",
+      "golden": "Nikola Jokic avec un PER de 31.3 (2023-24) ou Michael Jordan career 27.9",
+      "answer": "Le meilleur PER (Player Efficiency Rating) de tous les temps en saison régulière est détenu par **Nikola Jokić** avec un PER de **31.65** en 2021-2022.\n\nVoici le top 5 historique :\n\n1. **Nikola Jokić** - 31.65 (2021-2022, Nuggets)\n2. **Giannis Antetokounmpo** - 31.14 (2019-2020, Bucks)\n3. **Wilt Chamberlain** - 31.82 (1962-1963, Warriors) - *note : PER n'existait pas à l'époque, valeur calculée rétroactivement*\n4. **Giannis Antetokounmpo** - 30.89 (2018-2019, Bucks)\n5. **LeBron James** - 30.97 (",
+      "keywords_matched": 0.3333333333333333,
+      "passed": false,
+      "latency_ms": 7244,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-006",
+      "category": "stats",
+      "question": "What is Stephen Curry's career three-point shooting percentage?",
+      "golden": "Approximately 42-43%",
+      "answer": "Stephen Curry's career three-point shooting percentage is **43.2%** (2,986 made on 6,911 attempts) through the 2022-23 season.\n\nThis ranks him 1st all-time in career three-pointers made and 2nd in three-point percentage among players with at least 1,000 attempts (behind Steve Kerr at 45.4%).\n\nFor context:\n- League average three-point percentage (2022-23): ~35.8%\n- Curry's best season: 43.8% (2015-16)\n- His 43.2% is particularly impressive given his volume (2nd all-time in attempts)\n\nSources: Bas",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 4713,
+      "sources": 0
+    }
+  ]
+}

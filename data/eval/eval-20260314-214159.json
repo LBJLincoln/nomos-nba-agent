@@ -1,0 +1,121 @@
+{
+  "timestamp": "2026-03-14T21:41:59.632646+00:00",
+  "total": 10,
+  "passed": 10,
+  "failed": 0,
+  "accuracy": 100.0,
+  "category": "stats",
+  "avg_latency_ms": 12240,
+  "results": [
+    {
+      "id": "nba-stats-012",
+      "category": "stats",
+      "question": "Who scored the most points in their rookie season?",
+      "golden": "Wilt Chamberlain with 2,707 points (37.6 PPG) in 1959-60",
+      "answer": "Voici les meilleures saisons de rookies en termes de points marqués dans l'histoire de la NBA :\n\n**1. Wilt Chamberlain (1959-60) - 2,707 points**\n- Moyenne : 37.6 PPG\n- Matchs : 72\n- Pourcentage de tirs : 47.0%\n- Record absolu qui tient toujours\n\n**2. Michael Jordan (1984-85) - 2,313 points**\n- Moyenne : 28.2 PPG\n- Matchs : 82\n- Pourcentage de tirs : 51.5%\n- Record pour un rookie ayant joué une saison complète\n\n**3. Rick Barry (1965-66) - 2,234 points**\n- Moyenne : 25.7 PPG\n- Matchs : 80\n- Pourc",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 7860,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-009",
+      "category": "stats",
+      "question": "Combien de triple-doubles Russell Westbrook a-t-il en carriere ?",
+      "golden": "198 triple-doubles (record NBA)",
+      "answer": "Russell Westbrook détient le record absolu de triple-doubles en carrière avec **198** triples-doubles en date du 20 mars 2024.\n\nVoici le détail :\n- **198 triple-doubles** (record NBA)\n- Moyenne en carrière : 22.3 PTS, 8.4 REB, 8.3 AST\n- Seul joueur de l'histoire à avoir une moyenne de triple-double sur une saison complète (2016-17 : 31.6 PTS, 10.7 REB, 10.4 AST)\n\nComparaison avec les autres légendes :\n- Oscar Robertson : 181 (deuxième)\n- Magic Johnson : 138 (troisième)\n- Jason Kidd : 107 (quatri",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 19363,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-013",
+      "category": "stats",
+      "question": "Combien de fois Michael Jordan a-t-il ete meilleur marqueur de la NBA ?",
+      "golden": "10 fois champion marqueur",
+      "answer": "Michael Jordan a été meilleur marqueur de la NBA **10 fois** au cours de sa carrière :\n\n1. 1986-87 : 37.1 PPG\n2. 1987-88 : 35.0 PPG  \n3. 1988-89 : 32.5 PPG\n4. 1989-90 : 33.6 PPG\n5. 1990-91 : 31.5 PPG\n6. 1991-92 : 30.1 PPG\n7. 1992-93 : 32.6 PPG\n8. 1995-96 : 30.4 PPG\n9. 1996-97 : 29.6 PPG\n10. 1997-98 : 28.7 PPG\n\nSon record de 10 titres de meilleur marqueur n'a été égalé que par Wilt Chamberlain. Jordan détient également le record de moyenne de points en carrière sur une saison à 30.1 PPG (minimum ",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 15021,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-001",
+      "category": "stats",
+      "question": "Quel est le record de points en un seul match NBA ?",
+      "golden": "100 points par Wilt Chamberlain le 2 mars 1962",
+      "answer": "Le record de points en un seul match NBA est de 100 points, établi par Wilt Chamberlain le 2 mars 1962 avec les Philadelphia Warriors contre les New York Knicks.\n\nStatistiques du match :\n- Chamberlain : 100 points (36/63 FG, 28/32 FT)\n- Warriors victoire 169-147\n- Match joué à Hershey, Pennsylvanie\n\nLe match a été joué à un rythme effréné (107 possessions), ce qui explique en partie le score élevé. Chamberlain a marqué 28 points au premier quart-temps, 39 à la mi-temps, et a atteint la barre des",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 14252,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-007",
+      "category": "stats",
+      "question": "Quel joueur a le meilleur PER de tous les temps en saison reguliere ?",
+      "golden": "Nikola Jokic avec un PER de 31.3 (2023-24) ou Michael Jordan career 27.9",
+      "answer": "Le meilleur PER (Player Efficiency Rating) de tous les temps en saison régulière est détenu par **Wilt Chamberlain** avec un PER de **31.82** sur l'ensemble de sa carrière.\n\nVoici le top 5 des PER de carrière :\n\n1. **Wilt Chamberlain** - 31.82\n2. **Michael Jordan** - 27.91\n3. **LeBron James** - 27.39\n4. **Anthony Davis** - 27.36\n5. **Shaquille O'Neal** - 26.43\n\nPour la meilleure saison unique, le record est également détenu par Chamberlain avec un PER de **31.82** lors de la saison 1961-62 (où i",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 6816,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-006",
+      "category": "stats",
+      "question": "What is Stephen Curry's career three-point shooting percentage?",
+      "golden": "Approximately 42-43%",
+      "answer": "Stephen Curry's career three-point shooting percentage is **43.1%** (2,338 made on 5,417 attempts) through the 2023-24 season.\n\nThis ranks him among the greatest three-point shooters in NBA history. For context:\n- His career percentage is higher than Ray Allen (40.0%) and Reggie Miller (39.5%)\n- He's the all-time leader in made three-pointers (3,390+)\n- His 43.1% is particularly impressive given his volume (5,417 attempts is 2nd all-time)\n\nHis single-season best was 44.4% in 2015-16 when he won ",
+      "keywords_matched": 0.5,
+      "passed": true,
+      "latency_ms": 3776,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-004",
+      "category": "stats",
+      "question": "What is LeBron James' career scoring average?",
+      "golden": "Approximately 27.1 points per game",
+      "answer": "LeBron James' career scoring average is **27.1 points per game** through the 2022-23 season.\n\nThis ranks him 3rd all-time in career scoring average among players with at least 200 games played, behind only Michael Jordan (30.1) and Kevin Durant (27.9).\n\nHis scoring has evolved throughout his career:\n- Rookie season (2003-04): 20.9 PPG\n- Peak scoring years (2005-2010): 27.7-31.4 PPG\n- Recent seasons (2020-2023): 25.0-30.3 PPG\n\nHe's on pace to potentially surpass Kareem Abdul-Jabbar's all-time sco",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 26087,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-002",
+      "category": "stats",
+      "question": "Who holds the NBA record for most career assists?",
+      "golden": "John Stockton with 15,806 career assists",
+      "answer": "John Stockton holds the NBA record for most career assists with 15,806 assists over his 19-year career with the Utah Jazz (1984-2003).\n\nKey stats:\n- 13,620 assists with Karl Malone (most assists between two teammates in NBA history)\n- 10x NBA assists leader\n- 19 consecutive seasons leading the Jazz in assists\n- Career average: 8.7 assists per game\n\nSecond on the list is Jason Kidd with 12,091 assists, followed by Chris Paul (10,977), Steve Nash (10,335), and Magic Johnson (10,141).\n\nSource: Bask",
+      "keywords_matched": 0.6666666666666666,
+      "passed": true,
+      "latency_ms": 4408,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-014",
+      "category": "stats",
+      "question": "What is Nikola Jokic's career assist average?",
+      "golden": "Approximately 7-8 assists per game",
+      "answer": "Nikola Jokic's career assist average is **7.3 assists per game** through the 2023-24 season.\n\nHere are his assist stats by season:\n- 2015-16: 2.4 APG\n- 2016-17: 2.7 APG  \n- 2017-18: 3.7 APG\n- 2018-19: 7.0 APG\n- 2019-20: 7.0 APG\n- 2020-21: 8.3 APG\n- 2021-22: 8.9 APG\n- 2022-23: 9.8 APG\n- 2023-24: 8.5 APG\n\nHis 9.8 APG in 2022-23 was the highest single-season average for a center in NBA history, surpassing Wilt Chamberlain's 8.6 APG in 1967-68.\n\nSource: Basketball Reference - Nikola Jokic career sta",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 13430,
+      "sources": 0
+    },
+    {
+      "id": "nba-stats-010",
+      "category": "stats",
+      "question": "What is the NBA record for most blocks in a single game?",
+      "golden": "Elmore Smith with 17 blocks on October 28, 1973",
+      "answer": "The NBA record for most blocks in a single game is **17 blocks**, shared by two players:\n\n1. **Elmore Smith** (Los Angeles Lakers) - October 28, 1973 vs Portland Trail Blazers\n2. **Dikembe Mutombo** (Denver Nuggets) - December 23, 1995 vs Detroit Pistons\n\n**Elmore Smith's game (1973):**\n- 17 blocks\n- 38 minutes played\n- 5 points, 11 rebounds\n- Lakers won 111-100\n\n**Dikembe Mutombo's game (1995):**\n- 17 blocks\n- 39 minutes played\n- 20 points, 10 rebounds\n- Nuggets won 117-105\n\nFor context, the mo",
+      "keywords_matched": 1.0,
+      "passed": true,
+      "latency_ms": 11388,
+      "sources": 0
+    }
+  ]
+}
