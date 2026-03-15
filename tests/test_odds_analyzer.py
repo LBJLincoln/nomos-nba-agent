@@ -53,3 +53,29 @@ def test_match_team_name_abbreviations():
     assert _match_team_name("Boston Celtics") == "BOS"
     assert _match_team_name("Golden State Warriors") == "GSW"
     assert _match_team_name("Unknown Fake Team") is None
+
+
+def test_arbitrage_detection():
+    """Detect arbitrage when best odds across books imply < 100% total."""
+    game = {
+        "id": "arb_test",
+        "home_team": "Boston Celtics",
+        "away_team": "New York Knicks",
+        "commence_time": "2026-03-15T00:00:00Z",
+        "bookmakers": [
+            {"key": "pinnacle", "markets": [{"key": "h2h", "outcomes": [
+                {"name": "Boston Celtics", "price": 2.20},
+                {"name": "New York Knicks", "price": 1.70},
+            ]}]},
+            {"key": "draftkings", "markets": [{"key": "h2h", "outcomes": [
+                {"name": "Boston Celtics", "price": 1.80},
+                {"name": "New York Knicks", "price": 2.15},
+            ]}]},
+        ],
+    }
+    # Best: BOS@2.20 (pinnacle) + NYK@2.15 (draftkings) = 1/2.20+1/2.15 ≈ 0.92
+    result = analyze_game_odds(game)
+    arb = result["markets"]["h2h"]["arbitrage"]
+    assert arb["is_arb"] is True
+    assert arb["profit_pct"] > 0
+    assert arb["margin"] < 1.0
