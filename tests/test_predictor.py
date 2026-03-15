@@ -1,8 +1,8 @@
-"""Tests for predictor.py — ELO, Poisson PMF, and Bayesian update."""
+"""Tests for predictor.py — ELO, Poisson PMF, Bayesian update, and Poisson predict."""
 
 import pytest
 import math
-from models.predictor import elo_expected, poisson_pmf, bayesian_update, update_with_injury
+from models.predictor import elo_expected, poisson_pmf, bayesian_update, update_with_injury, poisson_predict
 
 
 class TestEloExpected:
@@ -46,3 +46,21 @@ class TestBayesianUpdate:
         prior = 0.65
         post = update_with_injury(prior, "superstar", "home")
         assert post < prior
+
+
+class TestPoissonPredict:
+    def test_okc_vs_was_home_heavily_favored(self):
+        """OKC (elite offense) hosting WAS (worst defense) → strong home favorite."""
+        result = poisson_predict("OKC", "WAS")
+        assert result is not None
+        assert result["home_win_prob"] > 0.75, "OKC should be heavy Poisson favorite vs WAS"
+        assert result["home_expected"] > result["away_expected"]
+        assert 190 < result["predicted_total"] < 250
+
+    def test_symmetric_matchup_close_to_even(self):
+        """Two similar teams → win prob near 50% (home gets small Poisson boost)."""
+        result = poisson_predict("LAC", "PHX")
+        assert 0.40 < result["home_win_prob"] < 0.70
+
+    def test_invalid_team_returns_none(self):
+        assert poisson_predict("FAKE", "BOS") is None
