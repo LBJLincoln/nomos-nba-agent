@@ -20,7 +20,12 @@ def sync():
     if metrics_file.exists():
         lines = [l for l in metrics_file.read_text().strip().split("\n") if l]
         recent = lines[-50:]
-        entries = [json.loads(l) for l in recent]
+        entries = []
+        for l in recent:
+            try:
+                entries.append(json.loads(l))
+            except json.JSONDecodeError:
+                print(f"Warning: skipping malformed metrics line: {l[:80]}")
 
         avg_accuracy = sum(e.get("accuracy", 0) for e in entries) / len(entries) if entries else 0
         avg_latency = sum(e.get("avg_latency_ms", 0) for e in entries) / len(entries) if entries else 0
