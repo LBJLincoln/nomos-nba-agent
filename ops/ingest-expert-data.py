@@ -187,7 +187,11 @@ def get_embeddings_batch(texts, batch_size=16, max_chars=8000):
 
         data = resp.get("data", [])
         for item in sorted(data, key=lambda x: x.get("index", 0)):
-            all_embeddings.append(item.get("embedding"))
+            emb = item.get("embedding")
+            if emb is None:
+                log(f"Batch item missing embedding (index={item.get('index')})", "WARN")
+                continue
+            all_embeddings.append(emb)
 
         if i + batch_size < len(texts):
             time.sleep(0.5)  # Rate limit
