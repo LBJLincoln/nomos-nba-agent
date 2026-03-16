@@ -718,14 +718,10 @@ def build_features(games: List[dict], elo: EloSystem,
     """
     Build feature matrix X and target vectors from game results.
 
-    33 features per game:
-    [0-16]  Original 17 features (Elo, win%, rest, H2H, power ratings, etc.)
-    [17-22] Team advanced stats: home/away ORtg, DRtg, Pace (6)
-    [23-26] Team efficiency: home/away eFG%, TOV% (4)
-    [27-28] Player impact: top-5 PIE per team (2)
-    [29-30] Injury count per team (2)
-    [31]    Market consensus home probability
-    [32]    Line movement (closing - opening probability)
+    55 features per game — see FEATURE_NAMES for full list.
+    Includes: Elo, power ratings, multi-window win%/pt-diff, momentum,
+    rest/fatigue, H2H, Four Factors, advanced stats, net rating, TS%,
+    player impact, roster depth, injuries, streaks, SOS, season phase, market.
 
     Targets:
     y_win:    1 if home team won, 0 otherwise
@@ -926,7 +922,7 @@ def build_features(games: List[dict], elo: EloSystem,
         home_top5_usg = h_ps.get("top5_avg_usg", 0.20) or 0.20
         away_top5_usg = a_ps.get("top5_avg_usg", 0.20) or 0.20
 
-        # ── Build feature row (55 features) ──
+        # ── Build feature row (58 features — must match FEATURE_NAMES) ──
         row = [
             # Core Elo + matchup (5)
             home_elo, away_elo, elo_diff,
@@ -1595,7 +1591,7 @@ def predict_today(model_results: dict, weights: dict, elo: EloSystem,
     Predict today's games using the trained ensemble.
 
     For each game:
-    1. Build 35-feature vector (including team advanced stats, player impact, injuries)
+    1. Build 55-feature vector (matching build_features() exactly)
     2. Get probability from each ML model
     3. Get probability from built-in models (power ratings, Elo, Poisson, MC)
     4. Weighted average = ensemble prediction
@@ -1642,74 +1638,155 @@ def predict_today(model_results: dict, weights: dict, elo: EloSystem,
             log(f"  Skipping unknown matchup: {home_name} vs {away_name}", "WARN")
             continue
 
-        # ── Build 35-feature vector for this game ──
+        # ── Build 55-feature vector (must match build_features() exactly) ──
+
+        # Core Elo
         home_elo_val = elo.get_rating(home_abbrev)
         away_elo_val = elo.get_rating(away_abbrev)
         elo_diff_val = elo.get_diff(home_abbrev, away_abbrev)
 
-        home_power = NBA_TEAMS.get(home_abbrev, {}).get("base_power", 0)
-        away_power = NBA_TEAMS.get(away_abbrev, {}).get("base_power", 0)
+        # Power ratings
+        home_power = NBA_TEAMS.get(home_abbrev, {}).get("base_power", 0.0)
+        away_power = NBA_TEAMS.get(away_abbrev, {}).get("base_power", 0.0)
 
-        # Use team_stats for win % if available, else estimate from power
-        h_ts = team_stats.get(home_abbrev, {})
-        a_ts = team_stats.get(away_abbrev, {})
-        home_win_pct_est = h_ts.get("win_pct", 0) or min(0.85, max(0.15, 0.5 + home_power * 0.02))
-        away_win_pct_est = a_ts.get("win_pct", 0) or min(0.85, max(0.15, 0.5 + away_power * 0.02))
-
+        # Conference
         home_conf = NBA_TEAMS.get(home_abbrev, {}).get("conference", "")
         away_conf = NBA_TEAMS.get(away_abbrev, {}).get("conference", "")
+        conf_game = 1.0 if (home_conf and home_conf == away_conf) else 0.0
 
         # Team advanced stats
-        home_ortg = (h_ts.get("off_rating", 0) or 110.0) - 110.0
-        home_drtg = (h_ts.get("def_rating", 0) or 110.0) - 110.0
-        home_pace = (h_ts.get("pace", 0) or 100.0) - 100.0
-        away_ortg = (a_ts.get("off_rating", 0) or 110.0) - 110.0
-        away_drtg = (a_ts.get("def_rating", 0) or 110.0) - 110.0
-        away_pace = (a_ts.get("pace", 0) or 100.0) - 100.0
+        h_ts = team_stats.get(home_abbrev, {})
+        a_ts = team_stats.get(away_abbrev, {})
+        home_ortg = h_ts.get("off_rating", 110.0) or 110.0
+        home_drtg = h_ts.get("def_rating", 110.0) or 110.0
+        home_pace = h_ts.get("pace", 100.0) or 100.0
+        home_efg = h_ts.get("efg_pct", 0.50) or 0.50
+        home_tov_pct = h_ts.get("tov_pct", 0.13) or 0.13
+        away_ortg = a_ts.get("off_rating", 110.0) or 110.0
+        away_drtg = a_ts.get("def_rating", 110.0) or 110.0
+        away_pace = a_ts.get("pace", 100.0) or 100.0
+        away_efg = a_ts.get("efg_pct", 0.50) or 0.50
+        away_tov_pct = a_ts.get("tov_pct", 0.13) or 0.13
 
-        home_efg = h_ts.get("efg_pct", 0) or 0.50
-        home_tov = h_ts.get("tov_pct", 0) or 0.13
-        away_efg = a_ts.get("efg_pct", 0) or 0.50
-        away_tov = a_ts.get("tov_pct", 0) or 0.13
+        # Four Factors (Dean Oliver)
+        efg_diff = home_efg - away_efg
+        tov_diff = away_tov_pct - home_tov_pct  # reversed: opponent TOV helps you
+        home_orb = h_ts.get("orb_pct", 0.25) or 0.25
+        away_orb = a_ts.get("orb_pct", 0.25) or 0.25
+        orb_diff = home_orb - away_orb
+        home_ftr = h_ts.get("ftr", 0.25) or 0.25
+        away_ftr = a_ts.get("ftr", 0.25) or 0.25
+        ftr_diff = home_ftr - away_ftr
+
+        # Net rating & True shooting
+        home_net = h_ts.get("net_rating", 0.0) or 0.0
+        away_net = a_ts.get("net_rating", 0.0) or 0.0
+        home_ts = h_ts.get("ts_pct", 0.56) or 0.56
+        away_ts = a_ts.get("ts_pct", 0.56) or 0.56
 
         # Player impact
         h_ps = player_stats.get(home_abbrev, {})
         a_ps = player_stats.get(away_abbrev, {})
         home_top5_pie = h_ps.get("top5_pie", 0.50) or 0.50
         away_top5_pie = a_ps.get("top5_pie", 0.50) or 0.50
+        home_star_pts = h_ps.get("star_player_pts", 20.0) or 20.0
+        away_star_pts = a_ps.get("star_player_pts", 20.0) or 20.0
+        home_top5_usg = h_ps.get("top5_avg_usg", 0.20) or 0.20
+        away_top5_usg = a_ps.get("top5_avg_usg", 0.20) or 0.20
+        home_depth = min(h_ps.get("roster_depth", 12) or 12, 20)
+        away_depth = min(a_ps.get("roster_depth", 12) or 12, 20)
 
         # Injuries
-        home_inj_count = min(len(injuries.get(home_abbrev, [])), 5)
-        away_inj_count = min(len(injuries.get(away_abbrev, [])), 5)
+        home_inj_count = len(injuries.get(home_abbrev, []))
+        away_inj_count = len(injuries.get(away_abbrev, []))
 
-        # Market consensus from today's game data
+        # Market features from today's game data
         market_home_prob = _extract_market_prob(game, home_name)
+        market_spread = _extract_market_spread(game, home_name)
         line_movement = 0.0  # No historical movement for live prediction
 
+        # Win pct estimates (use team_stats if available, else power-based estimate)
+        home_win_pct = h_ts.get("win_pct", 0) or min(0.85, max(0.15, 0.5 + home_power * 0.02))
+        away_win_pct = a_ts.get("win_pct", 0) or min(0.85, max(0.15, 0.5 + away_power * 0.02))
+
+        # For live predictions, use season win% as proxy for all rolling windows
+        # (we don't have game-by-game history in predict_today context)
+        home_win_pct_5 = home_win_pct
+        away_win_pct_5 = away_win_pct
+        home_win_pct_10 = home_win_pct
+        away_win_pct_10 = away_win_pct
+        home_win_pct_20 = home_win_pct
+        away_win_pct_20 = away_win_pct
+        home_momentum = 0.0  # Neutral momentum without game history
+        away_momentum = 0.0
+
+        # Point differentials — use net rating as proxy
+        home_pt_diff_5 = home_net
+        away_pt_diff_5 = away_net
+        home_pt_diff_10 = home_net
+        away_pt_diff_10 = away_net
+
+        # Rest & fatigue — assume normal rest (2 days), no B2B, no fatigue
+        home_rest = 2.0
+        away_rest = 2.0
+        home_b2b = 0.0
+        away_b2b = 0.0
+        home_fatigue = 0.0
+        away_fatigue = 0.0
+
+        # Streaks & SOS — neutral defaults
+        home_streak = 0.0
+        away_streak = 0.0
+        home_sos = 0.5
+        away_sos = 0.5
+
+        # Build 55-feature row (EXACT same order as build_features)
         feature_row = np.array([[
-            # Original 17
+            # Core Elo + matchup (5)
             home_elo_val, away_elo_val, elo_diff_val,
-            home_win_pct_est, away_win_pct_est,
-            2.0, 2.0,  # Assume normal rest
-            0.5,       # H2H neutral
-            1.0,       # Home court
-            home_power, away_power,  # Proxy for pt diff
-            0.0, 0.0,  # No B2B info
-            1.0 if home_conf == away_conf else 0.0,
-            _season_phase(datetime.now()),
+            1.0,  # home_court_factor
+            conf_game,
+            # Power ratings (2)
             home_power, away_power,
-            # Team advanced (6)
-            home_ortg, home_drtg, home_pace,
-            away_ortg, away_drtg, away_pace,
-            # Team efficiency (4)
-            home_efg, home_tov,
-            away_efg, away_tov,
-            # Player impact (2)
+            # Win rates — multi-window (6)
+            home_win_pct_5, away_win_pct_5,
+            home_win_pct_10, away_win_pct_10,
+            home_win_pct_20, away_win_pct_20,
+            # Momentum (2)
+            home_momentum, away_momentum,
+            # Point differentials — multi-window (4)
+            home_pt_diff_5, away_pt_diff_5,
+            home_pt_diff_10, away_pt_diff_10,
+            # Rest & fatigue (6)
+            min(home_rest, 7), min(away_rest, 7),
+            home_b2b, away_b2b,
+            home_fatigue, away_fatigue,
+            # H2H (1)
+            0.5,  # Neutral H2H without history
+            # Four Factors — Dean Oliver (4)
+            efg_diff, tov_diff, orb_diff, ftr_diff,
+            # Team advanced stats (6)
+            home_ortg - 110.0, home_drtg - 110.0, home_pace - 100.0,
+            away_ortg - 110.0, away_drtg - 110.0, away_pace - 100.0,
+            # Net rating (2)
+            home_net, away_net,
+            # True shooting (2)
+            home_ts, away_ts,
+            # Player impact (6)
             home_top5_pie, away_top5_pie,
-            # Injuries (2)
-            home_inj_count, away_inj_count,
-            # Market (2)
-            market_home_prob, line_movement,
+            home_star_pts / 30.0, away_star_pts / 30.0,
+            home_top5_usg, away_top5_usg,
+            # Roster depth (2)
+            home_depth / 15.0, away_depth / 15.0,
+            # Injury impact (2)
+            min(home_inj_count, 5), min(away_inj_count, 5),
+            # Streaks & SOS (4)
+            home_streak / 10.0, away_streak / 10.0,
+            home_sos, away_sos,
+            # Season phase (1)
+            _season_phase(datetime.now()),
+            # Market features (3)
+            market_home_prob, market_spread / 15.0, line_movement,
         ]])
 
         # ── Collect probabilities from all models ──
