@@ -102,6 +102,17 @@ def log(msg, target="system"):
 def check_agent_availability():
     """Check which AI coding agents are installed and available."""
     for key, agent in AGENTS.items():
+        # Gemini uses API directly (CLI free tier exhausts), just check for API key
+        if key == "gemini":
+            if os.environ.get("GOOGLE_API_KEY"):
+                agent["available"] = True
+                agent["status"] = "READY (API)"
+                log(f"{agent['name']}: AVAILABLE (Gemini API direct)", key)
+            else:
+                agent["status"] = "NO API KEY"
+                log(f"{agent['name']}: no GOOGLE_API_KEY", key)
+            continue
+
         try:
             result = subprocess.run(
                 [agent["cmd"], "--version"],
@@ -234,60 +245,71 @@ def run_agent_task(agent_key, task):
             ]
 
         elif agent_key == "gemini":
-            # Gemini CLI: headless mode with GOOGLE_API_KEY
+            # Gemini: use API directly (CLI free tier quota exhausts quickly)
             google_key = os.environ.get("GOOGLE_API_KEY", "")
             if not google_key:
-                log(f"Gemini CLI skipped — no GOOGLE_API_KEY", agent_key)
+                log(f"Gemini skipped — no GOOGLE_API_KEY", agent_key)
                 agent["status"] = "NO API KEY"
                 return False
-            env["GEMINI_API_KEY"] = google_key
-            # Force free-tier model (gemini-3.1-pro has 0 free tokens)
-            env["GEMINI_MODEL"] = "gemini-2.0-flash"
-            # Create settings if needed
-            settings_dir = Path("/root/.gemini")
-            settings_dir.mkdir(parents=True, exist_ok=True)
-            settings_file = settings_dir / "settings.json"
-            import json as _json
-            settings_file.write_text(_json.dumps({
-                "selectedAuthType": "api-key",
-                "apiKey": google_key,
-                "model": "gemini-2.0-flash",
-            }))
-            # Use headless mode by piping prompt
-            cmd = ["bash", "-c", f'echo {repr(task["prompt"])} | gemini --yolo']
+            # Write a helper script that calls Gemini API directly
+            helper = WORKSPACE / "_gemini_task.py"
+            helper.write_text(f'''
+import json, urllib.request, sys
+PROMPT = {repr(task["prompt"])}
+SYSTEM = "You are an expert AI coding agent. Read the files, make improvements, and write the changes. Work in the current directory."
+body = json.dumps({{
+    "contents": [{{"parts": [{{"text": PROMPT}}]}}],
+    "systemInstruction": {{"parts": [{{"text": SYSTEM}}]}},
+    "generationConfig": {{"maxOutputTokens": 8192, "temperature": 0.7}},
+}}).encode()
+url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={google_key}"
+req = urllib.request.Request(url, data=body, headers={{"Content-Type": "application/json"}})
+try:
+    resp = urllib.request.urlopen(req, timeout=120)
+    data = json.loads(resp.read())
+    text = data["candidates"][0]["content"]["parts"][0]["text"]
+    print(text[:2000])
+except Exception as e:
+    print(f"ERROR: {{e}}", file=sys.stderr)
+    sys.exit(1)
+''')
+            cmd = ["python3", str(helper)]
 
         elif agent_key == "kimi":
-            # Kimi CLI: use OpenRouter as LLM backend (cheap)
+            # Kimi CLI: use OpenRouter as LLM backend
             openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
             if not openrouter_key:
                 log(f"Kimi CLI skipped — no OPENROUTER_API_KEY", agent_key)
                 agent["status"] = "NO API KEY"
                 return False
             env["OPENROUTER_API_KEY"] = openrouter_key
-            # Configure kimi with TOML config (not YAML!)
+            # Configure kimi with TOML config
             kimi_config = Path("/root/.kimi")
             kimi_config.mkdir(parents=True, exist_ok=True)
+            # Remove old yaml/toml configs
+            for old in ["config.yaml", "config.toml"]:
+                p = kimi_config / old
+                if p.exists():
+                    p.unlink()
+            # Write fresh config.toml — Kimi CLI requires specific format
             config_file = kimi_config / "config.toml"
-            # Always overwrite to ensure correct format
-            config_file.write_text(f'''default_model = "openrouter_model"
+            config_file.write_text(f'''default_model = "or_kimi"
 default_thinking = false
 default_yolo = true
 
-[providers.openrouter]
+[providers.or]
 type = "openai_legacy"
 base_url = "https://openrouter.ai/api/v1"
 api_key = "{openrouter_key}"
 
-[models.openrouter_model]
-provider = "openrouter"
+[models.or_kimi]
+provider = "or"
 model = "moonshotai/kimi-k2.5"
-max_context_size = 160000
+max_context_size = 131072
 ''')
-            # Remove old yaml config if it exists
-            old_yaml = kimi_config / "config.yaml"
-            if old_yaml.exists():
-                old_yaml.unlink()
-            cmd = ["kimi", "--prompt", task["prompt"]]
+            log(f"Wrote kimi config.toml (provider=or, model=kimi-k2.5)", agent_key)
+            # Use --model flag as extra safety
+            cmd = ["kimi", "--model", "or_kimi", "--prompt", task["prompt"]]
 
         elif agent_key == "openclaw":
             cmd = ["openclaw", "run", "--prompt", task["prompt"]]
