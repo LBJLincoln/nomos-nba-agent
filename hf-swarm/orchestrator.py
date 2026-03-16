@@ -34,6 +34,10 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 LITELLM_URL = os.environ.get("LITELLM_URL", "https://lbjlincoln-nomos-rag-engine-7.hf.space")
 LITELLM_KEY = os.environ.get("LITELLM_KEY", "sk-litellm-nomos-2026")
 
+# Kimi / Moonshot AI (OpenAI-compatible API — second research agent)
+KIMI_API_KEY = os.environ.get("KIMI_API_KEY", "")
+KIMI_BASE_URL = os.environ.get("MOONSHOT_BASE_URL", "https://api.moonshot.cn/v1")
+
 # ── State ──
 evolution_state = {
     "generation": 0,
@@ -96,6 +100,38 @@ def call_litellm(system_prompt, user_prompt, model="smart", max_tokens=4000, tem
         return ""
 
 
+def call_kimi(system_prompt, user_prompt, model="moonshot-v1-8k", max_tokens=4000, temperature=0.3):
+    """Call Kimi / Moonshot AI API (OpenAI-compatible) as second research agent."""
+    if not KIMI_API_KEY:
+        log("[Kimi] No API key configured, skipping")
+        return ""
+    import urllib.request
+    body = json.dumps({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }).encode()
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {KIMI_API_KEY}",
+    }
+    req = urllib.request.Request(f"{KIMI_BASE_URL}/chat/completions", data=body, headers=headers)
+    try:
+        resp = urllib.request.urlopen(req, timeout=120)
+        data = json.loads(resp.read().decode())
+        choices = data.get("choices", [])
+        if choices:
+            return choices[0].get("message", {}).get("content", "")
+        return ""
+    except Exception as e:
+        log(f"[Kimi] Call failed: {e}")
+        return ""
+
+
 def research_nba_quant(generation):
     """
     LiteLLM research agent: search for latest 2026 NBA quant papers
@@ -127,28 +163,36 @@ What NEW techniques should we explore? What are the biggest alpha opportunities?
 
     response = call_litellm(system_prompt, user_prompt, model="smart", max_tokens=3000)
 
-    if response:
-        log(f"[Research Agent] Got {len(response)} chars of research findings")
-        # Save to disk
+    # Also query Kimi for second opinion
+    kimi_response = call_kimi(
+        system_prompt,
+        user_prompt.replace("Research the latest", "As a second research agent, independently research the latest"),
+        model="moonshot-v1-8k",
+        max_tokens=2000,
+    )
+
+    if response or kimi_response:
+        log(f"[Research Agent] LiteLLM: {len(response)} chars, Kimi: {len(kimi_response)} chars")
         findings = {
             "generation": generation,
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "raw_response": response,
+            "litellm_response": response,
+            "kimi_response": kimi_response,
         }
-        try:
-            parsed = json.loads(response)
-            findings["parsed"] = parsed
-        except json.JSONDecodeError:
-            findings["parsed"] = None
+        for key, resp in [("litellm_parsed", response), ("kimi_parsed", kimi_response)]:
+            try:
+                findings[key] = json.loads(resp)
+            except (json.JSONDecodeError, TypeError):
+                findings[key] = None
 
         out = RESULTS_DIR / "research-findings.json"
         out.write_text(json.dumps(findings, indent=2, default=str))
 
-        # Update state
-        evolution_state["research_summary"] = response[:500]
+        combined = (response or "")[:300] + "\n---KIMI---\n" + (kimi_response or "")[:200]
+        evolution_state["research_summary"] = combined[:500]
         return findings
     else:
-        log("[Research Agent] No response from LiteLLM")
+        log("[Research Agent] No response from either LiteLLM or Kimi")
         return None
 
 
