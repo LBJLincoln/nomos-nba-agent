@@ -1,0 +1,9 @@
+numpy>=2.0
+scikit-learn>=1.5
+xgboost>=3.0
+lightgbm>=4.0
+catboost>=1.2
+optuna>=4.0
+nba_api>=1.4
+gradio>=5.0
+geopy>=2.4
