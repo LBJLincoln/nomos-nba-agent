@@ -1,0 +1,50 @@
+{"ts": "2026-03-16T14:34:03.283391+00:00", "level": "INFO", "msg": "NBA Quant Continuous Improvement Engine v1.0"}
+{"ts": "2026-03-16T14:34:03.284632+00:00", "level": "INFO", "msg": "  Optuna: YES"}
+{"ts": "2026-03-16T14:34:03.284709+00:00", "level": "INFO", "msg": "  CatBoost: YES"}
+{"ts": "2026-03-16T14:34:03.284765+00:00", "level": "INFO", "msg": "Starting daemon \u2014 3600s cycles"}
+{"ts": "2026-03-16T14:34:03.284814+00:00", "level": "INFO", "msg": "\n============================================================"}
+{"ts": "2026-03-16T14:34:03.284856+00:00", "level": "INFO", "msg": "IMPROVE CYCLE #1 START"}
+{"ts": "2026-03-16T14:34:03.284893+00:00", "level": "INFO", "msg": "============================================================"}
+{"ts": "2026-03-16T14:34:03.287230+00:00", "level": "INFO", "msg": "Existing seasons: ['2024-25', '2025-26']"}
+{"ts": "2026-03-16T14:34:03.287490+00:00", "level": "INFO", "msg": "Missing seasons: ['2018-19', '2019-20', '2020-21', '2021-22', '2022-23', '2023-24']"}
+{"ts": "2026-03-16T14:34:07.782548+00:00", "level": "INFO", "msg": "Pulling season 2018-19..."}
+{"ts": "2026-03-16T14:34:15.539277+00:00", "level": "INFO", "msg": "  Saved 1230 games for 2018-19"}
+{"ts": "2026-03-16T14:34:15.539438+00:00", "level": "INFO", "msg": "Pulling season 2019-20..."}
+{"ts": "2026-03-16T14:34:20.782895+00:00", "level": "INFO", "msg": "  Saved 1059 games for 2019-20"}
+{"ts": "2026-03-16T14:34:20.783090+00:00", "level": "INFO", "msg": "Pulling season 2020-21..."}
+{"ts": "2026-03-16T14:34:28.777306+00:00", "level": "INFO", "msg": "  Saved 1080 games for 2020-21"}
+{"ts": "2026-03-16T14:34:28.777491+00:00", "level": "INFO", "msg": "Pulling season 2021-22..."}
+{"ts": "2026-03-16T14:34:34.542699+00:00", "level": "INFO", "msg": "  Saved 1230 games for 2021-22"}
+{"ts": "2026-03-16T14:34:34.542957+00:00", "level": "INFO", "msg": "Pulling season 2022-23..."}
+{"ts": "2026-03-16T14:34:38.777973+00:00", "level": "INFO", "msg": "  Saved 1230 games for 2022-23"}
+{"ts": "2026-03-16T14:34:38.778154+00:00", "level": "INFO", "msg": "Pulling season 2023-24..."}
+{"ts": "2026-03-16T14:34:44.546304+00:00", "level": "INFO", "msg": "  Saved 1230 games for 2023-24"}
+{"ts": "2026-03-16T14:34:44.771251+00:00", "level": "INFO", "msg": "Added 7059 new games"}
+{"ts": "2026-03-16T14:34:47.028919+00:00", "level": "INFO", "msg": "Loaded 9551 total games from 8 seasons"}
+{"ts": "2026-03-16T14:36:41.546620+00:00", "level": "INFO", "msg": "Built 9532 samples x 24 features"}
+{"ts": "2026-03-16T14:38:00.020163+00:00", "level": "INFO", "msg": "Feature importance ranking:"}
+{"ts": "2026-03-16T14:38:00.022729+00:00", "level": "INFO", "msg": "  home_ptdiff10             0.1227"}
+{"ts": "2026-03-16T14:38:00.022909+00:00", "level": "INFO", "msg": "  home_win20                0.1178"}
+{"ts": "2026-03-16T14:38:00.022998+00:00", "level": "INFO", "msg": "  away_ptdiff10             0.1019"}
+{"ts": "2026-03-16T14:38:00.023974+00:00", "level": "INFO", "msg": "  home_ptdiff5              0.0785"}
+{"ts": "2026-03-16T14:38:00.024047+00:00", "level": "INFO", "msg": "  away_win20                0.0749"}
+{"ts": "2026-03-16T14:38:00.024108+00:00", "level": "INFO", "msg": "  away_ptdiff5              0.0665"}
+{"ts": "2026-03-16T14:38:00.024166+00:00", "level": "INFO", "msg": "  home_win10                0.0543"}
+{"ts": "2026-03-16T14:38:00.024228+00:00", "level": "INFO", "msg": "  away_sos                  0.0480"}
+{"ts": "2026-03-16T14:38:00.024303+00:00", "level": "INFO", "msg": "  home_sos                  0.0472"}
+{"ts": "2026-03-16T14:38:00.024364+00:00", "level": "INFO", "msg": "  away_win10                0.0387"}
+{"ts": "2026-03-16T14:38:00.025738+00:00", "level": "INFO", "msg": "Running Optuna search (20 trials each)..."}
+{"ts": "2026-03-16T14:56:42.789772+00:00", "level": "INFO", "msg": "XGBoost Optuna: best Brier = 0.2257 in 20 trials"}
+{"ts": "2026-03-16T15:22:45.521176+00:00", "level": "INFO", "msg": "LightGBM Optuna: best Brier = 0.2258 in 20 trials"}
+{"ts": "2026-03-16T15:22:49.763753+00:00", "level": "INFO", "msg": "  Training logistic_regression..."}
+{"ts": "2026-03-16T15:23:10.286504+00:00", "level": "INFO", "msg": "  logistic_regression       Brier=0.2247\u00b10.0059 | Acc=0.629"}
+{"ts": "2026-03-16T15:23:10.290243+00:00", "level": "INFO", "msg": "  Training random_forest..."}
+{"ts": "2026-03-16T15:30:03.538512+00:00", "level": "INFO", "msg": "  random_forest             Brier=0.2258\u00b10.0052 | Acc=0.628"}
+{"ts": "2026-03-16T15:30:03.775099+00:00", "level": "INFO", "msg": "  Calibrating top models..."}
+{"ts": "2026-03-16T15:30:03.777508+00:00", "level": "INFO", "msg": "  Training stacking ensemble..."}
+{"ts": "2026-03-16T15:50:21.517216+00:00", "level": "INFO", "msg": "  stacking_ensemble         Brier=0.2263"}
+{"ts": "2026-03-16T15:50:22.522006+00:00", "level": "INFO", "msg": "\n============================================================"}
+{"ts": "2026-03-16T15:50:22.522266+00:00", "level": "INFO", "msg": "BEST MODEL: logistic_regression \u2014 Brier 0.2247 (Acc 0.629)"}
+{"ts": "2026-03-16T15:50:22.523056+00:00", "level": "INFO", "msg": "============================================================"}
+{"ts": "2026-03-16T15:50:23.013130+00:00", "level": "INFO", "msg": "IMPROVE CYCLE #1 DONE (4580s)"}
+{"ts": "2026-03-16T15:50:28.033514+00:00", "level": "INFO", "msg": "Improvement engine stopped"}

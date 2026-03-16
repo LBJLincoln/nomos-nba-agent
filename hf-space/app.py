@@ -464,11 +464,25 @@ def train_cycle():
 
 def training_loop():
     """Continuous training loop running in background."""
+    import traceback
+    log("Training thread alive — starting diagnostics...")
+
+    # Diagnostic: check data files
+    hist_dir = DATA_DIR / "historical"
+    data_files = list(hist_dir.glob("games-*.json")) if hist_dir.exists() else []
+    log(f"Data dir: {hist_dir.resolve()} | Files: {len(data_files)}")
+    log(f"CWD: {Path.cwd()} | DATA_DIR: {DATA_DIR.resolve()}")
+
+    if not data_files:
+        log("No data files found — will pull from nba_api", "WARN")
+
     while True:
         try:
             train_cycle()
         except Exception as e:
+            tb = traceback.format_exc()
             log(f"Cycle error: {e}", "ERROR")
+            log(f"Traceback: {tb[-500:]}", "ERROR")
             state["status"] = "ERROR"
         # Wait between cycles
         interval = 1800 if state["cycle"] <= 3 else 3600  # 30min first 3, then 1h
@@ -479,15 +493,24 @@ def training_loop():
 # ── Gradio Dashboard ──
 
 def get_status():
+    # Check thread health
+    thread_alive = False
+    for t in threading.enumerate():
+        if t.name != "MainThread" and t.is_alive():
+            thread_alive = True
+            break
+
     lines = [
         f"## NOMOS NBA QUANT AI — Cycle #{state['cycle']}",
         f"**Status**: {state['status']}",
+        f"**Thread alive**: {'YES' if thread_alive else 'NO — DEAD!'}",
         f"**Games**: {state['games_loaded']:,}",
         f"**Models trained**: {state['models_trained']}",
         f"**Best Model**: {state['best_model']}",
         f"**Best Brier**: {state['best_brier']:.4f}",
         f"**Optuna trials**: {state['optuna_trials']}",
         f"**Last cycle**: {state['last_cycle_time']}",
+        f"**Log entries**: {len(state['training_log'])}",
         "",
         "### Feature Importance (Top 10)",
     ]
@@ -535,13 +558,12 @@ with gr.Blocks(title="NOMOS NBA QUANT AI", theme=gr.themes.Monochrome()) as app:
     timer.tick(get_logs, outputs=logs_box)
 
 
-# ── Launch ──
+# ── Launch training at module load (HF Spaces imports, doesn't run __main__) ──
+
+_train_thread = threading.Thread(target=training_loop, daemon=True, name="TrainingLoop")
+_train_thread.start()
+log("Training loop started in background (module-level)")
 
 if __name__ == "__main__":
-    # Start training in background
-    train_thread = threading.Thread(target=training_loop, daemon=True)
-    train_thread.start()
-    log("Training loop started in background")
-
-    # Launch Gradio
+    # Launch Gradio only if running directly
     app.launch(server_name="0.0.0.0", server_port=7860, share=False)

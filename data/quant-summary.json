@@ -1,0 +1,57 @@
+{
+  "daemon_status": "RUNNING",
+  "last_cycle": "2026-03-16T13:41:21.173828+00:00",
+  "research_papers": 10,
+  "features": 58,
+  "games_trained": 2463,
+  "models": {
+    "logistic_regression": {
+      "brier": 0.2034,
+      "weight": 0.121
+    },
+    "random_forest": {
+      "brier": 0.2047,
+      "weight": 0.12
+    },
+    "meta_learner": {
+      "brier": 0.2079,
+      "weight": 0.119
+    },
+    "lightgbm": {
+      "brier": 0.2113,
+      "weight": 0.117
+    },
+    "xgboost": {
+      "brier": 0.2125,
+      "weight": 0.116
+    },
+    "monte_carlo": {
+      "brier": 0.235,
+      "weight": 0.105
+    },
+    "power_ratings": {
+      "brier": 0.24,
+      "weight": 0.103
+    },
+    "elo_system": {
+      "brier": 0.245,
+      "weight": 0.101
+    },
+    "poisson": {
+      "brier": 0.25,
+      "weight": 0.099
+    }
+  },
+  "best_brier": 0.2034,
+  "val_accuracy": 0.689,
+  "calibration_improvement": "4-12% via isotonic regression",
+  "top_features": [
+    "elo_diff",
+    "home_elo",
+    "away_elo",
+    "away_pt_diff_10",
+    "efg_diff"
+  ],
+  "latest_picks": 10,
+  "expected_value": 85.94
+}

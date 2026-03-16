@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-03-16T15:50:22.537987+00:00",
+  "best_model": "logistic_regression",
+  "brier": 0.22471,
+  "brier_std": 0.00587,
+  "accuracy": 0.6291,
+  "improvement_vs_prev": 0,
+  "games_trained": 9551,
+  "features": 24,
+  "all_models": {
+    "logistic_regression": {
+      "brier": 0.22471,
+      "accuracy": 0.6291
+    },
+    "random_forest": {
+      "brier": 0.22579,
+      "accuracy": 0.6277
+    },
+    "stacking_ensemble": {
+      "brier": 0.22633,
+      "accuracy": 0
+    }
+  },
+  "cycle": 1
+}

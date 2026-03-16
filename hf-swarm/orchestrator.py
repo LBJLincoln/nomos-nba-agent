@@ -218,38 +218,63 @@ def run_agent_task(agent_key, task):
     log(f"Starting task '{task['id']}' with {agent['name']}", agent_key)
 
     try:
+        env = os.environ.copy()
+
         if agent_key == "claude":
-            # Claude Code CLI: use -p for non-interactive
+            # Claude Code CLI: needs ANTHROPIC_API_KEY
+            api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+            if not api_key:
+                log(f"Claude Code CLI skipped — no ANTHROPIC_API_KEY. Set it in Space secrets.", agent_key)
+                agent["status"] = "NO API KEY"
+                return False
             cmd = [
                 "claude", "-p", task["prompt"],
                 "--output-format", "text",
                 "--max-turns", "20",
             ]
-            env = os.environ.copy()
-            env["ANTHROPIC_API_KEY"] = os.environ.get("ANTHROPIC_API_KEY", "")
 
         elif agent_key == "gemini":
-            # Gemini CLI: headless + YOLO
-            cmd = [
-                "gemini", "-p", task["prompt"],
-                "--yolo",
-            ]
-            env = os.environ.copy()
-            env["GOOGLE_API_KEY"] = os.environ.get("GOOGLE_API_KEY", "")
+            # Gemini CLI: headless mode with GOOGLE_API_KEY
+            google_key = os.environ.get("GOOGLE_API_KEY", "")
+            if not google_key:
+                log(f"Gemini CLI skipped — no GOOGLE_API_KEY", agent_key)
+                agent["status"] = "NO API KEY"
+                return False
+            # Set GEMINI_API_KEY (Gemini CLI uses this)
+            env["GEMINI_API_KEY"] = google_key
+            # Create settings if needed
+            settings_dir = Path("/root/.gemini")
+            settings_dir.mkdir(parents=True, exist_ok=True)
+            settings_file = settings_dir / "settings.json"
+            if not settings_file.exists():
+                import json as _json
+                settings_file.write_text(_json.dumps({
+                    "selectedAuthType": "api-key",
+                    "apiKey": google_key,
+                }))
+                log("Created Gemini settings with API key", agent_key)
+            # Use headless mode by piping prompt
+            cmd = ["bash", "-c", f'echo {repr(task["prompt"])} | gemini --yolo']
 
         elif agent_key == "kimi":
-            # Kimi CLI
-            cmd = [
-                "kimi", "--prompt", task["prompt"],
-            ]
-            env = os.environ.copy()
+            # Kimi CLI: use OpenRouter as LLM backend (cheap)
+            openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+            if openrouter_key:
+                env["OPENROUTER_API_KEY"] = openrouter_key
+                # Configure kimi to use OpenRouter
+                kimi_config = Path("/root/.kimi")
+                kimi_config.mkdir(parents=True, exist_ok=True)
+                config_file = kimi_config / "config.yaml"
+                if not config_file.exists():
+                    config_file.write_text(f"""model: openrouter/anthropic/claude-3.5-sonnet
+api_key: {openrouter_key}
+base_url: https://openrouter.ai/api/v1
+""")
+                    log("Created Kimi config with OpenRouter", agent_key)
+            cmd = ["kimi", "--prompt", task["prompt"]]
 
         elif agent_key == "openclaw":
-            # OpenClaw CLI (if available)
-            cmd = [
-                "openclaw", "run", "--prompt", task["prompt"],
-            ]
-            env = os.environ.copy()
+            cmd = ["openclaw", "run", "--prompt", task["prompt"]]
         else:
             return False
 
