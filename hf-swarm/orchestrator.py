@@ -292,15 +292,35 @@ headers = {{
 req = urllib.request.Request(url, data=body, headers=headers)
 try:
     resp = urllib.request.urlopen(req, timeout=120)
-    data = json.loads(resp.read())
-    text = data["choices"][0]["message"]["content"]
+    raw = resp.read().decode()
+    print(f"RAW response length: {{len(raw)}}")
+    data = json.loads(raw)
+    if "error" in data:
+        print(f"API error: {{data['error']}}")
+        sys.exit(1)
+    choices = data.get("choices")
+    if not choices:
+        print(f"No choices in response. Keys: {{list(data.keys())}}")
+        print(f"Response: {{raw[:500]}}")
+        sys.exit(1)
+    text = choices[0].get("message", {{}}).get("content", "")
+    if not text:
+        print(f"Empty content. Choice: {{choices[0]}}")
+        sys.exit(1)
     # Save suggestions
     out = Path("/app/data/results") / f"{agent_key}-suggestions.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({{"task": "{task['id']}", "response": text}}, indent=2))
+    print(f"SUCCESS: {{len(text)}} chars")
     print(text[:1000])
+except urllib.error.HTTPError as e:
+    err_body = e.read().decode()[:500] if hasattr(e, 'read') else str(e)
+    print(f"HTTP {{e.code}}: {{err_body}}", file=sys.stderr)
+    sys.exit(1)
 except Exception as e:
+    import traceback
     print(f"ERROR: {{e}}", file=sys.stderr)
+    print(traceback.format_exc()[-300:], file=sys.stderr)
     sys.exit(1)
 ''')
             cmd = ["python3", str(helper)]
