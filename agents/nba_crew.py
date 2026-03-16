@@ -33,6 +33,16 @@ DATA_DIR = Path(__file__).parent.parent / "data"
 RESULTS_DIR = DATA_DIR / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Auto-load .env.local at import time
+_env_file = Path(__file__).parent.parent / ".env.local"
+if _env_file.exists():
+    for _line in _env_file.read_text().splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _line = _line.replace("export ", "")
+            _k, _, _v = _line.partition("=")
+            os.environ.setdefault(_k.strip(), _v.strip("'\""))
+
 ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "959eab3a6b0b731ef1766579e355f51d")
 
 
@@ -117,7 +127,7 @@ What are we MISSING? What would a $1B hedge fund do differently?""",
     result = {
         "agent": "research",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "response": response,
+        "response": response or "",
         "rotator_status": rotator.summary(),
     }
     try:
@@ -126,7 +136,7 @@ What are we MISSING? What would a $1B hedge fund do differently?""",
         result["parsed"] = None
 
     (RESULTS_DIR / "crew-research.json").write_text(json.dumps(result, indent=2, default=str))
-    print(f"[Research Agent] Done: {len(response)} chars")
+    print(f"[Research Agent] Done: {len(response or '')} chars")
     return result
 
 
@@ -186,7 +196,7 @@ TASKS:
         "agent": "market",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "odds_games": len(odds_data) if isinstance(odds_data, list) else 0,
-        "response": response,
+        "response": response or "",
         "raw_odds_snapshot": odds_data[:2] if isinstance(odds_data, list) else odds_data,
     }
     try:
@@ -200,7 +210,7 @@ TASKS:
     (DATA_DIR / "odds" / f"snapshot-{datetime.now().strftime('%Y%m%d-%H%M')}.json").write_text(
         json.dumps(odds_data, indent=2, default=str)[:50000]
     )
-    print(f"[Market Agent] Done: {len(response)} chars, {result['odds_games']} games")
+    print(f"[Market Agent] Done: {len(response or '')} chars, {result['odds_games']} games")
     return result
 
 
@@ -261,7 +271,7 @@ TASKS:
         "agent": "feature_engineer",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "current_features": len(feature_names),
-        "response": response,
+        "response": response or "",
     }
     try:
         result["parsed"] = json.loads(response)
@@ -269,7 +279,7 @@ TASKS:
         result["parsed"] = None
 
     (RESULTS_DIR / "crew-features.json").write_text(json.dumps(result, indent=2, default=str))
-    print(f"[Feature Agent] Done: {len(response)} chars")
+    print(f"[Feature Agent] Done: {len(response or '')} chars")
     return result
 
 
@@ -337,7 +347,7 @@ TASKS:
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "best_brier": evo.get("best_brier") if evo else None,
         "ga_generations": len(ga_history),
-        "response": response,
+        "response": response or "",
     }
     try:
         result["parsed"] = json.loads(response)
@@ -345,7 +355,7 @@ TASKS:
         result["parsed"] = None
 
     (RESULTS_DIR / "crew-evolution.json").write_text(json.dumps(result, indent=2, default=str))
-    print(f"[Evolution Agent] Done: {len(response)} chars")
+    print(f"[Evolution Agent] Done: {len(response or '')} chars")
     return result
 
 
