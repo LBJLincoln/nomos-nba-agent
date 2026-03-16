@@ -411,21 +411,38 @@ def genetic_select(X, y, feature_names, n_gen=30, pop_size=40, target=120):
     tscv = TimeSeriesSplit(n_splits=3)
     random.seed(42)
 
+    # Detect XGBoost GPU support once
+    _xgb_gpu = False
+    try:
+        _test = xgb.XGBClassifier(n_estimators=10, max_depth=3, tree_method="hist", device="cuda")
+        _test.fit(X[:100, :10], y[:100])
+        _xgb_gpu = True
+        print("  [GA] XGBoost GPU: ENABLED")
+    except Exception:
+        print("  [GA] XGBoost GPU: disabled, using CPU")
+
     def fitness(mask):
         sel = [i for i, b in enumerate(mask) if b]
-        if len(sel) < 20 or len(sel) > 250:
+        if len(sel) < 15 or len(sel) > 250:
             return 0.30
         Xs = X[:, sel]
+        # Replace NaN/Inf
+        Xs = np.nan_to_num(Xs, nan=0.0, posinf=1e6, neginf=-1e6)
         briers = []
+        xgb_params = dict(n_estimators=150, max_depth=5, learning_rate=0.05,
+                          eval_metric="logloss", random_state=42, n_jobs=-1,
+                          tree_method="hist")
+        if _xgb_gpu:
+            xgb_params["device"] = "cuda"
         for ti, vi in tscv.split(Xs):
             try:
-                m = xgb.XGBClassifier(n_estimators=200, max_depth=5, learning_rate=0.05,
-                                       eval_metric="logloss", random_state=42, n_jobs=-1,
-                                       tree_method="gpu_hist" if torch.cuda.is_available() else "auto")
+                m = xgb.XGBClassifier(**xgb_params)
                 m.fit(Xs[ti], y[ti])
-                briers.append(brier_score_loss(y[vi], m.predict_proba(Xs[vi])[:,1]))
-            except:
-                briers.append(0.30)
+                proba = m.predict_proba(Xs[vi])[:, 1]
+                briers.append(brier_score_loss(y[vi], proba))
+            except Exception as e:
+                print(f"    [GA fitness error] {e}")
+                briers.append(0.28)  # Slightly better than penalty to not mask real issues
         return np.mean(briers)
 
     # Initialize population
@@ -514,8 +531,14 @@ def main():
             "reg_lambda": trial.suggest_float("reg_lambda", 1e-8, 10, log=True),
             "eval_metric": "logloss", "random_state": 42, "n_jobs": -1,
         }
+        p["tree_method"] = "hist"
         if torch.cuda.is_available():
-            p["tree_method"] = "gpu_hist"; p["device"] = "cuda"
+            try:
+                _t = xgb.XGBClassifier(n_estimators=10, tree_method="hist", device="cuda")
+                _t.fit(X_sel[:50], y[:50])
+                p["device"] = "cuda"
+            except Exception:
+                pass
         m = xgb.XGBClassifier(**p)
         bs = []
         for ti, vi in tscv.split(X_sel):
