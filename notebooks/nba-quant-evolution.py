@@ -666,6 +666,141 @@ def main():
     out_file.write_text(json.dumps(output, indent=2, default=str))
     print(f"\nSaved: {out_file}")
 
+    # ── AI Analysis: Hunter Alpha analyzes results and suggests next improvements ──
+    print(f"\n{'='*60}")
+    print("=== AI ANALYSIS — Hunter Alpha (FREE, 1T params) ===")
+    print(f"{'='*60}")
+
+    ai_analysis = analyze_results_with_hunter(output)
+    if ai_analysis:
+        analysis_file = DATA_DIR / "results" / f"ai-analysis-{datetime.now().strftime('%Y%m%d-%H%M')}.json"
+        analysis_file.write_text(json.dumps(ai_analysis, indent=2, default=str))
+        print(f"\nAI analysis saved: {analysis_file}")
+
+
+# ── Cell 7: AI Analysis via Hunter Alpha ──
+
+# LiteLLM config (same proxy as orchestrator)
+LITELLM_URL = os.environ.get("LITELLM_URL", "https://lbjlincoln-nomos-rag-engine-7.hf.space")
+LITELLM_KEY = os.environ.get("LITELLM_KEY", "sk-litellm-nomos-2026")
+
+
+def call_hunter(system_prompt, user_prompt, max_tokens=4000, temperature=0.3):
+    """Call Hunter Alpha (FREE, 1T params) via LiteLLM proxy for agentic analysis."""
+    import urllib.request
+    body = json.dumps({
+        "model": "openrouter/hunter-alpha",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }).encode()
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {LITELLM_KEY}",
+    }
+    req = urllib.request.Request(f"{LITELLM_URL}/v1/chat/completions", data=body, headers=headers)
+    try:
+        resp = urllib.request.urlopen(req, timeout=180)
+        data = json.loads(resp.read().decode())
+        choices = data.get("choices", [])
+        if choices:
+            return choices[0].get("message", {}).get("content", "")
+        return ""
+    except Exception as e:
+        print(f"[Hunter Alpha] Call failed: {e}")
+        return ""
+
+
+def analyze_results_with_hunter(results):
+    """Use Hunter Alpha to analyze training results and suggest improvements."""
+    system_prompt = """You are an elite NBA quantitative analyst and ML researcher.
+You are reviewing the output of a genetic evolution + Optuna training pipeline for NBA game prediction.
+Your job is to identify:
+1. What worked well and should be kept/amplified
+2. What underperformed and why (root cause analysis)
+3. Specific next improvements ranked by expected impact
+4. Feature engineering ideas that could unlock new alpha
+5. Architecture changes that could improve calibration
+
+Be extremely specific and actionable. Include code snippets or pseudocode where helpful.
+Output structured JSON with keys: strengths, weaknesses, next_improvements (list of {action, expected_impact, difficulty, priority}), feature_ideas (list), architecture_changes (list)."""
+
+    # Build a compact summary of results for the prompt
+    model_rankings = sorted(results["all_results"].items(), key=lambda x: x[1]["brier"])
+    rankings_str = "\n".join(f"  {i+1}. {name}: Brier={r['brier']:.4f}" + (f" Acc={r.get('acc', 'N/A')}" if 'acc' in r else "") + (f" ROI={r.get('roi', 'N/A')}" if 'roi' in r else "") for i, (name, r) in enumerate(model_rankings))
+
+    ga_progress = results.get("ga_history", [])
+    ga_summary = f"Start={ga_progress[0]:.4f} -> End={ga_progress[-1]:.4f} ({len(ga_progress)} gens)" if ga_progress else "No GA history"
+
+    user_prompt = f"""Analyze these NBA prediction training results:
+
+## Training Config
+- Games: {results['games']}
+- Raw features: {results['raw_features']}
+- Selected features (after genetic selection): {results['selected_features']}
+- GA generations: {results['ga_generations']} | Optuna trials: {results['optuna_trials']}
+- Training time: {results['elapsed_seconds']}s | GPU: {results['gpu']}
+
+## Genetic Algorithm Progress
+{ga_summary}
+
+## Model Rankings (by Brier score, lower = better)
+{rankings_str}
+
+## Best Model
+{results['best_model']} with Brier={results['best_brier']:.4f}
+
+## Selected Feature Names (sample of first 30)
+{json.dumps(results.get('selected_feature_names', [])[:30], indent=2)}
+
+## Key Context
+- Baseline (coin flip) Brier = 0.25
+- Target: Brier < 0.20, ROI > 5%, Sharpe > 1.0
+- This runs on Google Colab (T4 GPU) or Lightning AI
+- We have ~8 seasons of NBA data (2018-2026)
+- Features include: rolling performance, momentum, rest/travel, Elo, opponent-adjusted, context
+
+What should we improve NEXT to get the biggest Brier score reduction?"""
+
+    response = call_hunter(system_prompt, user_prompt, max_tokens=4000)
+
+    if response:
+        print(f"\n[Hunter Alpha] Analysis ({len(response)} chars):")
+        print("-" * 50)
+        # Print the response, truncated for console readability
+        print(response[:3000])
+        if len(response) > 3000:
+            print(f"\n... ({len(response) - 3000} more chars in saved file)")
+
+        analysis = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "model": "openrouter/hunter-alpha",
+            "training_results_summary": {
+                "best_model": results["best_model"],
+                "best_brier": results["best_brier"],
+                "games": results["games"],
+                "selected_features": results["selected_features"],
+            },
+            "raw_analysis": response,
+        }
+        # Try to parse structured JSON from the response
+        try:
+            # Look for JSON block in the response
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', response)
+            if json_match:
+                analysis["parsed"] = json.loads(json_match.group())
+        except (json.JSONDecodeError, TypeError):
+            analysis["parsed"] = None
+
+        return analysis
+    else:
+        print("[Hunter Alpha] No response received — check LiteLLM proxy connectivity")
+        return None
+
 
 if __name__ == "__main__":
     main()
