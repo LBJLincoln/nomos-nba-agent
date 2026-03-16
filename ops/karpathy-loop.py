@@ -84,7 +84,7 @@ try:
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import train_test_split
     from sklearn.metrics import brier_score_loss, log_loss, accuracy_score
-    from sklearn.calibration import calibration_curve
+    from sklearn.calibration import calibration_curve, CalibratedClassifierCV
     from sklearn.preprocessing import StandardScaler
     HAS_SKLEARN = True
 except ImportError:
@@ -1432,6 +1432,81 @@ def train_all_models(X: np.ndarray, y_win: np.ndarray,
             log(f"  LightGBM failed: {e}", "ERROR")
     else:
         log("  LightGBM not installed (pip install lightgbm)", "WARN")
+
+    # ── 5. Platt Scaling / Isotonic Calibration (Finding 1: Walsh & Joshi 2024) ──
+    # Calibrate each model's probabilities using isotonic regression on validation set
+    log("\n  Calibrating models (Platt scaling + isotonic regression)...")
+    for name, result in list(results.items()):
+        try:
+            model = result["model"]
+            X_cal = X_val_s if result.get("uses_scaled") else X_val
+            raw_probs = model.predict_proba(X_cal)[:, 1]
+            raw_brier = brier_score_loss(y_w_val, raw_probs)
+
+            # Try isotonic calibration (better for tree models)
+            from sklearn.isotonic import IsotonicRegression
+            iso = IsotonicRegression(out_of_bounds="clip")
+            iso.fit(raw_probs, y_w_val)
+            cal_probs = iso.predict(raw_probs)
+            cal_brier = brier_score_loss(y_w_val, cal_probs)
+
+            if cal_brier < raw_brier:
+                save_model(iso, f"calibrator_{name}")
+                result["calibrator"] = iso
+                result["val_brier"] = cal_brier
+                log(f"  {name}: calibrated Brier {raw_brier:.4f} → {cal_brier:.4f} "
+                    f"({(raw_brier - cal_brier) / raw_brier * 100:.1f}% improvement)")
+            else:
+                log(f"  {name}: calibration did not improve (raw={raw_brier:.4f}, cal={cal_brier:.4f})")
+        except Exception as e:
+            log(f"  Calibration failed for {name}: {e}", "WARN")
+
+    # ── 6. Stacked Meta-Learner (Finding 10: Nature 2025) ──
+    # Train a logistic regression on the base model outputs
+    if len(results) >= 2:
+        log("\n  Training stacked meta-learner...")
+        try:
+            meta_X_val = []
+            for name, result in sorted(results.items()):
+                model = result["model"]
+                X_in = X_val_s if result.get("uses_scaled") else X_val
+                probs = model.predict_proba(X_in)[:, 1]
+                # Apply calibration if available
+                if "calibrator" in result:
+                    probs = result["calibrator"].predict(probs)
+                meta_X_val.append(probs)
+
+            meta_X = np.column_stack(meta_X_val)
+            meta_model = LogisticRegression(max_iter=500, C=1.0, solver="lbfgs")
+            meta_model.fit(meta_X, y_w_val)
+
+            # Evaluate on test set
+            meta_X_test = []
+            for name, result in sorted(results.items()):
+                model = result["model"]
+                X_in = X_test_s if result.get("uses_scaled") else X_test
+                probs = model.predict_proba(X_in)[:, 1]
+                if "calibrator" in result:
+                    probs = result["calibrator"].predict(probs)
+                meta_X_test.append(probs)
+
+            meta_X_t = np.column_stack(meta_X_test)
+            meta_probs = meta_model.predict_proba(meta_X_t)[:, 1]
+            meta_brier = brier_score_loss(y_w_test, meta_probs)
+            meta_acc = accuracy_score(y_w_test, (meta_probs > 0.5).astype(int))
+
+            save_model(meta_model, "meta_learner")
+            results["meta_learner"] = {
+                "model": meta_model,
+                "val_brier": meta_brier,
+                "test_metrics": {"brier_score": meta_brier, "accuracy": meta_acc},
+                "uses_scaled": False,
+                "is_meta": True,
+                "base_models": sorted(results.keys()),
+            }
+            log(f"  Meta-learner: Brier={meta_brier:.4f}, Acc={meta_acc:.3f}")
+        except Exception as e:
+            log(f"  Meta-learner training failed: {e}", "WARN")
 
     # Summary
     log(f"\n{'='*70}")
