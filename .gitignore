@@ -9,6 +9,13 @@ credentials.json
 *.token
 secrets/
 *.secret
+*.p12
+*.pfx
+*.keystore
+.netrc
+.npmrc
+.htpasswd
+service-account*.json
 
 # Python
 __pycache__/
@@ -68,3 +75,11 @@ Thumbs.db
 node_modules/
 venv/
 .venv/
+pip-wheel-metadata/
+
+# Temporary & editor
+*.tmp
+*.bak
+*.orig
+*~
+.cache/
