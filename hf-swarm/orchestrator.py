@@ -1,25 +1,19 @@
 #!/usr/bin/env python3
 """
-NOMOS NBA QUANT AI — Swarm Orchestrator
-=========================================
-Runs 4 AI coding agents + ML training in parallel, 24/7.
+NOMOS NBA QUANT AI — Genetic Evolution Orchestrator
+=====================================================
+Replaces the basic 4-agent swarm with real genetic evolution.
 
-Agents:
-  1. Claude Code CLI  — strategic planning, complex analysis
-  2. Gemini CLI        — free autonomous coding (headless + YOLO)
-  3. Kimi Code CLI     — cheap high-volume code improvement
-  4. OpenClaw          — automation hub, skill-based tasks
+Architecture:
+  - EvolutionLoop: Population of 50 model configs, evolving 24/7
+  - LiteLLM Research Agents: Search latest 2026 NBA quant papers & market microstructure
+  - Self-Diagnostic: Every 5 generations, detect weaknesses & adapt
+  - Gradio Dashboard: Live evolution stats (generation, Brier, ROI, features)
 
-Training:
-  - Karpathy continuous training loop (9+ models, Optuna)
-  - Walk-forward backtesting
-  - Feature engineering research
-
-All agents share a workspace and iterate on the same codebase.
-Results sync to VM data server → website.
+All computation runs on HF Spaces (16GB RAM). VM is for pilotage only.
 """
 
-import os, sys, json, time, threading, subprocess, signal
+import os, sys, json, time, threading, subprocess, signal, traceback
 from pathlib import Path
 from datetime import datetime, timezone
 from collections import deque
@@ -32,59 +26,34 @@ WORKSPACE.mkdir(parents=True, exist_ok=True)
 LOG_DIR = Path("/app/logs")
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 DATA_DIR = Path("/app/data")
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+RESULTS_DIR = DATA_DIR / "results"
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Agent config
-AGENTS = {
-    "claude": {
-        "name": "Claude Code CLI",
-        "cmd": "claude",
-        "available": False,
-        "status": "CHECKING",
-        "cycles": 0,
-        "last_run": "never",
-        "logs": deque(maxlen=100),
-    },
-    "gemini": {
-        "name": "Gemini CLI",
-        "cmd": "gemini",
-        "available": False,
-        "status": "CHECKING",
-        "cycles": 0,
-        "last_run": "never",
-        "logs": deque(maxlen=100),
-    },
-    "kimi": {
-        "name": "Kimi Code CLI",
-        "cmd": "kimi",
-        "available": False,
-        "status": "CHECKING",
-        "cycles": 0,
-        "last_run": "never",
-        "logs": deque(maxlen=100),
-    },
-    "openclaw": {
-        "name": "OpenClaw",
-        "cmd": "openclaw",
-        "available": False,
-        "status": "CHECKING",
-        "cycles": 0,
-        "last_run": "never",
-        "logs": deque(maxlen=100),
-    },
-}
+# LiteLLM config (S7 proxy — 13-provider fallback)
+LITELLM_URL = os.environ.get("LITELLM_URL", "https://lbjlincoln-nomos-rag-engine-7.hf.space")
+LITELLM_KEY = os.environ.get("LITELLM_KEY", "sk-litellm-nomos-2026")
 
-# Training state
-training_state = {
-    "cycle": 0,
+# ── State ──
+evolution_state = {
+    "generation": 0,
     "best_brier": 1.0,
-    "best_model": "none",
-    "status": "STARTING",
-    "games": 0,
-    "models_trained": 0,
-    "logs": deque(maxlen=200),
+    "best_roi": 0.0,
+    "best_sharpe": 0.0,
+    "best_composite": 0.0,
+    "best_model_type": "none",
+    "n_features_selected": 0,
+    "n_feature_candidates": 0,
+    "population_size": 0,
+    "status": "INITIALIZING",
+    "cycle": 0,
+    "games_loaded": 0,
+    "diagnostics": [],
+    "research_summary": "No research yet",
+    "history": [],
 }
 
-# Shared improvement log
+# Shared log
 improvement_log = deque(maxlen=500)
 
 
@@ -93,455 +62,452 @@ def log(msg, target="system"):
     entry = f"[{ts}] {msg}"
     print(entry)
     improvement_log.append(entry)
-    if target in AGENTS:
-        AGENTS[target]["logs"].append(entry)
-    elif target == "training":
-        training_state["logs"].append(entry)
 
 
-def check_agent_availability():
-    """Check which AI coding agents are installed and available."""
-    for key, agent in AGENTS.items():
-        # Gemini + Kimi use LiteLLM proxy (not CLI) — always available
-        if key in ("gemini", "kimi"):
-            agent["available"] = True
-            agent["status"] = "READY (LiteLLM)"
-            log(f"{agent['name']}: AVAILABLE (via LiteLLM proxy)", key)
-            continue
+# ── LiteLLM Research Agent ──
 
-        try:
-            result = subprocess.run(
-                [agent["cmd"], "--version"],
-                capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0:
-                agent["available"] = True
-                agent["status"] = "READY"
-                log(f"{agent['name']}: AVAILABLE ({result.stdout.strip()[:50]})", key)
-            else:
-                # Try --help as fallback
-                result2 = subprocess.run(
-                    [agent["cmd"], "--help"],
-                    capture_output=True, text=True, timeout=10
-                )
-                if result2.returncode == 0:
-                    agent["available"] = True
-                    agent["status"] = "READY"
-                    log(f"{agent['name']}: AVAILABLE", key)
-                else:
-                    agent["status"] = "NOT INSTALLED"
-                    log(f"{agent['name']}: not available", key)
-        except FileNotFoundError:
-            agent["status"] = "NOT INSTALLED"
-            log(f"{agent['name']}: not found in PATH", key)
-        except Exception as e:
-            agent["status"] = f"ERROR: {e}"
-            log(f"{agent['name']}: error checking: {e}", key)
+def call_litellm(system_prompt, user_prompt, model="smart", max_tokens=4000, temperature=0.3):
+    """Call LiteLLM proxy (S7) for research tasks."""
+    import urllib.request
+    body = json.dumps({
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+    }).encode()
 
-
-# ── NBA Improvement Tasks ──
-
-NBA_TASKS = [
-    {
-        "id": "optimize_features",
-        "prompt": """Analyze the NBA prediction model features in /app/workspace/app.py.
-The build_features() function creates 24 features. Research and add at least 5 more
-high-impact features: pace-adjusted efficiency, clutch performance stats,
-travel fatigue (haversine distance between arenas), rest days impact,
-and strength of schedule quality. Implement them and verify the feature count increases.
-Do NOT break existing functionality.""",
-        "priority": 1,
-        "agent_pref": "gemini",  # Free, autonomous
-    },
-    {
-        "id": "optuna_deeper",
-        "prompt": """The Optuna hyperparameter search in /app/workspace/app.py uses 25 trials.
-Increase to 50 trials and add Bayesian optimization with TPE sampler.
-Also add hyperparameter search for CatBoost and Random Forest (currently only XGB and LGBM).
-Add early stopping to avoid wasting trials on bad configurations.
-Test that training still completes within 30 minutes.""",
-        "priority": 2,
-        "agent_pref": "kimi",  # Cheap for heavy iteration
-    },
-    {
-        "id": "calibration_improvement",
-        "prompt": """Improve model calibration in /app/workspace/app.py.
-Currently uses isotonic calibration. Add:
-1. Platt scaling comparison
-2. Beta calibration (requires calibration library)
-3. Temperature scaling
-4. Ensemble calibration (calibrate the stacking output)
-Compare all methods via Brier score on validation set.
-Keep the best method. Target: 5% Brier improvement.""",
-        "priority": 3,
-        "agent_pref": "claude",  # Complex analysis
-    },
-    {
-        "id": "backtest_framework",
-        "prompt": """Add walk-forward backtesting to /app/workspace/app.py.
-After training, run expanding-window backtest:
-- Start with 2 seasons, predict next month
-- Track ROI, Sharpe ratio, max drawdown
-- Compare Kelly sizing vs flat betting
-- Log results to /app/data/results/backtest-latest.json
-This validates the model actually makes money, not just accurate predictions.""",
-        "priority": 4,
-        "agent_pref": "gemini",
-    },
-    {
-        "id": "research_papers",
-        "prompt": """Search the web for the latest NBA prediction research papers (2025-2026).
-Find at least 3 new techniques we haven't implemented:
-- Uncertainty-aware models (MC Dropout, conformal prediction)
-- Graph neural networks for player interactions
-- Attention-based temporal models
-- Market microstructure (CLV, line movement patterns)
-Write a summary to /app/data/results/research-findings.json with
-technique name, paper reference, expected Brier improvement, implementation difficulty.""",
-        "priority": 5,
-        "agent_pref": "gemini",  # Free web search
-    },
-    {
-        "id": "data_quality",
-        "prompt": """Audit data quality in /app/data/historical/games-*.json files.
-Check for: duplicate games, missing scores, team name inconsistencies,
-date gaps, impossible scores. Fix any issues found.
-Report stats: total games per season, home win %, average score.
-Save audit report to /app/data/results/data-audit.json""",
-        "priority": 6,
-        "agent_pref": "kimi",
-    },
-]
-
-
-def run_agent_task(agent_key, task):
-    """Run a single improvement task using the specified agent."""
-    agent = AGENTS[agent_key]
-    if not agent["available"]:
-        log(f"Skipping {agent['name']} — not available", agent_key)
-        return False
-
-    agent["status"] = f"WORKING: {task['id']}"
-    log(f"Starting task '{task['id']}' with {agent['name']}", agent_key)
-
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {LITELLM_KEY}",
+    }
+    req = urllib.request.Request(f"{LITELLM_URL}/v1/chat/completions", data=body, headers=headers)
     try:
-        env = os.environ.copy()
-
-        if agent_key == "claude":
-            # Claude Code CLI: needs ANTHROPIC_API_KEY
-            api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-            if not api_key:
-                log(f"Claude Code CLI skipped — no ANTHROPIC_API_KEY. Set it in Space secrets.", agent_key)
-                agent["status"] = "NO API KEY"
-                return False
-            cmd = [
-                "claude", "-p", task["prompt"],
-                "--output-format", "text",
-                "--max-turns", "20",
-            ]
-
-        elif agent_key in ("gemini", "kimi"):
-            # Both use LiteLLM proxy (S7) — reliable, 13-provider fallback
-            litellm_url = os.environ.get("LITELLM_URL", "https://lbjlincoln-nomos-rag-engine-7.hf.space")
-            litellm_key = os.environ.get("LITELLM_KEY", "sk-litellm-nomos-2026")
-            model = "smart" if agent_key == "gemini" else "fast"
-            # Write a coding agent helper that reads files, gets LLM suggestion, applies changes
-            helper = WORKSPACE / f"_{agent_key}_task.py"
-            helper.write_text(f'''#!/usr/bin/env python3
-import json, urllib.request, sys, os
-from pathlib import Path
-
-WORKSPACE = Path("/app/workspace")
-PROMPT = {repr(task["prompt"])}
-
-# Read the target file
-app_py = WORKSPACE / "app.py"
-code = app_py.read_text()[:15000] if app_py.exists() else "# No app.py found"
-
-system_msg = """You are an expert NBA ML coding agent. Analyze the code and suggest specific improvements.
-Output ONLY a JSON object with keys:
-- "analysis": brief analysis of current code
-- "suggestions": list of specific changes to make
-- "code_patch": the exact code changes (diff format or new function bodies)
-Keep response under 4000 tokens."""
-
-user_msg = f"""Task: {{PROMPT}}
-
-Current app.py (first 15000 chars):
-```python
-{{code}}
-```
-
-Analyze and suggest improvements."""
-
-body = json.dumps({{
-    "model": "{model}",
-    "messages": [
-        {{"role": "system", "content": system_msg}},
-        {{"role": "user", "content": user_msg}},
-    ],
-    "max_tokens": 4000,
-    "temperature": 0.3,
-}}).encode()
-
-url = "{litellm_url}/v1/chat/completions"
-headers = {{
-    "Content-Type": "application/json",
-    "Authorization": "Bearer {litellm_key}",
-}}
-req = urllib.request.Request(url, data=body, headers=headers)
-try:
-    resp = urllib.request.urlopen(req, timeout=120)
-    raw = resp.read().decode()
-    print(f"RAW response length: {{len(raw)}}")
-    data = json.loads(raw)
-    if "error" in data:
-        print(f"API error: {{data['error']}}")
-        sys.exit(1)
-    choices = data.get("choices")
-    if not choices:
-        print(f"No choices in response. Keys: {{list(data.keys())}}")
-        print(f"Response: {{raw[:500]}}")
-        sys.exit(1)
-    text = choices[0].get("message", {{}}).get("content", "")
-    if not text:
-        print(f"Empty content. Choice: {{choices[0]}}")
-        sys.exit(1)
-    # Save suggestions
-    out = Path("/app/data/results") / f"{agent_key}-suggestions.json"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps({{"task": "{task['id']}", "response": text}}, indent=2))
-    print(f"SUCCESS: {{len(text)}} chars")
-    print(text[:1000])
-except urllib.error.HTTPError as e:
-    err_body = e.read().decode()[:500] if hasattr(e, 'read') else str(e)
-    print(f"HTTP {{e.code}}: {{err_body}}", file=sys.stderr)
-    sys.exit(1)
-except Exception as e:
-    import traceback
-    print(f"ERROR: {{e}}", file=sys.stderr)
-    print(traceback.format_exc()[-300:], file=sys.stderr)
-    sys.exit(1)
-''')
-            cmd = ["python3", str(helper)]
-
-        elif agent_key == "openclaw":
-            cmd = ["openclaw", "run", "--prompt", task["prompt"]]
-        else:
-            return False
-
-        result = subprocess.run(
-            cmd,
-            capture_output=True, text=True,
-            timeout=1800,  # 30 min max per task
-            cwd=str(WORKSPACE),
-            env=env,
-        )
-
-        output = result.stdout[-500:] if result.stdout else ""
-        errors = result.stderr[-300:] if result.stderr else ""
-
-        if result.returncode == 0:
-            agent["cycles"] += 1
-            agent["last_run"] = datetime.now(timezone.utc).isoformat()
-            agent["status"] = "IDLE"
-            log(f"Task '{task['id']}' COMPLETED by {agent['name']}", agent_key)
-            log(f"Output: {output[:200]}", agent_key)
-            return True
-        else:
-            agent["status"] = "ERROR"
-            log(f"Task '{task['id']}' FAILED: {errors[:200]}", agent_key)
-            return False
-
-    except subprocess.TimeoutExpired:
-        agent["status"] = "TIMEOUT"
-        log(f"Task '{task['id']}' TIMEOUT (30min)", agent_key)
-        return False
+        resp = urllib.request.urlopen(req, timeout=120)
+        data = json.loads(resp.read().decode())
+        choices = data.get("choices", [])
+        if choices:
+            return choices[0].get("message", {}).get("content", "")
+        return ""
     except Exception as e:
-        agent["status"] = f"ERROR: {str(e)[:100]}"
-        log(f"Task '{task['id']}' ERROR: {e}", agent_key)
-        return False
+        log(f"LiteLLM call failed: {e}")
+        return ""
 
 
-# ── Training Loop (same as existing app.py) ──
-
-def run_training():
-    """Import and run training from the workspace app.py."""
-    log("Starting ML training cycle...", "training")
-    training_state["status"] = "TRAINING"
-
-    try:
-        # Import training module from workspace
-        sys.path.insert(0, str(WORKSPACE))
-        # Use the existing app.py training logic
-        import importlib
-        if "app" in sys.modules:
-            importlib.reload(sys.modules["app"])
-        else:
-            import app as training_app
-
-        training_app.train_cycle()
-        training_state["cycle"] = training_app.state["cycle"]
-        training_state["best_brier"] = training_app.state["best_brier"]
-        training_state["best_model"] = training_app.state["best_model"]
-        training_state["games"] = training_app.state["games_loaded"]
-        training_state["models_trained"] = training_app.state["models_trained"]
-        training_state["status"] = "IDLE"
-        log(f"Training cycle #{training_state['cycle']} done — Best: {training_state['best_brier']:.4f}", "training")
-    except Exception as e:
-        training_state["status"] = f"ERROR: {str(e)[:100]}"
-        log(f"Training error: {e}", "training")
-
-
-# ── Agentic Improvement Loop ──
-
-def improvement_loop():
+def research_nba_quant(generation):
     """
-    Main loop: alternate between training and agent improvement tasks.
+    LiteLLM research agent: search for latest 2026 NBA quant papers
+    and market microstructure techniques.
+    """
+    log(f"[Research Agent] Gen {generation} — Querying latest NBA quant research...")
+
+    system_prompt = """You are an expert NBA quantitative analyst and sports betting researcher.
+Your job is to identify cutting-edge techniques from the latest academic papers and industry practice.
+Focus on 2025-2026 developments. Be specific about implementation details.
+Output JSON with keys: techniques (list of {name, description, expected_brier_improvement, implementation_difficulty, category}), market_insights (list of strings), recommended_features (list of strings)."""
+
+    user_prompt = f"""Research the latest developments in NBA prediction and sports betting quantitative analysis (2025-2026).
+
+Focus areas:
+1. **Market Microstructure**: CLV (Closing Line Value) analysis, line movement patterns, steam moves, reverse line movement, sharp money indicators
+2. **Advanced ML**: Uncertainty-aware models (MC Dropout, conformal prediction), graph neural networks for player interactions, attention-based temporal models
+3. **Feature Engineering**: Pace-adjusted metrics, travel fatigue models (haversine distance), rest day impact, strength of schedule quality, clutch performance
+4. **Calibration**: Temperature scaling, Platt scaling, beta calibration, ensemble calibration techniques
+5. **Portfolio Theory**: Kelly criterion with uncertainty, fractional Kelly, simultaneous correlated bets, bankroll management with drawdown control
+
+Current system state:
+- Generation: {generation}
+- Using genetic algorithm to evolve feature subsets + hyperparameters
+- ~580 feature candidates across 10 categories
+- Walk-forward backtesting with ROI + Brier + Sharpe fitness
+
+What NEW techniques should we explore? What are the biggest alpha opportunities?"""
+
+    response = call_litellm(system_prompt, user_prompt, model="smart", max_tokens=3000)
+
+    if response:
+        log(f"[Research Agent] Got {len(response)} chars of research findings")
+        # Save to disk
+        findings = {
+            "generation": generation,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "raw_response": response,
+        }
+        try:
+            parsed = json.loads(response)
+            findings["parsed"] = parsed
+        except json.JSONDecodeError:
+            findings["parsed"] = None
+
+        out = RESULTS_DIR / "research-findings.json"
+        out.write_text(json.dumps(findings, indent=2, default=str))
+
+        # Update state
+        evolution_state["research_summary"] = response[:500]
+        return findings
+    else:
+        log("[Research Agent] No response from LiteLLM")
+        return None
+
+
+def run_self_diagnostic(evo_loop, generation):
+    """
+    Self-diagnostic: analyze weaknesses in the current evolution state.
+    Runs every 5 generations as configured.
+    """
+    log(f"[Self-Diagnostic] Gen {generation} — Analyzing system weaknesses...")
+
+    issues = []
+    best = evo_loop.best_ever
+
+    if best is None:
+        issues.append("NO BEST MODEL YET — population has not been evaluated")
+        evolution_state["diagnostics"] = issues
+        return issues
+
+    # Core fitness checks
+    if best.fitness.get("brier", 1.0) > 0.24:
+        issues.append(f"BRIER={best.fitness['brier']:.4f} > 0.24 — barely better than baseline 0.25")
+    if best.fitness.get("roi", 0.0) < 0.0:
+        issues.append(f"ROI={best.fitness['roi']:.1%} — model LOSES money on value bets")
+    if best.fitness.get("calibration", 1.0) > 0.05:
+        issues.append(f"Calibration error={best.fitness['calibration']:.3f} > 5% — probabilities unreliable")
+    if best.fitness.get("sharpe", 0.0) < 0.5:
+        issues.append(f"Sharpe={best.fitness['sharpe']:.2f} < 0.5 — poor risk-adjusted returns")
+
+    # Feature diversity checks
+    n_feats = best.n_features
+    if n_feats < 100:
+        issues.append(f"Only {n_feats} features selected — try wider feature search")
+    if n_feats > 300:
+        issues.append(f"{n_feats} features — potential overfitting, increase mutation pressure")
+
+    # Check feature category distribution
+    selected = best.selected_indices()
+    feature_names = evo_loop.feature_engine.feature_names
+    categories = {"market": 0, "schedule": 0, "matchup": 0, "efficiency": 0, "other": 0}
+    for idx in selected:
+        if idx < len(feature_names):
+            name = feature_names[idx]
+            if any(k in name for k in ("market", "spread", "clv", "steam", "line")):
+                categories["market"] += 1
+            elif any(k in name for k in ("rest", "travel", "fatigue", "b2b")):
+                categories["schedule"] += 1
+            elif any(k in name for k in ("elo", "h2h", "matchup")):
+                categories["matchup"] += 1
+            elif any(k in name for k in ("efg", "ortg", "pace", "four_factor")):
+                categories["efficiency"] += 1
+            else:
+                categories["other"] += 1
+
+    if categories["market"] == 0:
+        issues.append("ZERO market features — missing microstructure alpha source!")
+    if categories["schedule"] < 5:
+        issues.append(f"Only {categories['schedule']} schedule features — travel/fatigue edge missed")
+    if categories["efficiency"] < 10:
+        issues.append(f"Only {categories['efficiency']} efficiency features — core signal weak")
+
+    # Population diversity check
+    model_types = [ind.hyperparams.get("model_type", "?") for ind in evo_loop.population]
+    unique_types = set(model_types)
+    if len(unique_types) < 2:
+        issues.append(f"Population converged to single model type: {unique_types} — need more diversity")
+
+    # Convergence check
+    if len(evo_loop.history) >= 10:
+        recent = evo_loop.history[-10:]
+        composites = [h["best_composite"] for h in recent]
+        improvement = composites[-1] - composites[0]
+        if improvement < 0.001:
+            issues.append(f"Stagnant: only {improvement:.4f} improvement over 10 generations — increase mutation rate")
+
+    if issues:
+        log(f"[Self-Diagnostic] {len(issues)} issues found:")
+        for issue in issues:
+            log(f"  - {issue}")
+
+        # Ask LLM for recommendations based on issues
+        rec_prompt = f"""Our NBA prediction genetic evolution system has these issues at generation {generation}:
+{chr(10).join(f'- {i}' for i in issues)}
+
+Feature category distribution: {json.dumps(categories)}
+Current best Brier: {best.fitness.get('brier', 1.0):.4f}
+Current best ROI: {best.fitness.get('roi', 0.0):.1%}
+Model type: {best.hyperparams.get('model_type', 'unknown')}
+Features selected: {n_feats}
+
+Suggest 3 specific, actionable fixes. Be concise."""
+
+        recs = call_litellm(
+            "You are an expert ML/quant advisor. Give specific actionable recommendations.",
+            rec_prompt,
+            model="fast",
+            max_tokens=1000,
+        )
+        if recs:
+            log(f"[Self-Diagnostic] LLM Recommendations: {recs[:300]}")
+            issues.append(f"LLM RECS: {recs[:500]}")
+    else:
+        log("[Self-Diagnostic] No issues found — system healthy")
+
+    evolution_state["diagnostics"] = issues[-10:]
+    return issues
+
+
+# ── Main Evolution Orchestrator Loop ──
+
+def evolution_orchestrator_loop():
+    """
+    Main loop: run genetic evolution 24/7 with periodic research + diagnostics.
 
     Cycle:
-    1. TRAIN — Run full ML training cycle
-    2. IMPROVE — Dispatch tasks to available agents
-    3. EVALUATE — Check if improvements helped
-    4. REPEAT
+    1. INITIALIZE — Load data, create population
+    2. EVOLVE — Run N generations per cycle
+    3. RESEARCH — LiteLLM searches latest papers (every 10 gens)
+    4. DIAGNOSTIC — Self-analysis of weaknesses (every 5 gens)
+    5. SAVE — Persist results to disk
+    6. REPEAT
     """
-    log("=== SWARM ORCHESTRATOR STARTING ===")
+    log("=== GENETIC EVOLUTION ORCHESTRATOR STARTING ===")
 
-    # Copy app.py to workspace if not there
-    workspace_app = WORKSPACE / "app.py"
-    source_app = Path("/app/app.py")
-    if source_app.exists() and not workspace_app.exists():
-        import shutil
-        shutil.copy2(source_app, workspace_app)
-        log("Copied app.py to workspace")
+    # Import evolution modules
+    sys.path.insert(0, "/app")
+    try:
+        from evolution.loop import EvolutionLoop
+        log("EvolutionLoop imported successfully")
+    except ImportError as e:
+        log(f"CRITICAL: Cannot import EvolutionLoop: {e}")
+        log("Falling back to standalone mode...")
+        evolution_state["status"] = f"IMPORT ERROR: {e}"
+        return
 
-    # Also copy data
-    src_data = Path("/app/data/historical")
-    dst_data = WORKSPACE / "data" / "historical"
-    if src_data.exists():
-        dst_data.mkdir(parents=True, exist_ok=True)
-        import shutil
-        for f in src_data.glob("*.json"):
-            dst = dst_data / f.name
-            if not dst.exists():
-                shutil.copy2(f, dst)
-        log(f"Synced {len(list(src_data.glob('*.json')))} data files to workspace")
+    # Initialize evolution loop
+    try:
+        evo_loop = EvolutionLoop(
+            data_dir=DATA_DIR,
+            results_dir=RESULTS_DIR,
+        )
+        evolution_state["n_feature_candidates"] = evo_loop.n_feature_candidates
+        evolution_state["status"] = "LOADING DATA"
+        log(f"Feature engine: {evo_loop.n_feature_candidates} candidates")
+    except Exception as e:
+        log(f"CRITICAL: EvolutionLoop init failed: {e}")
+        log(traceback.format_exc()[-500:])
+        evolution_state["status"] = f"INIT ERROR: {e}"
+        return
 
-    check_agent_availability()
+    # Load game data
+    try:
+        games = evo_loop.load_data()
+        evolution_state["games_loaded"] = len(games)
+        log(f"Games loaded: {len(games)}")
+    except Exception as e:
+        log(f"Error loading games: {e}")
+        evolution_state["status"] = f"DATA ERROR: {e}"
+        return
 
+    if len(games) < 100:
+        log(f"Only {len(games)} games — need at least 100 for evolution")
+        evolution_state["status"] = f"INSUFFICIENT DATA ({len(games)} games)"
+        # Still try to run with what we have, or wait for data
+        if len(games) < 10:
+            log("FATAL: Not enough data. Waiting for data ingestion...")
+            return
+
+    # Build feature matrix
+    try:
+        evolution_state["status"] = "BUILDING FEATURES"
+        log("Building feature matrix...")
+        X, y, feature_names = evo_loop.feature_engine.build(games)
+        log(f"Feature matrix: {X.shape[0]} samples x {X.shape[1]} features")
+    except Exception as e:
+        log(f"Feature build error: {e}")
+        log(traceback.format_exc()[-500:])
+        evolution_state["status"] = f"FEATURE ERROR: {e}"
+        return
+
+    # Initialize population
+    try:
+        evo_loop.initialize_population()
+        evolution_state["population_size"] = len(evo_loop.population)
+        log(f"Population initialized: {len(evo_loop.population)} individuals")
+    except Exception as e:
+        log(f"Population init error: {e}")
+        evolution_state["status"] = f"POP ERROR: {e}"
+        return
+
+    # ── Continuous Evolution ──
     cycle = 0
-    task_idx = 0
+    GENS_PER_CYCLE = 10  # Run 10 generations, then pause for research/diagnostic/save
 
     while True:
         cycle += 1
+        evolution_state["cycle"] = cycle
+        evolution_state["status"] = "EVOLVING"
+
         log(f"\n{'='*60}")
-        log(f"IMPROVEMENT CYCLE #{cycle}")
+        log(f"EVOLUTION CYCLE #{cycle} — Starting {GENS_PER_CYCLE} generations")
         log(f"{'='*60}")
 
-        # Phase 1: ML Training
-        log("Phase 1: ML Training...")
-        try:
-            run_training()
-        except Exception as e:
-            log(f"Training phase error: {e}")
+        for gen_in_cycle in range(GENS_PER_CYCLE):
+            try:
+                start = time.time()
+                evo_loop.evolve_generation(X, y)
+                elapsed = time.time() - start
 
-        # Phase 2: Agent improvement tasks (parallel where possible)
-        log("Phase 2: Agent Improvements...")
-        available_agents = [k for k, v in AGENTS.items() if v["available"]]
+                # Update shared state
+                best = evo_loop.best_ever
+                if best:
+                    evolution_state["generation"] = evo_loop.generation
+                    evolution_state["best_brier"] = best.fitness.get("brier", 1.0)
+                    evolution_state["best_roi"] = best.fitness.get("roi", 0.0)
+                    evolution_state["best_sharpe"] = best.fitness.get("sharpe", 0.0)
+                    evolution_state["best_composite"] = best.fitness.get("composite", 0.0)
+                    evolution_state["best_model_type"] = best.hyperparams.get("model_type", "?")
+                    evolution_state["n_features_selected"] = best.n_features
+                    evolution_state["history"] = evo_loop.history[-20:]
 
-        if available_agents:
-            threads = []
-            tasks_this_cycle = []
+                log(f"Gen {evo_loop.generation}: "
+                    f"Brier={evolution_state['best_brier']:.4f} "
+                    f"ROI={evolution_state['best_roi']:.1%} "
+                    f"Sharpe={evolution_state['best_sharpe']:.2f} "
+                    f"Features={evolution_state['n_features_selected']} "
+                    f"({elapsed:.1f}s)")
 
-            for agent_key in available_agents:
-                if task_idx >= len(NBA_TASKS):
-                    task_idx = 0  # Loop back
+            except Exception as e:
+                log(f"Generation error: {e}")
+                log(traceback.format_exc()[-300:])
+                continue
 
-                task = NBA_TASKS[task_idx]
-                task_idx += 1
-                tasks_this_cycle.append((agent_key, task))
-
-            # Run agent tasks in parallel
-            for agent_key, task in tasks_this_cycle:
-                t = threading.Thread(
-                    target=run_agent_task,
-                    args=(agent_key, task),
-                    daemon=True
+        # ── Periodic Research (every 10 generations) ──
+        if evo_loop.generation > 0 and evo_loop.generation % 10 == 0:
+            evolution_state["status"] = "RESEARCHING"
+            try:
+                research_thread = threading.Thread(
+                    target=research_nba_quant,
+                    args=(evo_loop.generation,),
+                    daemon=True,
                 )
-                threads.append(t)
-                t.start()
+                research_thread.start()
+                research_thread.join(timeout=180)  # 3 min max for research
+            except Exception as e:
+                log(f"Research error: {e}")
 
-            # Wait for all (with timeout)
-            for t in threads:
-                t.join(timeout=2000)
+        # ── Self-Diagnostic (every 5 generations) ──
+        if evo_loop.generation > 0 and evo_loop.generation % 5 == 0:
+            evolution_state["status"] = "DIAGNOSTIC"
+            try:
+                run_self_diagnostic(evo_loop, evo_loop.generation)
+            except Exception as e:
+                log(f"Diagnostic error: {e}")
 
-            log(f"Agent tasks done for cycle #{cycle}")
-        else:
-            log("No agents available — training only mode")
-
-        # Phase 3: Sync results
-        log("Phase 3: Syncing results...")
+        # ── Save Results ──
+        evolution_state["status"] = "SAVING"
         try:
-            sync_results()
+            evo_loop.save_results()
+            log(f"Results saved — Gen {evo_loop.generation}")
         except Exception as e:
-            log(f"Sync error: {e}")
+            log(f"Save error: {e}")
 
-        # Wait between cycles
-        wait = 1800 if cycle <= 3 else 3600
-        log(f"Waiting {wait//60}min before next cycle...")
+        # ── Sync summary to swarm-status.json (for external consumption) ──
+        try:
+            status = {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "system": "genetic-evolution",
+                "cycle": cycle,
+                "generation": evo_loop.generation,
+                "best_brier": evolution_state["best_brier"],
+                "best_roi": evolution_state["best_roi"],
+                "best_sharpe": evolution_state["best_sharpe"],
+                "best_composite": evolution_state["best_composite"],
+                "best_model_type": evolution_state["best_model_type"],
+                "n_features_selected": evolution_state["n_features_selected"],
+                "n_feature_candidates": evolution_state["n_feature_candidates"],
+                "population_size": evolution_state["population_size"],
+                "games_loaded": evolution_state["games_loaded"],
+                "diagnostics": evolution_state["diagnostics"],
+            }
+            (RESULTS_DIR / "swarm-status.json").write_text(json.dumps(status, indent=2, default=str))
+        except Exception as e:
+            log(f"Status sync error: {e}")
 
-        for agent in AGENTS.values():
-            if agent["available"] and "ERROR" not in agent["status"]:
-                agent["status"] = f"WAITING ({wait//60}min)"
-
-        time.sleep(wait)
-
-
-def sync_results():
-    """Sync training results to VM data server."""
-    import urllib.request
-    vm_url = os.environ.get("VM_URL", "http://34.136.180.66:8080")
-
-    results = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "cycle": training_state["cycle"],
-        "best_brier": training_state["best_brier"],
-        "best_model": training_state["best_model"],
-        "games": training_state["games"],
-        "models_trained": training_state["models_trained"],
-        "agents": {k: {"status": v["status"], "cycles": v["cycles"]} for k, v in AGENTS.items()},
-    }
-
-    # Save locally
-    out = DATA_DIR / "results" / "swarm-status.json"
-    out.write_text(json.dumps(results, indent=2))
-    log(f"Saved swarm status to {out}")
+        # Brief pause between cycles
+        evolution_state["status"] = "COOLDOWN"
+        log(f"Cycle #{cycle} done — cooling down 60s before next cycle...")
+        time.sleep(60)
 
 
 # ── Gradio Dashboard ──
 
 def get_dashboard():
-    lines = [
-        "# NOMOS NBA QUANT AI — Swarm Dashboard",
-        "",
-        "## Agents",
-        "| Agent | Status | Cycles | Last Run |",
-        "|-------|--------|--------|----------|",
-    ]
-    for key, agent in AGENTS.items():
-        icon = "🟢" if agent["available"] else "🔴"
-        lines.append(f"| {icon} {agent['name']} | {agent['status']} | {agent['cycles']} | {agent['last_run'][:19]} |")
+    s = evolution_state
+    gen = s["generation"]
+    brier = s["best_brier"]
+    roi = s["best_roi"]
+    sharpe = s["best_sharpe"]
+    composite = s["best_composite"]
+    model = s["best_model_type"]
+    n_feats = s["n_features_selected"]
+    n_cands = s["n_feature_candidates"]
+    pop = s["population_size"]
+    games = s["games_loaded"]
+    status = s["status"]
+    cycle = s["cycle"]
 
-    lines.extend([
+    lines = [
+        "# NOMOS NBA QUANT AI — Genetic Evolution Dashboard",
         "",
-        "## ML Training",
-        f"- **Cycle**: {training_state['cycle']}",
-        f"- **Status**: {training_state['status']}",
-        f"- **Best Brier**: {training_state['best_brier']:.4f}",
-        f"- **Best Model**: {training_state['best_model']}",
-        f"- **Games**: {training_state['games']:,}",
-        f"- **Models**: {training_state['models_trained']}",
-    ])
+        "## System Status",
+        f"- **Status**: {status}",
+        f"- **Cycle**: {cycle} | **Generation**: {gen}",
+        f"- **Games Loaded**: {games:,}",
+        f"- **Population**: {pop} individuals",
+        f"- **Feature Candidates**: {n_cands}",
+        "",
+        "## Best Individual (All-Time)",
+        f"| Metric | Value |",
+        f"|--------|-------|",
+        f"| Brier Score | **{brier:.4f}** (lower = better, baseline 0.25) |",
+        f"| ROI | **{roi:.1%}** (positive = profitable) |",
+        f"| Sharpe Ratio | **{sharpe:.2f}** (>1 = good) |",
+        f"| Composite Fitness | **{composite:.4f}** |",
+        f"| Model Type | **{model}** |",
+        f"| Features Selected | **{n_feats}** / {n_cands} |",
+        "",
+    ]
+
+    # Evolution history chart (text-based)
+    history = s.get("history", [])
+    if history:
+        lines.append("## Evolution Progress (last 20 gens)")
+        lines.append("| Gen | Brier | ROI | Features | Model | Composite |")
+        lines.append("|-----|-------|-----|----------|-------|-----------|")
+        for h in history[-20:]:
+            lines.append(
+                f"| {h.get('generation', '?')} "
+                f"| {h.get('best_brier', 0):.4f} "
+                f"| {h.get('best_roi', 0):.1%} "
+                f"| {h.get('n_features', '?')} "
+                f"| {h.get('model_type', '?')} "
+                f"| {h.get('best_composite', 0):.4f} |"
+            )
+        lines.append("")
+
+    # Diagnostics
+    diags = s.get("diagnostics", [])
+    if diags:
+        lines.append("## Self-Diagnostic Issues")
+        for d in diags[-5:]:
+            lines.append(f"- {d[:200]}")
+        lines.append("")
+
+    # Research
+    research = s.get("research_summary", "")
+    if research and research != "No research yet":
+        lines.append("## Latest Research Findings")
+        lines.append(f"```\n{research[:600]}\n```")
 
     return "\n".join(lines)
 
@@ -550,45 +516,63 @@ def get_logs():
     return "\n".join(list(improvement_log)[-100:])
 
 
-def get_agent_logs(agent_key):
-    if agent_key in AGENTS:
-        return "\n".join(list(AGENTS[agent_key]["logs"])[-50:])
-    return "Agent not found"
+def get_research():
+    try:
+        f = RESULTS_DIR / "research-findings.json"
+        if f.exists():
+            data = json.loads(f.read_text())
+            return json.dumps(data, indent=2, default=str)[:5000]
+    except Exception:
+        pass
+    return "No research findings yet."
 
 
-with gr.Blocks(title="NOMOS NBA QUANT — Swarm", theme=gr.themes.Monochrome()) as app:
-    gr.Markdown("# NOMOS NBA QUANT AI — 4-Agent Swarm")
-    gr.Markdown("*Claude Code + Gemini CLI + Kimi Code + OpenClaw — always improving, 24/7*")
+def get_evolution_json():
+    try:
+        f = RESULTS_DIR / "evolution-status.json"
+        if f.exists():
+            return f.read_text()[:10000]
+    except Exception:
+        pass
+    return "{}"
+
+
+with gr.Blocks(title="NOMOS NBA QUANT — Genetic Evolution", theme=gr.themes.Monochrome()) as app:
+    gr.Markdown("# NOMOS NBA QUANT AI — Genetic Evolution Engine")
+    gr.Markdown("*Population of 50 models evolving 24/7 via genetic algorithm + LiteLLM research agents*")
 
     with gr.Row():
         with gr.Column(scale=2):
             dashboard_md = gr.Markdown(get_dashboard)
-            gr.Button("Refresh").click(get_dashboard, outputs=dashboard_md)
+            refresh_btn = gr.Button("Refresh Dashboard")
+            refresh_btn.click(get_dashboard, outputs=dashboard_md)
 
         with gr.Column(scale=3):
-            logs_box = gr.Textbox(label="Improvement Logs", value=get_logs, lines=25)
-            gr.Button("Refresh Logs").click(get_logs, outputs=logs_box)
+            logs_box = gr.Textbox(label="Evolution Logs", value=get_logs, lines=25, max_lines=30)
+            refresh_logs_btn = gr.Button("Refresh Logs")
+            refresh_logs_btn.click(get_logs, outputs=logs_box)
 
     with gr.Row():
         with gr.Column():
-            agent_select = gr.Dropdown(
-                choices=list(AGENTS.keys()),
-                label="Agent Logs",
-                value="claude"
-            )
-            agent_logs = gr.Textbox(label="Agent Output", lines=15)
-            agent_select.change(get_agent_logs, inputs=agent_select, outputs=agent_logs)
-            gr.Button("Refresh Agent").click(get_agent_logs, inputs=agent_select, outputs=agent_logs)
+            research_box = gr.Textbox(label="Research Findings", value=get_research, lines=15, max_lines=20)
+            refresh_research_btn = gr.Button("Refresh Research")
+            refresh_research_btn.click(get_research, outputs=research_box)
 
+        with gr.Column():
+            evo_json_box = gr.Textbox(label="Evolution Status (JSON)", value=get_evolution_json, lines=15, max_lines=20)
+            refresh_evo_btn = gr.Button("Refresh Evolution Data")
+            refresh_evo_btn.click(get_evolution_json, outputs=evo_json_box)
+
+    # Auto-refresh every 30s
     timer = gr.Timer(30)
     timer.tick(get_dashboard, outputs=dashboard_md)
     timer.tick(get_logs, outputs=logs_box)
 
 
-# ── Launch improvement loop at module level (HF Spaces imports, doesn't run __main__) ──
-_loop_thread = threading.Thread(target=improvement_loop, daemon=True, name="SwarmLoop")
-_loop_thread.start()
-log("Swarm orchestrator loop started (module-level)")
+# ── Launch evolution loop at module level (HF Spaces imports, doesn't run __main__) ──
+_evo_thread = threading.Thread(target=evolution_orchestrator_loop, daemon=True, name="EvolutionLoop")
+_evo_thread.start()
+log("Genetic evolution orchestrator thread started (module-level)")
 
 if __name__ == "__main__":
     app.launch(server_name="0.0.0.0", server_port=7860, share=False)
