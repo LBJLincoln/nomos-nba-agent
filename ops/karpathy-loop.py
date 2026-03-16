@@ -844,48 +844,134 @@ def build_features(games: List[dict], elo: EloSystem,
         away_tov_pct = a_ts.get("tov_pct", 0.13) or 0.13
         away_ts = a_ts.get("ts_pct", 0.56) or 0.56
 
-        # ── NEW: Player impact (top-5 PIE) ──
+        # ── Player impact (top-5 PIE + star power) ──
         h_ps = player_stats.get(home_abbrev, {})
         a_ps = player_stats.get(away_abbrev, {})
         home_top5_pie = h_ps.get("top5_pie", 0.50) or 0.50
         away_top5_pie = a_ps.get("top5_pie", 0.50) or 0.50
+        home_star_pts = h_ps.get("star_player_pts", 20.0) or 20.0
+        away_star_pts = a_ps.get("star_player_pts", 20.0) or 20.0
+        home_depth = min(h_ps.get("roster_depth", 12) or 12, 20)
+        away_depth = min(a_ps.get("roster_depth", 12) or 12, 20)
 
-        # ── NEW: Injury count ──
+        # ── Injury count ──
         home_inj_count = len(injuries.get(home_abbrev, []))
         away_inj_count = len(injuries.get(away_abbrev, []))
 
-        # ── NEW: Market features (line movement, consensus probability) ──
+        # ── Market features (line movement, consensus probability) ──
         game_key = f"{home_abbrev}-{away_abbrev}"
         mkt = get_market_features(game_key, odds_history)
         market_home_prob = mkt["market_home_prob"]
         line_movement = mkt["line_movement"]
+        market_spread = mkt["market_spread"]
+        market_total = mkt["market_total"]
 
-        # ── Build feature row (35 features) ──
+        # ── ADVANCED: Rolling windows (last 5 & 20 games for trend) ──
+        home_5 = team_results[home_abbrev][-5:]
+        away_5 = team_results[away_abbrev][-5:]
+        home_20 = team_results[home_abbrev][-20:]
+        away_20 = team_results[away_abbrev][-20:]
+        home_win_pct_5 = (sum(1 for r in home_5 if r[1]) / len(home_5)) if home_5 else 0.5
+        away_win_pct_5 = (sum(1 for r in away_5 if r[1]) / len(away_5)) if away_5 else 0.5
+        home_win_pct_20 = (sum(1 for r in home_20 if r[1]) / len(home_20)) if home_20 else 0.5
+        away_win_pct_20 = (sum(1 for r in away_20 if r[1]) / len(away_20)) if away_20 else 0.5
+        # Momentum = short-term vs long-term win rate delta
+        home_momentum = home_win_pct_5 - home_win_pct_20
+        away_momentum = away_win_pct_5 - away_win_pct_20
+
+        # ── ADVANCED: Point differential trends ──
+        home_pt_diff_5 = (sum(r[2] for r in home_5) / len(home_5)) if home_5 else 0.0
+        away_pt_diff_5 = (sum(r[2] for r in away_5) / len(away_5)) if away_5 else 0.0
+        home_pt_diff_20 = (sum(r[2] for r in home_20) / len(home_20)) if home_20 else 0.0
+        away_pt_diff_20 = (sum(r[2] for r in away_20) / len(away_20)) if away_20 else 0.0
+
+        # ── ADVANCED: Four Factors (Dean Oliver) — net advantages ──
+        # eFG% differential (most important factor ~40%)
+        efg_diff = (home_efg - away_efg)
+        # TOV% differential (less turnovers is better, ~25%)
+        tov_diff = (away_tov_pct - home_tov_pct)  # reversed: opponent's TOV helps you
+        # ORB% differential (~20%)
+        home_orb = h_ts.get("orb_pct", 0.25) or 0.25
+        away_orb = a_ts.get("orb_pct", 0.25) or 0.25
+        orb_diff = home_orb - away_orb
+        # FTr differential (~15%)
+        home_ftr = h_ts.get("ftr", 0.25) or 0.25
+        away_ftr = a_ts.get("ftr", 0.25) or 0.25
+        ftr_diff = home_ftr - away_ftr
+
+        # ── ADVANCED: Net Rating & Pythagorean Win % ──
+        home_net = h_ts.get("net_rating", 0.0) or 0.0
+        away_net = a_ts.get("net_rating", 0.0) or 0.0
+        net_rating_diff = home_net - away_net
+
+        # ── ADVANCED: Schedule fatigue — 3-in-4, 4-in-6 detection ──
+        home_games_4d = sum(1 for r in team_results[home_abbrev][-4:]
+                           if _days_between(r[0], game_date) <= 4) if team_results[home_abbrev] else 0
+        away_games_4d = sum(1 for r in team_results[away_abbrev][-4:]
+                           if _days_between(r[0], game_date) <= 4) if team_results[away_abbrev] else 0
+        home_fatigue = min(home_games_4d / 3.0, 1.0)
+        away_fatigue = min(away_games_4d / 3.0, 1.0)
+
+        # ── ADVANCED: Win streak (positive) / Losing streak (negative) ──
+        home_streak = _compute_streak(team_results[home_abbrev])
+        away_streak = _compute_streak(team_results[away_abbrev])
+
+        # ── ADVANCED: SOS (Strength of Schedule) — avg opponent win% last 10 ──
+        home_sos = _compute_sos(team_results[home_abbrev][-10:], team_results)
+        away_sos = _compute_sos(team_results[away_abbrev][-10:], team_results)
+
+        # ── ADVANCED: TS% and usage concentration ──
+        home_ts_adv = h_ts.get("ts_pct", 0.56) or 0.56
+        away_ts_adv = a_ts.get("ts_pct", 0.56) or 0.56
+        home_top5_usg = h_ps.get("top5_avg_usg", 0.20) or 0.20
+        away_top5_usg = a_ps.get("top5_avg_usg", 0.20) or 0.20
+
+        # ── Build feature row (55 features) ──
         row = [
-            # Original 17 features
+            # Core Elo + matchup (5)
             home_elo, away_elo, elo_diff,
-            home_win_pct_10, away_win_pct_10,
-            min(home_rest, 7), min(away_rest, 7),
-            h2h_home_wins / 5.0,
-            home_court_factor,
-            home_pt_diff_10, away_pt_diff_10,
-            home_b2b, away_b2b,
-            conf_game,
-            season_phase,
+            home_court_factor, conf_game,
+            # Power ratings (2)
             home_power, away_power,
-            # Team advanced stats (6 features)
+            # Win rates — multi-window (6)
+            home_win_pct_5, away_win_pct_5,
+            home_win_pct_10, away_win_pct_10,
+            home_win_pct_20, away_win_pct_20,
+            # Momentum (2)
+            home_momentum, away_momentum,
+            # Point differentials — multi-window (4)
+            home_pt_diff_5, away_pt_diff_5,
+            home_pt_diff_10, away_pt_diff_10,
+            # Rest & fatigue (6)
+            min(home_rest, 7), min(away_rest, 7),
+            home_b2b, away_b2b,
+            home_fatigue, away_fatigue,
+            # H2H (1)
+            h2h_home_wins / 5.0,
+            # Four Factors — Dean Oliver (4)
+            efg_diff, tov_diff, orb_diff, ftr_diff,
+            # Team advanced stats (6)
             home_ortg - 110.0, home_drtg - 110.0, home_pace - 100.0,
             away_ortg - 110.0, away_drtg - 110.0, away_pace - 100.0,
-            # Team efficiency (4 features)
-            home_efg, home_tov_pct,
-            away_efg, away_tov_pct,
-            # Player impact (2 features)
+            # Net rating (2)
+            home_net, away_net,
+            # True shooting (2)
+            home_ts_adv, away_ts_adv,
+            # Player impact (6)
             home_top5_pie, away_top5_pie,
-            # Injury impact (2 features)
+            home_star_pts / 30.0, away_star_pts / 30.0,
+            home_top5_usg, away_top5_usg,
+            # Roster depth (2)
+            home_depth / 15.0, away_depth / 15.0,
+            # Injury impact (2)
             min(home_inj_count, 5), min(away_inj_count, 5),
-            # Market features (2 features)
-            market_home_prob,
-            line_movement,
+            # Streaks & SOS (4)
+            home_streak / 10.0, away_streak / 10.0,
+            home_sos, away_sos,
+            # Season phase (1)
+            season_phase,
+            # Market features (3)
+            market_home_prob, market_spread / 15.0, line_movement,
         ]
 
         X_rows.append(row)
@@ -942,28 +1028,84 @@ def build_features(games: List[dict], elo: EloSystem,
 
 
 FEATURE_NAMES = [
-    # Original 17
+    # Core Elo + matchup (5)
     "home_elo", "away_elo", "elo_diff",
-    "home_win_pct_10", "away_win_pct_10",
-    "home_rest_days", "away_rest_days",
-    "h2h_home_win_rate", "home_court_factor",
-    "home_pt_diff_10", "away_pt_diff_10",
-    "home_b2b", "away_b2b",
-    "conference_game", "season_phase",
+    "home_court_factor", "conference_game",
+    # Power ratings (2)
     "home_power_rating", "away_power_rating",
+    # Win rates — multi-window (6)
+    "home_win_pct_5", "away_win_pct_5",
+    "home_win_pct_10", "away_win_pct_10",
+    "home_win_pct_20", "away_win_pct_20",
+    # Momentum (2)
+    "home_momentum", "away_momentum",
+    # Point differentials (4)
+    "home_pt_diff_5", "away_pt_diff_5",
+    "home_pt_diff_10", "away_pt_diff_10",
+    # Rest & fatigue (6)
+    "home_rest_days", "away_rest_days",
+    "home_b2b", "away_b2b",
+    "home_fatigue", "away_fatigue",
+    # H2H (1)
+    "h2h_home_win_rate",
+    # Four Factors — Dean Oliver (4)
+    "efg_diff", "tov_diff", "orb_diff", "ftr_diff",
     # Team advanced (6)
     "home_ortg_adj", "home_drtg_adj", "home_pace_adj",
     "away_ortg_adj", "away_drtg_adj", "away_pace_adj",
-    # Team efficiency (4)
-    "home_efg_pct", "home_tov_pct",
-    "away_efg_pct", "away_tov_pct",
-    # Player impact (2)
+    # Net rating (2)
+    "home_net_rating", "away_net_rating",
+    # True shooting (2)
+    "home_ts_pct", "away_ts_pct",
+    # Player impact (6)
     "home_top5_pie", "away_top5_pie",
+    "home_star_pts_norm", "away_star_pts_norm",
+    "home_top5_usg", "away_top5_usg",
+    # Roster depth (2)
+    "home_depth_norm", "away_depth_norm",
     # Injuries (2)
     "home_injury_count", "away_injury_count",
-    # Market (2)
-    "market_home_prob", "line_movement",
+    # Streaks & SOS (4)
+    "home_streak", "away_streak",
+    "home_sos", "away_sos",
+    # Season phase (1)
+    "season_phase",
+    # Market (3)
+    "market_home_prob", "market_spread_norm", "line_movement",
 ]
+
+
+def _compute_streak(results: list) -> int:
+    """Compute current win/loss streak. Positive = win streak, negative = loss streak."""
+    if not results:
+        return 0
+    streak = 0
+    for r in reversed(results):
+        if r[1]:  # won
+            if streak >= 0:
+                streak += 1
+            else:
+                break
+        else:
+            if streak <= 0:
+                streak -= 1
+            else:
+                break
+    return streak
+
+
+def _compute_sos(recent_games: list, all_team_results: dict) -> float:
+    """Strength of schedule: average opponent win% from recent games."""
+    if not recent_games:
+        return 0.5
+    opp_win_pcts = []
+    for game in recent_games:
+        opp = game[3]  # opponent abbreviation
+        opp_results = all_team_results.get(opp, [])
+        if opp_results:
+            opp_wp = sum(1 for r in opp_results if r[1]) / len(opp_results)
+            opp_win_pcts.append(opp_wp)
+    return sum(opp_win_pcts) / len(opp_win_pcts) if opp_win_pcts else 0.5
 
 
 def _days_between(date_str_a: Optional[str], date_str_b: str) -> int:
