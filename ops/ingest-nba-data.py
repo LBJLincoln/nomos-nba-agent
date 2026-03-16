@@ -315,7 +315,7 @@ def ingest_team_stats(season: Optional[str] = None) -> dict:
             season=season_to_nba_format(season),
             season_type_all_star="Regular Season",
             measure_type_detailed_defense="Advanced",
-            per_mode_simple="PerGame",
+            per_mode_detailed="PerGame",
         )
         df_adv = adv.get_data_frames()[0]
         for _, row in df_adv.iterrows():
@@ -349,7 +349,7 @@ def ingest_team_stats(season: Optional[str] = None) -> dict:
             season=season_to_nba_format(season),
             season_type_all_star="Regular Season",
             measure_type_detailed_defense="Base",
-            per_mode_simple="PerGame",
+            per_mode_detailed="PerGame",
         )
         df_base = base.get_data_frames()[0]
         for _, row in df_base.iterrows():
@@ -423,7 +423,7 @@ def ingest_player_stats(season: Optional[str] = None, min_minutes: float = 12.0)
             season=season_to_nba_format(season),
             season_type_all_star="Regular Season",
             measure_type_detailed_defense="Base",
-            per_mode_simple="PerGame",
+            per_mode_detailed="PerGame",
         )
         df = base.get_data_frames()[0]
         for _, row in df.iterrows():
@@ -465,7 +465,7 @@ def ingest_player_stats(season: Optional[str] = None, min_minutes: float = 12.0)
             season=season_to_nba_format(season),
             season_type_all_star="Regular Season",
             measure_type_detailed_defense="Advanced",
-            per_mode_simple="PerGame",
+            per_mode_detailed="PerGame",
         )
         df_adv = adv.get_data_frames()[0]
         for _, row in df_adv.iterrows():

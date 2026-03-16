@@ -336,15 +336,31 @@ def collect_results() -> List[dict]:
         except Exception as e:
             log(f"Error loading {f.name}: {e}", "WARN")
 
-    # 3. Load from historical JSON files
+    # 3. Load from historical JSON files (including nba_api games-*.json)
     for f in sorted(HISTORICAL_DIR.glob("*.json")):
         try:
             data = json.loads(f.read_text())
+            game_list = []
             if isinstance(data, list):
-                for game in data:
-                    _add_game(game)
+                game_list = data
             elif isinstance(data, dict) and "games" in data:
-                for game in data["games"]:
+                game_list = data["games"]
+            for game in game_list:
+                # Convert nba_api format (home.pts / away.pts) to flat format
+                if "home" in game and isinstance(game["home"], dict) and "pts" in game["home"]:
+                    h = game["home"]
+                    a = game.get("away", {})
+                    if h.get("pts") is not None and a.get("pts") is not None:
+                        _add_game({
+                            "home_team": h.get("team_name", game.get("home_team", "")),
+                            "away_team": a.get("team_name", game.get("away_team", "")),
+                            "home_score": int(h["pts"]),
+                            "away_score": int(a["pts"]),
+                            "date": game.get("game_date", ""),
+                            "commence_time": game.get("game_date", ""),
+                            "source": f"nba_api:{f.name}",
+                        })
+                else:
                     _add_game(game)
         except Exception as e:
             log(f"Error loading {f.name}: {e}", "WARN")

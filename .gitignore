@@ -55,9 +55,14 @@ data/performance/
 data/research/
 data/results/
 data/cache/
+data/historical/
+data/models/
+data/training/
+data/features/
 data/*.jsonl
 data/*-state.json
 data/*-output.log
+data/ensemble-weights.json
 users/
 reports/
 
