@@ -403,6 +403,281 @@ def collect_predictions() -> List[dict]:
 
 
 # ==============================================================================
+# DATA ENRICHMENT — Load team stats, player stats, injuries, odds history
+# ==============================================================================
+
+def load_team_stats() -> Dict[str, dict]:
+    """
+    Load team advanced stats from data/historical/team-stats-current.json.
+    Returns dict keyed by team abbreviation (e.g. 'BOS') with ORtg, DRtg, Pace, etc.
+    """
+    path = HISTORICAL_DIR / "team-stats-current.json"
+    if not path.exists():
+        log("No team-stats-current.json found — run ingest-nba-data.py first", "WARN")
+        return {}
+
+    try:
+        data = json.loads(path.read_text())
+        teams = data.get("teams", [])
+        result = {}
+        for t in teams:
+            # Map team name to abbreviation
+            name = t.get("team_name", t.get("team", ""))
+            abbrev = resolve_team(name)
+            if not abbrev:
+                # Try city + team
+                city = t.get("city", "")
+                if city:
+                    abbrev = resolve_team(f"{city} {name}")
+            if not abbrev:
+                continue
+            result[abbrev] = {
+                "off_rating": t.get("off_rating", 0) or 0,
+                "def_rating": t.get("def_rating", 0) or 0,
+                "net_rating": t.get("net_rating", 0) or 0,
+                "pace": t.get("pace", 0) or 0,
+                "efg_pct": t.get("efg_pct", 0) or 0,
+                "tov_pct": t.get("tov_pct", 0) or 0,
+                "ts_pct": t.get("ts_pct", 0) or 0,
+                "orb_pct": t.get("orb_pct", 0) or 0,
+                "ftr": t.get("ftr", 0) or 0,
+                "pie": t.get("pie", 0) or 0,
+                "wins": t.get("wins", 0) or 0,
+                "losses": t.get("losses", 0) or 0,
+                "win_pct": t.get("win_pct", 0) or 0,
+                "pts": t.get("pts", 0) or 0,
+                "fg_pct": t.get("fg_pct", 0) or 0,
+                "fg3_pct": t.get("fg3_pct", 0) or 0,
+                "plus_minus": t.get("plus_minus", 0) or 0,
+            }
+        log(f"ENRICH: Loaded team stats for {len(result)} teams")
+        return result
+    except Exception as e:
+        log(f"Failed to load team stats: {e}", "WARN")
+        return {}
+
+
+def load_player_stats() -> Dict[str, dict]:
+    """
+    Load player stats and aggregate per team (top-5 player impact score).
+    Returns dict keyed by team abbreviation with aggregated player metrics.
+    """
+    # Find the most recent player stats file
+    candidates = sorted(HISTORICAL_DIR.glob("player-stats-*.json"), reverse=True)
+    if not candidates:
+        log("No player-stats files found — run ingest-nba-data.py first", "WARN")
+        return {}
+
+    path = candidates[0]
+    try:
+        data = json.loads(path.read_text())
+        players = data.get("players", [])
+
+        # Group players by team
+        team_players = defaultdict(list)
+        for p in players:
+            abbrev = p.get("team_abbr", "")
+            if not abbrev:
+                continue
+            # Normalize abbreviation
+            resolved = resolve_team(abbrev)
+            if resolved:
+                abbrev = resolved
+            team_players[abbrev].append(p)
+
+        result = {}
+        for team, roster in team_players.items():
+            # Sort by minutes (highest minutes = most important)
+            roster.sort(key=lambda p: p.get("min_pg", 0) or 0, reverse=True)
+            top5 = roster[:5]
+
+            # Aggregate top-5 player metrics
+            top5_pts = sum(p.get("pts", 0) or 0 for p in top5)
+            top5_pie = sum(p.get("per", 0) or 0 for p in top5)  # PIE from nba_api
+            top5_usg = sum(p.get("usg_pct", 0) or 0 for p in top5) / max(len(top5), 1)
+            top5_net_rtg = sum(p.get("net_rating", 0) or 0 for p in top5) / max(len(top5), 1)
+            star_player_pts = top5[0].get("pts", 0) or 0 if top5 else 0
+            roster_depth = len(roster)
+
+            result[team] = {
+                "top5_pts": round(top5_pts, 1),
+                "top5_pie": round(top5_pie, 4),
+                "top5_avg_usg": round(top5_usg, 4),
+                "top5_avg_net_rtg": round(top5_net_rtg, 1),
+                "star_player_pts": round(star_player_pts, 1),
+                "roster_depth": roster_depth,
+                "roster": roster,  # Keep full roster for player props
+            }
+
+        log(f"ENRICH: Loaded player stats for {len(result)} teams ({len(players)} players)")
+        return result
+    except Exception as e:
+        log(f"Failed to load player stats: {e}", "WARN")
+        return {}
+
+
+def load_injuries() -> Dict[str, List[dict]]:
+    """
+    Load current injuries grouped by team abbreviation.
+    Returns dict keyed by team abbreviation with list of injured players.
+    """
+    path = HISTORICAL_DIR / "injuries-current.json"
+    if not path.exists():
+        return {}
+
+    try:
+        data = json.loads(path.read_text())
+        injuries = data.get("injuries", [])
+        result = defaultdict(list)
+        for inj in injuries:
+            abbrev = inj.get("team_abbr", "")
+            resolved = resolve_team(abbrev)
+            if resolved:
+                result[resolved].append(inj)
+        log(f"ENRICH: Loaded {len(injuries)} injury entries across {len(result)} teams")
+        return dict(result)
+    except Exception as e:
+        log(f"Failed to load injuries: {e}", "WARN")
+        return {}
+
+
+def load_odds_history() -> Dict[str, List[dict]]:
+    """
+    Load odds history and index by game key (home_team-away_team or game_id).
+    Returns dict with line movement data per game.
+    """
+    path = HISTORICAL_DIR / "odds-history.jsonl"
+    if not path.exists():
+        # Fall back to scanning odds snapshot files directly
+        return _load_odds_from_snapshots()
+
+    try:
+        game_odds = defaultdict(list)
+        count = 0
+        for line in path.read_text().splitlines():
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+                game_id = record.get("game_id", "")
+                home = record.get("home_team", "")
+                away = record.get("away_team", "")
+                h_abbrev = resolve_team(home)
+                a_abbrev = resolve_team(away)
+                key = f"{h_abbrev}-{a_abbrev}" if h_abbrev and a_abbrev else game_id
+                game_odds[key].append(record)
+                count += 1
+            except Exception:
+                pass
+        log(f"ENRICH: Loaded {count} odds records for {len(game_odds)} games")
+        return dict(game_odds)
+    except Exception as e:
+        log(f"Failed to load odds history: {e}", "WARN")
+        return {}
+
+
+def _load_odds_from_snapshots() -> Dict[str, List[dict]]:
+    """Load odds directly from snapshot files in data/."""
+    snapshots = sorted(DATA_DIR.glob("odds-*.json"))[-50:]
+    if not snapshots:
+        return {}
+
+    game_odds = defaultdict(list)
+    for snap in snapshots:
+        try:
+            raw = json.loads(snap.read_text())
+            games = raw if isinstance(raw, list) else []
+            ts = snap.stem.replace("odds-", "")
+            for game in games:
+                home = game.get("home_team", "")
+                away = game.get("away_team", "")
+                h_abbrev = resolve_team(home)
+                a_abbrev = resolve_team(away)
+                if not h_abbrev or not a_abbrev:
+                    continue
+                key = f"{h_abbrev}-{a_abbrev}"
+                # Extract consensus odds
+                ml_probs = []
+                spreads = []
+                totals = []
+                for bk in game.get("bookmakers", []):
+                    for mkt in bk.get("markets", []):
+                        mk = mkt.get("key", "")
+                        for o in mkt.get("outcomes", []):
+                            if mk == "h2h" and o.get("name") == home:
+                                ml_probs.append(1.0 / max(o.get("price", 2.0), 1.01))
+                            elif mk == "spreads" and o.get("name") == home:
+                                spreads.append(o.get("point", 0))
+                            elif mk == "totals" and o.get("name") == "Over":
+                                totals.append(o.get("point", 0))
+                game_odds[key].append({
+                    "snapshot_ts": ts,
+                    "home_ml_prob": sum(ml_probs) / len(ml_probs) if ml_probs else 0,
+                    "market_spread": sum(spreads) / len(spreads) if spreads else 0,
+                    "market_total": sum(totals) / len(totals) if totals else 0,
+                })
+        except Exception:
+            pass
+
+    log(f"ENRICH: Loaded odds from {len(snapshots)} snapshots for {len(game_odds)} games")
+    return dict(game_odds)
+
+
+def get_market_features(game_key: str, odds_history: Dict[str, List[dict]]) -> dict:
+    """
+    Extract market features for a specific game from odds history.
+    Returns: opening line, closing line, line movement, market spread, market total.
+    """
+    records = odds_history.get(game_key, [])
+    if not records:
+        return {
+            "market_home_prob": 0.0,
+            "market_spread": 0.0,
+            "market_total": 220.0,
+            "line_movement": 0.0,
+        }
+
+    # Sort by timestamp
+    records.sort(key=lambda r: r.get("snapshot_ts", r.get("last_update", "")))
+
+    # Opening and closing lines
+    opening = records[0]
+    closing = records[-1]
+
+    open_prob = opening.get("home_ml_prob", 0)
+    close_prob = closing.get("home_ml_prob", 0)
+
+    # For records from odds-history.jsonl (different format)
+    if "outcomes" in opening:
+        open_prob = _extract_prob_from_record(opening)
+        close_prob = _extract_prob_from_record(closing)
+
+    market_spread = closing.get("market_spread", 0)
+    market_total = closing.get("market_total", 220)
+    line_move = close_prob - open_prob if open_prob > 0 else 0
+
+    return {
+        "market_home_prob": close_prob,
+        "market_spread": market_spread,
+        "market_total": market_total,
+        "line_movement": line_move,
+    }
+
+
+def _extract_prob_from_record(record: dict) -> float:
+    """Extract home ML probability from an odds-history.jsonl record."""
+    outcomes = record.get("outcomes", {})
+    if not outcomes:
+        return 0.0
+    # outcomes is a dict with team names as keys
+    for name, data in outcomes.items():
+        price = data.get("price", 0)
+        if price > 1.0:
+            return 1.0 / price
+    return 0.0
+
+
+# ==============================================================================
 # STEP 2: FEATURES — Build feature matrix
 # ==============================================================================
 
@@ -419,28 +694,22 @@ def resolve_team(name: str) -> Optional[str]:
     return None
 
 
-def build_features(games: List[dict], elo: EloSystem) -> Tuple:
+def build_features(games: List[dict], elo: EloSystem,
+                    team_stats: Dict[str, dict] = None,
+                    player_stats: Dict[str, dict] = None,
+                    injuries: Dict[str, List[dict]] = None,
+                    odds_history: Dict[str, List[dict]] = None) -> Tuple:
     """
     Build feature matrix X and target vectors from game results.
 
-    Features per game (13 features):
-    [0]  home_elo           - Home team Elo rating
-    [1]  away_elo           - Away team Elo rating
-    [2]  elo_diff           - Home Elo - Away Elo (including home advantage)
-    [3]  home_win_pct_10    - Home team win % in last 10 games
-    [4]  away_win_pct_10    - Away team win % in last 10 games
-    [5]  home_rest_days     - Days since home team's last game
-    [6]  away_rest_days     - Days since away team's last game
-    [7]  h2h_home_wins_5    - Home team wins in last 5 H2H meetings (0-5)
-    [8]  home_court_factor  - 1.0 (constant, but allows model to learn magnitude)
-    [9]  home_pt_diff_10    - Home team avg point diff last 10 games
-    [10] away_pt_diff_10    - Away team avg point diff last 10 games
-    [11] home_b2b           - 1 if home team on back-to-back, else 0
-    [12] away_b2b           - 1 if away team on back-to-back, else 0
-    [13] conference_game    - 1 if both teams same conference, else 0
-    [14] season_phase       - 0.0 (early Oct) to 1.0 (late Apr), based on date
-    [15] home_power_rating  - Home team base power from power_ratings.py
-    [16] away_power_rating  - Away team base power from power_ratings.py
+    33 features per game:
+    [0-16]  Original 17 features (Elo, win%, rest, H2H, power ratings, etc.)
+    [17-22] Team advanced stats: home/away ORtg, DRtg, Pace (6)
+    [23-26] Team efficiency: home/away eFG%, TOV% (4)
+    [27-28] Player impact: top-5 PIE per team (2)
+    [29-30] Injury count per team (2)
+    [31]    Market consensus home probability
+    [32]    Line movement (closing - opening probability)
 
     Targets:
     y_win:    1 if home team won, 0 otherwise
@@ -450,6 +719,11 @@ def build_features(games: List[dict], elo: EloSystem) -> Tuple:
     if not HAS_NUMPY:
         log("NumPy not available -- cannot build features", "ERROR")
         return None, None, None, None, None
+
+    team_stats = team_stats or {}
+    player_stats = player_stats or {}
+    injuries = injuries or {}
+    odds_history = odds_history or {}
 
     # Build rolling stats from game history
     team_results = defaultdict(list)     # team -> [(date, won, margin, opponent)]
@@ -537,18 +811,65 @@ def build_features(games: List[dict], elo: EloSystem) -> Tuple:
         home_power = NBA_TEAMS.get(home_abbrev, {}).get("base_power", 0.0)
         away_power = NBA_TEAMS.get(away_abbrev, {}).get("base_power", 0.0)
 
-        # ── Build feature row ──
+        # ── NEW: Team advanced stats (ORtg, DRtg, Pace, eFG%, TOV%, TS%) ──
+        h_ts = team_stats.get(home_abbrev, {})
+        a_ts = team_stats.get(away_abbrev, {})
+        home_ortg = h_ts.get("off_rating", 110.0) or 110.0
+        home_drtg = h_ts.get("def_rating", 110.0) or 110.0
+        home_pace = h_ts.get("pace", 100.0) or 100.0
+        home_efg = h_ts.get("efg_pct", 0.50) or 0.50
+        home_tov_pct = h_ts.get("tov_pct", 0.13) or 0.13
+        home_ts = h_ts.get("ts_pct", 0.56) or 0.56
+
+        away_ortg = a_ts.get("off_rating", 110.0) or 110.0
+        away_drtg = a_ts.get("def_rating", 110.0) or 110.0
+        away_pace = a_ts.get("pace", 100.0) or 100.0
+        away_efg = a_ts.get("efg_pct", 0.50) or 0.50
+        away_tov_pct = a_ts.get("tov_pct", 0.13) or 0.13
+        away_ts = a_ts.get("ts_pct", 0.56) or 0.56
+
+        # ── NEW: Player impact (top-5 PIE) ──
+        h_ps = player_stats.get(home_abbrev, {})
+        a_ps = player_stats.get(away_abbrev, {})
+        home_top5_pie = h_ps.get("top5_pie", 0.50) or 0.50
+        away_top5_pie = a_ps.get("top5_pie", 0.50) or 0.50
+
+        # ── NEW: Injury count ──
+        home_inj_count = len(injuries.get(home_abbrev, []))
+        away_inj_count = len(injuries.get(away_abbrev, []))
+
+        # ── NEW: Market features (line movement, consensus probability) ──
+        game_key = f"{home_abbrev}-{away_abbrev}"
+        mkt = get_market_features(game_key, odds_history)
+        market_home_prob = mkt["market_home_prob"]
+        line_movement = mkt["line_movement"]
+
+        # ── Build feature row (35 features) ──
         row = [
+            # Original 17 features
             home_elo, away_elo, elo_diff,
             home_win_pct_10, away_win_pct_10,
-            min(home_rest, 7), min(away_rest, 7),  # Cap rest at 7 (All-Star break etc.)
-            h2h_home_wins / 5.0,  # Normalize to [0, 1]
+            min(home_rest, 7), min(away_rest, 7),
+            h2h_home_wins / 5.0,
             home_court_factor,
             home_pt_diff_10, away_pt_diff_10,
             home_b2b, away_b2b,
             conf_game,
             season_phase,
             home_power, away_power,
+            # Team advanced stats (6 features)
+            home_ortg - 110.0, home_drtg - 110.0, home_pace - 100.0,
+            away_ortg - 110.0, away_drtg - 110.0, away_pace - 100.0,
+            # Team efficiency (4 features)
+            home_efg, home_tov_pct,
+            away_efg, away_tov_pct,
+            # Player impact (2 features)
+            home_top5_pie, away_top5_pie,
+            # Injury impact (2 features)
+            min(home_inj_count, 5), min(away_inj_count, 5),
+            # Market features (2 features)
+            market_home_prob,
+            line_movement,
         ]
 
         X_rows.append(row)
@@ -598,11 +919,14 @@ def build_features(games: List[dict], elo: EloSystem) -> Tuple:
     except Exception:
         pass
 
-    log(f"FEATURES: Built {X.shape[0]} samples x {X.shape[1]} features")
+    log(f"FEATURES: Built {X.shape[0]} samples x {X.shape[1]} features "
+        f"(team_stats: {len(team_stats)} teams, players: {len(player_stats)} teams, "
+        f"injuries: {len(injuries)} teams, odds: {len(odds_history)} games)")
     return X, y_w, y_m, y_t, game_meta
 
 
 FEATURE_NAMES = [
+    # Original 17
     "home_elo", "away_elo", "elo_diff",
     "home_win_pct_10", "away_win_pct_10",
     "home_rest_days", "away_rest_days",
@@ -611,6 +935,18 @@ FEATURE_NAMES = [
     "home_b2b", "away_b2b",
     "conference_game", "season_phase",
     "home_power_rating", "away_power_rating",
+    # Team advanced (6)
+    "home_ortg_adj", "home_drtg_adj", "home_pace_adj",
+    "away_ortg_adj", "away_drtg_adj", "away_pace_adj",
+    # Team efficiency (4)
+    "home_efg_pct", "home_tov_pct",
+    "away_efg_pct", "away_tov_pct",
+    # Player impact (2)
+    "home_top5_pie", "away_top5_pie",
+    # Injuries (2)
+    "home_injury_count", "away_injury_count",
+    # Market (2)
+    "market_home_prob", "line_movement",
 ]
 
 
@@ -1018,18 +1354,26 @@ def compute_ensemble_weights(model_results: dict) -> dict:
 # STEP 5: PREDICT — Run ensemble on today's games
 # ==============================================================================
 
-def predict_today(model_results: dict, weights: dict, elo: EloSystem) -> List[dict]:
+def predict_today(model_results: dict, weights: dict, elo: EloSystem,
+                   team_stats: Dict[str, dict] = None,
+                   player_stats: Dict[str, dict] = None,
+                   injuries: Dict[str, List[dict]] = None) -> List[dict]:
     """
     Predict today's games using the trained ensemble.
 
     For each game:
-    1. Build features
+    1. Build 35-feature vector (including team advanced stats, player impact, injuries)
     2. Get probability from each ML model
     3. Get probability from built-in models (power ratings, Elo, Poisson, MC)
     4. Weighted average = ensemble prediction
     5. Predict spread (from margin model or power ratings)
     6. Predict total (from total model or Poisson)
+    7. Player props predictions for key players
     """
+    team_stats = team_stats or {}
+    player_stats = player_stats or {}
+    injuries = injuries or {}
+
     # Fetch today's games from Odds API
     if ODDS_API_KEY:
         url = (f"https://api.the-odds-api.com/v4/sports/basketball_nba/odds/"
@@ -1065,34 +1409,74 @@ def predict_today(model_results: dict, weights: dict, elo: EloSystem) -> List[di
             log(f"  Skipping unknown matchup: {home_name} vs {away_name}", "WARN")
             continue
 
-        # ── Build feature vector for this game ──
-        # Use current state (we don't have future data, so use latest rolling stats)
+        # ── Build 35-feature vector for this game ──
         home_elo_val = elo.get_rating(home_abbrev)
         away_elo_val = elo.get_rating(away_abbrev)
         elo_diff_val = elo.get_diff(home_abbrev, away_abbrev)
 
-        # For live prediction, use power ratings as proxy for recent form
         home_power = NBA_TEAMS.get(home_abbrev, {}).get("base_power", 0)
         away_power = NBA_TEAMS.get(away_abbrev, {}).get("base_power", 0)
 
-        # Estimate win % from power (rough: 50% + power * 2%)
-        home_win_pct_est = min(0.85, max(0.15, 0.5 + home_power * 0.02))
-        away_win_pct_est = min(0.85, max(0.15, 0.5 + away_power * 0.02))
+        # Use team_stats for win % if available, else estimate from power
+        h_ts = team_stats.get(home_abbrev, {})
+        a_ts = team_stats.get(away_abbrev, {})
+        home_win_pct_est = h_ts.get("win_pct", 0) or min(0.85, max(0.15, 0.5 + home_power * 0.02))
+        away_win_pct_est = a_ts.get("win_pct", 0) or min(0.85, max(0.15, 0.5 + away_power * 0.02))
 
         home_conf = NBA_TEAMS.get(home_abbrev, {}).get("conference", "")
         away_conf = NBA_TEAMS.get(away_abbrev, {}).get("conference", "")
 
+        # Team advanced stats
+        home_ortg = (h_ts.get("off_rating", 0) or 110.0) - 110.0
+        home_drtg = (h_ts.get("def_rating", 0) or 110.0) - 110.0
+        home_pace = (h_ts.get("pace", 0) or 100.0) - 100.0
+        away_ortg = (a_ts.get("off_rating", 0) or 110.0) - 110.0
+        away_drtg = (a_ts.get("def_rating", 0) or 110.0) - 110.0
+        away_pace = (a_ts.get("pace", 0) or 100.0) - 100.0
+
+        home_efg = h_ts.get("efg_pct", 0) or 0.50
+        home_tov = h_ts.get("tov_pct", 0) or 0.13
+        away_efg = a_ts.get("efg_pct", 0) or 0.50
+        away_tov = a_ts.get("tov_pct", 0) or 0.13
+
+        # Player impact
+        h_ps = player_stats.get(home_abbrev, {})
+        a_ps = player_stats.get(away_abbrev, {})
+        home_top5_pie = h_ps.get("top5_pie", 0.50) or 0.50
+        away_top5_pie = a_ps.get("top5_pie", 0.50) or 0.50
+
+        # Injuries
+        home_inj_count = min(len(injuries.get(home_abbrev, [])), 5)
+        away_inj_count = min(len(injuries.get(away_abbrev, [])), 5)
+
+        # Market consensus from today's game data
+        market_home_prob = _extract_market_prob(game, home_name)
+        line_movement = 0.0  # No historical movement for live prediction
+
         feature_row = np.array([[
+            # Original 17
             home_elo_val, away_elo_val, elo_diff_val,
             home_win_pct_est, away_win_pct_est,
-            2.0, 2.0,  # Assume normal rest (we don't have schedule data)
+            2.0, 2.0,  # Assume normal rest
             0.5,       # H2H neutral
             1.0,       # Home court
-            home_power, away_power,  # Use power as proxy for pt diff
+            home_power, away_power,  # Proxy for pt diff
             0.0, 0.0,  # No B2B info
             1.0 if home_conf == away_conf else 0.0,
             _season_phase(datetime.now()),
             home_power, away_power,
+            # Team advanced (6)
+            home_ortg, home_drtg, home_pace,
+            away_ortg, away_drtg, away_pace,
+            # Team efficiency (4)
+            home_efg, home_tov,
+            away_efg, away_tov,
+            # Player impact (2)
+            home_top5_pie, away_top5_pie,
+            # Injuries (2)
+            home_inj_count, away_inj_count,
+            # Market (2)
+            market_home_prob, line_movement,
         ]])
 
         # ── Collect probabilities from all models ──
@@ -1162,6 +1546,16 @@ def predict_today(model_results: dict, weights: dict, elo: EloSystem) -> List[di
         # ── CLV (Closing Line Value) ──
         clv = ensemble_prob - market_prob if market_prob > 0 else 0.0
 
+        # ── Player props predictions ──
+        player_props = _predict_player_props(
+            home_abbrev, away_abbrev,
+            player_stats, team_stats, injuries
+        )
+
+        # ── Extract market spread and total from game data ──
+        market_spread = _extract_market_spread(game, home_name)
+        market_total_line = _extract_market_total(game)
+
         prediction = {
             "home_team": home_abbrev,
             "away_team": away_abbrev,
@@ -1172,18 +1566,33 @@ def predict_today(model_results: dict, weights: dict, elo: EloSystem) -> List[di
             "market_prob": round(market_prob, 4),
             "predicted_spread": round(predicted_spread, 1),
             "predicted_total": round(predicted_total, 1),
+            "market_spread": market_spread,
+            "market_total": market_total_line,
             "clv": round(clv, 4),
             "confidence": _confidence_label(ensemble_prob),
             "ensemble_weights": {k: v for k, v in weights.items() if k in probs},
+            "team_advanced": {
+                "home": {"ortg": h_ts.get("off_rating"), "drtg": h_ts.get("def_rating"),
+                         "pace": h_ts.get("pace"), "efg": h_ts.get("efg_pct")},
+                "away": {"ortg": a_ts.get("off_rating"), "drtg": a_ts.get("def_rating"),
+                         "pace": a_ts.get("pace"), "efg": a_ts.get("efg_pct")},
+            },
+            "injuries": {
+                "home": [i.get("player_name", "?") for i in injuries.get(home_abbrev, [])],
+                "away": [i.get("player_name", "?") for i in injuries.get(away_abbrev, [])],
+            },
+            "player_props": player_props,
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         predictions.append(prediction)
 
         conf_str = prediction["confidence"]
+        n_props = len(player_props)
         log(f"  {away_name:>25s} @ {home_name:<25s} | "
             f"Home {ensemble_prob*100:5.1f}% | Spread {predicted_spread:+5.1f} | "
-            f"Total {predicted_total:5.0f} | CLV {clv*100:+4.1f}% | {conf_str}")
+            f"Total {predicted_total:5.0f} | CLV {clv*100:+4.1f}% | {conf_str} | "
+            f"Props: {n_props}")
 
     # Save predictions
     if predictions:
@@ -1238,6 +1647,114 @@ def _confidence_label(prob: float) -> str:
         return "LOW"
     else:
         return "COIN FLIP"
+
+
+def _extract_market_spread(game: dict, home_name: str) -> float:
+    """Extract consensus market spread for home team."""
+    spreads = []
+    for bk in game.get("bookmakers", []):
+        for market in bk.get("markets", []):
+            if market.get("key") != "spreads":
+                continue
+            for outcome in market.get("outcomes", []):
+                if outcome.get("name") == home_name and outcome.get("point") is not None:
+                    spreads.append(float(outcome["point"]))
+    return round(sum(spreads) / len(spreads), 1) if spreads else 0.0
+
+
+def _extract_market_total(game: dict) -> float:
+    """Extract consensus market total."""
+    totals = []
+    for bk in game.get("bookmakers", []):
+        for market in bk.get("markets", []):
+            if market.get("key") != "totals":
+                continue
+            for outcome in market.get("outcomes", []):
+                if outcome.get("name") == "Over" and outcome.get("point") is not None:
+                    totals.append(float(outcome["point"]))
+    return round(sum(totals) / len(totals), 1) if totals else 220.0
+
+
+def _predict_player_props(home_abbrev: str, away_abbrev: str,
+                           player_stats: Dict[str, dict],
+                           team_stats: Dict[str, dict],
+                           injuries: Dict[str, List[dict]]) -> List[dict]:
+    """
+    Predict player props (points, rebounds, assists, PRA) for key players.
+
+    Method: baseline from season averages, adjusted for:
+    - Opponent defensive rating (DRtg)
+    - Pace matchup (faster pace = more stats)
+    - Injury context (missing teammates = usage boost)
+    """
+    props = []
+    injured_names = set()
+    for team_inj in [injuries.get(home_abbrev, []), injuries.get(away_abbrev, [])]:
+        for inj in team_inj:
+            injured_names.add(inj.get("player_name", "").strip().lower())
+
+    for team_abbrev, opp_abbrev, side in [
+        (home_abbrev, away_abbrev, "home"),
+        (away_abbrev, home_abbrev, "away"),
+    ]:
+        ps = player_stats.get(team_abbrev, {})
+        roster = ps.get("roster", [])
+        if not roster:
+            continue
+
+        opp_ts = team_stats.get(opp_abbrev, {})
+        opp_drtg = opp_ts.get("def_rating", 110.0) or 110.0
+        opp_pace = opp_ts.get("pace", 100.0) or 100.0
+        league_avg_drtg = 110.0
+        league_avg_pace = 100.0
+
+        # Defensive adjustment factor: bad defense = more points
+        def_factor = opp_drtg / league_avg_drtg if league_avg_drtg > 0 else 1.0
+        # Pace factor: faster pace = more possessions = more stats
+        pace_factor = opp_pace / league_avg_pace if league_avg_pace > 0 else 1.0
+        combined_factor = (def_factor * 0.6 + pace_factor * 0.4)
+
+        # Check if any teammate is injured (usage boost for remaining players)
+        team_injured = [n for n in injured_names
+                        if any(n in (p.get("player_name", "").lower()) for p in roster)]
+        usage_boost = 1.0 + (len(team_injured) * 0.03)  # 3% per injured player
+
+        # Top 5 players by minutes
+        top_players = sorted(roster, key=lambda p: p.get("min_pg", 0) or 0, reverse=True)[:5]
+
+        for player in top_players:
+            pname = player.get("player_name", "")
+            if pname.strip().lower() in injured_names:
+                continue  # Skip injured players
+
+            base_pts = player.get("pts", 0) or 0
+            base_reb = player.get("reb", 0) or 0
+            base_ast = player.get("ast", 0) or 0
+
+            # Adjusted predictions
+            adj_pts = round(base_pts * combined_factor * usage_boost, 1)
+            adj_reb = round(base_reb * pace_factor * usage_boost, 1)
+            adj_ast = round(base_ast * pace_factor * usage_boost, 1)
+            adj_pra = round(adj_pts + adj_reb + adj_ast, 1)
+
+            props.append({
+                "player": pname,
+                "team": team_abbrev,
+                "side": side,
+                "predicted_pts": adj_pts,
+                "predicted_reb": adj_reb,
+                "predicted_ast": adj_ast,
+                "predicted_pra": adj_pra,
+                "base_pts": base_pts,
+                "base_reb": base_reb,
+                "base_ast": base_ast,
+                "def_factor": round(def_factor, 3),
+                "pace_factor": round(pace_factor, 3),
+                "usage_boost": round(usage_boost, 3),
+                "min_pg": player.get("min_pg", 0),
+            })
+
+    return props
 
 
 # ==============================================================================
@@ -1492,9 +2009,20 @@ def run_full_cycle():
         games = synthetic + games
         log(f"Total after bootstrap: {len(games)} games")
 
-    # Step 2: FEATURES
+    # Step 1.5: ENRICH — Load team stats, player stats, injuries, odds
+    log("\n--- STEP 1.5: ENRICH ---")
+    ts = load_team_stats()
+    ps = load_player_stats()
+    inj = load_injuries()
+    odds = load_odds_history()
+
+    # Step 2: FEATURES (now with 35 features)
     log("\n--- STEP 2: FEATURES ---")
-    X, y_win, y_margin, y_total, meta = build_features(games, elo_system)
+    X, y_win, y_margin, y_total, meta = build_features(
+        games, elo_system,
+        team_stats=ts, player_stats=ps,
+        injuries=inj, odds_history=odds
+    )
 
     if X is None or len(X) < 20:
         log("Insufficient data for training -- skipping to prediction", "WARN")
@@ -1509,9 +2037,10 @@ def run_full_cycle():
         log("\n--- STEP 4: ENSEMBLE ---")
         weights = compute_ensemble_weights(model_results)
 
-    # Step 5: PREDICT
+    # Step 5: PREDICT (now with enrichment data)
     log("\n--- STEP 5: PREDICT ---")
-    predictions = predict_today(model_results, weights, elo_system)
+    predictions = predict_today(model_results, weights, elo_system,
+                                team_stats=ts, player_stats=ps, injuries=inj)
 
     # Step 6: EVALUATE
     log("\n--- STEP 6: EVALUATE ---")
@@ -1732,7 +2261,17 @@ Examples:
             synthetic = bootstrap_synthetic_games(500)
             games = synthetic + games
 
-        X, y_win, y_margin, y_total, meta = build_features(games, elo_system)
+        # Load enrichment data
+        ts = load_team_stats()
+        ps = load_player_stats()
+        inj = load_injuries()
+        odds = load_odds_history()
+
+        X, y_win, y_margin, y_total, meta = build_features(
+            games, elo_system,
+            team_stats=ts, player_stats=ps,
+            injuries=inj, odds_history=odds
+        )
         if X is not None and len(X) >= 20:
             results = train_all_models(X, y_win, y_margin, y_total)
             weights = compute_ensemble_weights(results)
@@ -1760,7 +2299,13 @@ Examples:
         else:
             weights = compute_ensemble_weights({})
 
-        predict_today(model_results, weights, elo_system)
+        # Load enrichment data for predictions
+        ts = load_team_stats()
+        ps = load_player_stats()
+        inj = load_injuries()
+
+        predict_today(model_results, weights, elo_system,
+                      team_stats=ts, player_stats=ps, injuries=inj)
 
     elif args.eval:
         elo_system.load()
