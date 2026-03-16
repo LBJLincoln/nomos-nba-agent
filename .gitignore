@@ -16,6 +16,12 @@ secrets/
 .npmrc
 .htpasswd
 service-account*.json
+*.crt
+*.csr
+.aws/
+.gcloud/
+**/api_key*
+**/apikey*
 
 # Python
 __pycache__/
@@ -27,9 +33,14 @@ build/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.tox/
+.nox/
 .coverage
+coverage.xml
 htmlcov/
 *.egg
+*.whl
+*.so
 
 # Logs & generated data
 logs/
@@ -83,3 +94,5 @@ pip-wheel-metadata/
 *.orig
 *~
 .cache/
+.python-version
+.tool-versions
