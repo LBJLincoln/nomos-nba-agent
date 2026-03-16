@@ -240,37 +240,53 @@ def run_agent_task(agent_key, task):
                 log(f"Gemini CLI skipped — no GOOGLE_API_KEY", agent_key)
                 agent["status"] = "NO API KEY"
                 return False
-            # Set GEMINI_API_KEY (Gemini CLI uses this)
             env["GEMINI_API_KEY"] = google_key
+            # Force free-tier model (gemini-3.1-pro has 0 free tokens)
+            env["GEMINI_MODEL"] = "gemini-2.0-flash"
             # Create settings if needed
             settings_dir = Path("/root/.gemini")
             settings_dir.mkdir(parents=True, exist_ok=True)
             settings_file = settings_dir / "settings.json"
-            if not settings_file.exists():
-                import json as _json
-                settings_file.write_text(_json.dumps({
-                    "selectedAuthType": "api-key",
-                    "apiKey": google_key,
-                }))
-                log("Created Gemini settings with API key", agent_key)
+            import json as _json
+            settings_file.write_text(_json.dumps({
+                "selectedAuthType": "api-key",
+                "apiKey": google_key,
+                "model": "gemini-2.0-flash",
+            }))
             # Use headless mode by piping prompt
             cmd = ["bash", "-c", f'echo {repr(task["prompt"])} | gemini --yolo']
 
         elif agent_key == "kimi":
             # Kimi CLI: use OpenRouter as LLM backend (cheap)
             openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
-            if openrouter_key:
-                env["OPENROUTER_API_KEY"] = openrouter_key
-                # Configure kimi to use OpenRouter
-                kimi_config = Path("/root/.kimi")
-                kimi_config.mkdir(parents=True, exist_ok=True)
-                config_file = kimi_config / "config.yaml"
-                if not config_file.exists():
-                    config_file.write_text(f"""model: openrouter/anthropic/claude-3.5-sonnet
-api_key: {openrouter_key}
-base_url: https://openrouter.ai/api/v1
-""")
-                    log("Created Kimi config with OpenRouter", agent_key)
+            if not openrouter_key:
+                log(f"Kimi CLI skipped — no OPENROUTER_API_KEY", agent_key)
+                agent["status"] = "NO API KEY"
+                return False
+            env["OPENROUTER_API_KEY"] = openrouter_key
+            # Configure kimi with TOML config (not YAML!)
+            kimi_config = Path("/root/.kimi")
+            kimi_config.mkdir(parents=True, exist_ok=True)
+            config_file = kimi_config / "config.toml"
+            # Always overwrite to ensure correct format
+            config_file.write_text(f'''default_model = "openrouter_model"
+default_thinking = false
+default_yolo = true
+
+[providers.openrouter]
+type = "openai_legacy"
+base_url = "https://openrouter.ai/api/v1"
+api_key = "{openrouter_key}"
+
+[models.openrouter_model]
+provider = "openrouter"
+model = "moonshotai/kimi-k2.5"
+max_context_size = 160000
+''')
+            # Remove old yaml config if it exists
+            old_yaml = kimi_config / "config.yaml"
+            if old_yaml.exists():
+                old_yaml.unlink()
             cmd = ["kimi", "--prompt", task["prompt"]]
 
         elif agent_key == "openclaw":
@@ -533,10 +549,10 @@ with gr.Blocks(title="NOMOS NBA QUANT — Swarm", theme=gr.themes.Monochrome()) 
     timer.tick(get_logs, outputs=logs_box)
 
 
-if __name__ == "__main__":
-    # Start improvement loop in background
-    loop_thread = threading.Thread(target=improvement_loop, daemon=True)
-    loop_thread.start()
+# ── Launch improvement loop at module level (HF Spaces imports, doesn't run __main__) ──
+_loop_thread = threading.Thread(target=improvement_loop, daemon=True, name="SwarmLoop")
+_loop_thread.start()
+log("Swarm orchestrator loop started (module-level)")
 
-    # Launch Gradio
+if __name__ == "__main__":
     app.launch(server_name="0.0.0.0", server_port=7860, share=False)

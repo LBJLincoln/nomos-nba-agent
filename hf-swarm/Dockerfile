@@ -17,12 +17,11 @@ RUN npm install -g @google/gemini-cli
 # 2. Claude Code CLI (Anthropic — uses Max subscription)
 RUN npm install -g @anthropic-ai/claude-code
 
-# 3. OpenClaw (standalone, no Docker-in-Docker — just the CLI)
-RUN npm install -g @anthropic-ai/claude-code 2>/dev/null; \
-    pip install --no-cache-dir openclaw-cli 2>/dev/null || true
-
-# 4. Kimi Code CLI (Moonshot — cheap K2.5 model)
+# 3. Kimi Code CLI (Moonshot — cheap K2.5 model via OpenRouter)
 RUN pip install --no-cache-dir kimi-cli || true
+
+# 4. OpenClaw — not yet available as standalone CLI package
+# Will be added when released as npm/pip package
 
 # ── ML Dependencies ──
 RUN pip install --no-cache-dir \
