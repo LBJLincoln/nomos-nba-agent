@@ -133,8 +133,14 @@ def get_team(identifier):
     identifier_lower = identifier.lower()
     for abbrev, team in NBA_TEAMS.items():
         if (identifier_lower in team["name"].lower() or
+            team["name"].lower() in identifier_lower or
             identifier_lower in team["city"].lower() or
             identifier_lower == abbrev.lower()):
+            return abbrev, team
+    # Fallback: match last word (e.g., "Clippers", "Spurs", "Thunder")
+    last_word = identifier_lower.split()[-1] if identifier_lower.split() else ""
+    for abbrev, team in NBA_TEAMS.items():
+        if last_word and last_word in team["name"].lower():
             return abbrev, team
     return None, None
 

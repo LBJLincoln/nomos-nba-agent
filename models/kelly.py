@@ -30,9 +30,9 @@ from datetime import datetime, timezone
 FRACTIONAL_KELLY = 0.25       # Use 1/4 Kelly for safety (Starlizard uses 1/4 to 1/3)
 MAX_BET_FRACTION = 0.05       # Never bet more than 5% of bankroll
 MIN_EDGE_THRESHOLD = 0.02     # Minimum 2% edge to bet
-MIN_ODDS = 1.20               # Don't bet below 1.20 decimal (too little juice)
-MAX_ODDS = 10.0               # Don't bet above 10.0 decimal (too risky)
-DEFAULT_BANKROLL = 1000.0     # Starting bankroll in units
+MIN_ODDS = 1.15               # Don't bet below 1.15 decimal (too little juice)
+MAX_ODDS = 15.0               # Allow underdog bets up to 15.0 decimal
+DEFAULT_BANKROLL = 100.0      # Starting bankroll in USD
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -187,10 +187,10 @@ def evaluate_bet(opportunity, bankroll=DEFAULT_BANKROLL,
     elif odds > MAX_ODDS:
         is_bet = False
         reason = f"Cotes trop elevees: {odds:.2f} > {MAX_ODDS:.2f} (risque)"
-    elif prob < 0.08 or prob > 0.97:
+    elif prob < 0.05 or prob > 0.98:
         is_bet = False
         reason = f"Probabilite estimee aberrante: {prob*100:.1f}%"
-    elif abs(prob - impl_prob) > 0.35:
+    elif abs(prob - impl_prob) > 0.50:
         is_bet = False
         reason = f"Desaccord modele/marche trop grand: modele {prob*100:.1f}% vs marche {impl_prob*100:.1f}% (delta {abs(prob-impl_prob)*100:.0f}pp)"
     else:

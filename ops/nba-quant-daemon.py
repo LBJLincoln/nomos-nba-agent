@@ -390,6 +390,10 @@ def find_value_bets(games_odds: list, max_bets: int = 10) -> list:
         except Exception:
             continue
 
+        if pred is None:
+            log(f"Skipping {home} vs {away}: no power rating match", "WARN")
+            continue
+
         # home_win_prob is already decimal (0.0-1.0) from power_ratings
         raw = pred.get("home_win_prob", 0.5)
         model_home_prob = raw if raw <= 1.0 else raw / 100
@@ -578,9 +582,22 @@ def sync_to_control_tower():
 
 def run_self_improvement():
     """Run prediction-vs-results feedback loop."""
+    # Step A: Verify yesterday's predictions against actual results
     try:
         sys.path.insert(0, str(ROOT / "ops"))
+        # Use the new verify-results script
         from importlib import import_module
+        verify_mod = import_module("nba-verify-results")
+        report = verify_mod.run_verification()
+        if report:
+            ml_acc = report.get("ml_accuracy", 0)
+            spread_acc = report.get("spread_accuracy", 0)
+            log(f"Verification: ML {ml_acc:.1%}, Spread {spread_acc:.1%}")
+    except Exception as e:
+        log(f"Verification failed: {e}", "WARN")
+
+    # Step B: Run model self-improvement (recalibrate weights)
+    try:
         si = import_module("self-improve")
         metrics = si.run_self_improvement()
         if metrics:
