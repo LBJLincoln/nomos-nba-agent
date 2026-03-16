@@ -76,3 +76,31 @@ python3 ops/sync.py                            # Push metrics to mon-ipad
 3. Measure before/after every change
 4. Auto-stop on 3 consecutive failures
 5. Push results to mon-ipad via ops/sync.py
+
+## ⚠️ CRITICAL: COMPUTE RULES
+
+### ZERO ML ON VM
+La VM (1 vCPU / 969 MB RAM) ne peut PAS faire de ML.
+**TOUT training, Optuna, backtest, karpathy-loop → HF Spaces (16GB RAM)**
+
+| VM (autorise) | HF Spaces (ML ici) | Lightning/Colab (GPU) |
+|---------------|--------------------|-----------------------|
+| data-server | karpathy-loop | LSTM/Neural |
+| quant-daemon (leger) | improve-loop | Large Optuna (100+ trials) |
+| monitoring | backtest | MC Dropout |
+| git, Claude Code | OddsHarvester | Deep learning |
+
+### HF Spaces NBA
+| Space | URL | Secrets |
+|-------|-----|---------|
+| nomos-nba-quant | lbjlincoln-nomos-nba-quant.hf.space | 101/101 |
+| nomos-nba-quant-2 | lbjlincoln-nomos-nba-quant-2.hf.space | 101/101 |
+
+**CHAQUE Space doit avoir les 101 secrets de .env.local**
+
+### Models (9 + calibrated)
+LR, RF, ExtraTrees, GradientBoosting, XGBoost, LightGBM, CatBoost, Stacking, Meta-learner
+All with isotonic calibration. Best: Brier 0.2034 | Acc 68.9%
+
+### Data
+9,551+ games, 8 seasons (2018-2026), 75 features (58 base + 17 advanced)

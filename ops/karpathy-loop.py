@@ -2,6 +2,10 @@
 """
 Karpathy-Style Continuous Training Loop for NBA Quant Agent.
 
+⚠️  THIS SCRIPT MUST RUN ON HF SPACES (16GB RAM), NOT ON VM (1GB RAM).
+    Deploy via: huggingface_hub.upload_file() to LBJLincoln/nomos-nba-quant
+    The VM will OOM-kill this script. DO NOT run locally.
+
 Philosophy: simple code + massive data + continuous training.
 Runs nightly. Each cycle: COLLECT -> FEATURES -> TRAIN -> ENSEMBLE -> PREDICT -> EVALUATE -> REPEAT.
 
@@ -23,6 +27,22 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Any
+
+# ── VM GUARD: refuse to run on 1GB VM ─────────────────────────────────────────
+def _check_ram():
+    try:
+        with open('/proc/meminfo') as f:
+            for line in f:
+                if line.startswith('MemTotal'):
+                    kb = int(line.split()[1])
+                    if kb < 2_000_000:  # Less than 2GB
+                        print(f"⚠️  ABORT: This machine has only {kb//1024}MB RAM.")
+                        print("   karpathy-loop MUST run on HF Spaces (16GB) or Colab, NOT on this VM.")
+                        print("   Deploy to: LBJLincoln/nomos-nba-quant on HuggingFace Spaces")
+                        if not os.environ.get('FORCE_LOCAL'):
+                            sys.exit(1)
+    except: pass
+_check_ram()
 
 # ── Path setup ────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent.parent

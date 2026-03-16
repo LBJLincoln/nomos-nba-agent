@@ -2,6 +2,9 @@
 """
 NBA Quant — Continuous Improvement Engine.
 
+⚠️  THIS SCRIPT MUST RUN ON HF SPACES (16GB RAM), NOT ON VM (1GB RAM).
+    Deploy via: huggingface_hub.upload_file() to LBJLincoln/nomos-nba-quant
+
 Runs forever. Each cycle:
 1. EXPAND DATA    — Pull more seasons from nba_api (target: 8 seasons = 10K+ games)
 2. HYPERPARAM     — Optuna search on XGBoost/LightGBM/RF
@@ -20,6 +23,17 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Tuple, Optional
 
 warnings.filterwarnings("ignore", category=UserWarning)
+
+# ── VM GUARD ──
+try:
+    with open('/proc/meminfo') as f:
+        for line in f:
+            if line.startswith('MemTotal'):
+                kb = int(line.split()[1])
+                if kb < 2_000_000 and not os.environ.get('FORCE_LOCAL'):
+                    print(f"⚠️  ABORT: {kb//1024}MB RAM. Run on HF Spaces, not VM.")
+                    sys.exit(1)
+except: pass
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))

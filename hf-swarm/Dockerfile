@@ -1,0 +1,44 @@
+FROM python:3.13-slim
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl git wget gnupg2 ca-certificates build-essential \
+    nodejs npm chromium \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade Node.js to 22 (needed for Gemini CLI + Claude Code)
+RUN npm install -g n && n 22 && hash -r
+
+# ── Install AI Coding Agents ──
+
+# 1. Gemini CLI (Google — free tier, headless + YOLO mode)
+RUN npm install -g @google/gemini-cli
+
+# 2. Claude Code CLI (Anthropic — uses Max subscription)
+RUN npm install -g @anthropic-ai/claude-code
+
+# 3. OpenClaw (standalone, no Docker-in-Docker — just the CLI)
+RUN npm install -g @anthropic-ai/claude-code 2>/dev/null; \
+    pip install --no-cache-dir openclaw-cli 2>/dev/null || true
+
+# 4. Kimi Code CLI (Moonshot — cheap K2.5 model)
+RUN pip install --no-cache-dir kimi-cli || true
+
+# ── ML Dependencies ──
+RUN pip install --no-cache-dir \
+    numpy>=2.0 scikit-learn>=1.5 xgboost>=3.0 lightgbm>=4.0 \
+    catboost>=1.2 optuna>=4.0 nba_api>=1.4 gradio>=5.0 \
+    geopy>=2.4 requests flask gunicorn
+
+# ── App setup ──
+WORKDIR /app
+COPY . /app/
+
+# Create data dirs
+RUN mkdir -p /app/data/historical /app/data/models /app/data/results /app/logs
+
+# Expose Gradio port
+EXPOSE 7860
+
+# Launch orchestrator
+CMD ["python", "orchestrator.py"]
