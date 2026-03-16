@@ -529,9 +529,10 @@ with gr.Blocks(title="NOMOS NBA QUANT AI", theme=gr.themes.Monochrome()) as app:
         refresh_models = gr.Button("Refresh Results")
         refresh_models.click(lambda: json.loads(get_models_json()), outputs=models_json)
 
-    # Auto-refresh every 30s
-    app.load(get_status, outputs=status_md, every=30)
-    app.load(get_logs, outputs=logs_box, every=30)
+    # Auto-refresh via timer
+    timer = gr.Timer(30)
+    timer.tick(get_status, outputs=status_md)
+    timer.tick(get_logs, outputs=logs_box)
 
 
 # ── Launch ──
