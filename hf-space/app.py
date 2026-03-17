@@ -47,6 +47,15 @@ import gradio as gr
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+# ── Run Logger (Supabase logging + auto-cut) ──
+try:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from evolution.run_logger import RunLogger
+    _HAS_LOGGER = True
+except ImportError:
+    _HAS_LOGGER = False
+    print("[WARN] run_logger not available — logging disabled")
+
 # ── Paths (use /data for HF Space persistent storage) ──
 _persistent = Path("/data")
 DATA_DIR = _persistent if _persistent.exists() else Path("data")
@@ -674,6 +683,17 @@ def evolution_loop():
     log(f"Pop: {POP_SIZE} | Target features: {TARGET_FEATURES} | Gens/cycle: {GENS_PER_CYCLE}")
     log("=" * 60)
 
+    # ── Supabase Run Logger + Auto-Cut ──
+    global _global_logger
+    run_logger = None
+    if _HAS_LOGGER:
+        try:
+            run_logger = RunLogger(local_dir=str(DATA_DIR / "run-logs"))
+            _global_logger = run_logger
+            log("[RUN-LOGGER] Initialized — Supabase logging + auto-cut ACTIVE")
+        except Exception as e:
+            log(f"[RUN-LOGGER] Init failed: {e} — continuing without", "WARN")
+
     live["status"] = "LOADING DATA"
     pull_seasons()
     games = load_all_games()
@@ -819,6 +839,59 @@ def evolution_loop():
                 f"Sharpe={best.fitness['sharpe']:.2f} Feat={best.n_features} "
                 f"Model={best.hyperparams['model_type']} Stag={stagnation} ({ge:.0f}s)")
 
+            # ── Supabase: log generation ──
+            if run_logger:
+                try:
+                    pop_diversity = np.std([ind.fitness.get("composite", 0) for ind in population])
+                    avg_comp = np.mean([ind.fitness.get("composite", 0) for ind in population])
+                    run_logger.log_generation(
+                        cycle=cycle, generation=generation,
+                        best={"brier": best.fitness["brier"], "roi": best.fitness["roi"],
+                              "sharpe": best.fitness["sharpe"], "composite": best.fitness["composite"],
+                              "n_features": best.n_features, "model_type": best.hyperparams["model_type"]},
+                        mutation_rate=mutation_rate, avg_composite=float(avg_comp),
+                        pop_diversity=float(pop_diversity), duration_s=ge)
+
+                    # Log top 10 evals
+                    top10 = [{"brier": ind.fitness["brier"], "roi": ind.fitness["roi"],
+                              "sharpe": ind.fitness["sharpe"], "composite": ind.fitness["composite"],
+                              "n_features": ind.n_features, "model_type": ind.hyperparams["model_type"]}
+                             for ind in population[:10]]
+                    run_logger.log_top_evals(generation, top10)
+
+                    # ── Auto-Cut check ──
+                    engine_state = {
+                        "mutation_rate": mutation_rate, "stagnation": stagnation,
+                        "pop_size": len(population), "pop_diversity": float(pop_diversity),
+                    }
+                    cut_actions = run_logger.check_auto_cut(best.fitness, engine_state)
+                    for action in cut_actions:
+                        atype = action["type"]
+                        params = action.get("params", {})
+                        if atype == "config":
+                            remote_config["pending_params"].update(params)
+                            log(f"[AUTO-CUT] Config queued: {params}")
+                        elif atype == "emergency_diversify":
+                            remote_config["commands"].append("diversify")
+                            if "pop_size" in params:
+                                remote_config["pending_params"]["pop_size"] = params["pop_size"]
+                            if "mutation_rate" in params:
+                                remote_config["pending_params"]["mutation_rate"] = params["mutation_rate"]
+                            log(f"[AUTO-CUT] Emergency diversify: {params}")
+                        elif atype == "inject":
+                            count = params.get("count", 10)
+                            remote_config["commands"].append("diversify")
+                            log(f"[AUTO-CUT] Injecting {count} random individuals")
+                        elif atype == "full_reset":
+                            remote_config["pending_reset"] = True
+                            remote_config["pending_params"].update(params)
+                            log(f"[AUTO-CUT] FULL RESET triggered: {params}")
+                        elif atype == "flag":
+                            live["pause_betting"] = params.get("pause_betting", False)
+                            log(f"[AUTO-CUT] Flag set: {params}")
+                except Exception as e:
+                    log(f"[RUN-LOGGER] Gen log error: {e}", "WARN")
+
             # Next generation
             new_pop = []
             for i in range(ELITE_SIZE):
@@ -891,6 +964,28 @@ def evolution_loop():
 
             live["top5"] = results["top5"]
             log(f"Results saved: evolution-{ts}.json")
+
+            # ── Supabase: log cycle ──
+            if run_logger:
+                try:
+                    pop_diversity = np.std([ind.fitness.get("composite", 0) for ind in population])
+                    avg_comp = np.mean([ind.fitness.get("composite", 0) for ind in population])
+                    sel_features = [feature_names[i] for i in best_ever.selected_indices() if i < len(feature_names)] if best_ever else []
+                    run_logger.log_cycle(
+                        cycle=cycle, generation=generation,
+                        best={"brier": best_ever.fitness["brier"], "roi": best_ever.fitness["roi"],
+                              "sharpe": best_ever.fitness["sharpe"], "composite": best_ever.fitness["composite"],
+                              "calibration": best_ever.fitness.get("calibration", 0),
+                              "n_features": best_ever.n_features, "model_type": best_ever.hyperparams["model_type"]},
+                        pop_size=len(population), mutation_rate=mutation_rate,
+                        crossover_rate=CROSSOVER_RATE, stagnation=stagnation,
+                        games=len(games), feature_candidates=n_feat,
+                        cycle_duration_s=time.time() - cycle_start,
+                        avg_composite=float(avg_comp), pop_diversity=float(pop_diversity),
+                        top5=results["top5"], selected_features=sel_features[:50])
+                    log("[RUN-LOGGER] Cycle logged to Supabase")
+                except Exception as e:
+                    log(f"[RUN-LOGGER] Cycle log error: {e}", "WARN")
         except Exception as e:
             log(f"Save error: {e}", "ERROR")
 
@@ -1129,6 +1224,62 @@ async def api_remote_log():
         "recent_features": remote_config["injected_features"][-10:],
         "log_tail": live["log"][-30:],
     })
+
+
+# ═══════════════════════════════════════════════════════
+# RUN LOGGER API — Supabase monitoring endpoints
+# ═══════════════════════════════════════════════════════
+
+# Global logger ref (set from evolution_loop thread)
+_global_logger = None
+
+
+@control_api.get("/api/run-stats")
+async def api_run_stats():
+    """Evolution run statistics from Supabase."""
+    if not _global_logger:
+        return JSONResponse({"error": "logger not initialized"}, status_code=503)
+    try:
+        stats = _global_logger.get_stats()
+        return JSONResponse(stats)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@control_api.get("/api/cuts")
+async def api_cuts():
+    """Recent auto-cut events."""
+    if not _global_logger:
+        return JSONResponse({"error": "logger not initialized"}, status_code=503)
+    try:
+        cuts = _global_logger.get_recent_cuts(20)
+        return JSONResponse({"cuts": [list(c) for c in cuts] if cuts else []})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@control_api.get("/api/brier-trend")
+async def api_brier_trend():
+    """Brier score trend (last 50 generations)."""
+    if not _global_logger:
+        return JSONResponse({"error": "logger not initialized"}, status_code=503)
+    try:
+        trend = _global_logger.get_brier_trend(50)
+        return JSONResponse({"trend": trend})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@control_api.get("/api/recent-runs")
+async def api_recent_runs():
+    """Recent cycle summaries from Supabase."""
+    if not _global_logger:
+        return JSONResponse({"error": "logger not initialized"}, status_code=503)
+    try:
+        runs = _global_logger.get_recent_runs(20)
+        return JSONResponse({"runs": [list(r) for r in runs] if runs else []})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 with gr.Blocks(title="NOMOS NBA QUANT — Genetic Evolution", theme=gr.themes.Monochrome()) as app:

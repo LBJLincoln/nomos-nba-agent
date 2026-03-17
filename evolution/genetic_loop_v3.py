@@ -33,6 +33,17 @@ from typing import Dict, List, Tuple, Optional
 
 warnings.filterwarnings("ignore")
 
+# ── Run Logger (best-effort) ──
+try:
+    from evolution.run_logger import RunLogger
+    _HAS_LOGGER = True
+except ImportError:
+    try:
+        from run_logger import RunLogger
+        _HAS_LOGGER = True
+    except ImportError:
+        _HAS_LOGGER = False
+
 # ─── Auto-load .env.local ───
 _env_file = Path(__file__).resolve().parent.parent / ".env.local"
 if not _env_file.exists():
@@ -974,6 +985,15 @@ def run_continuous(generations_per_cycle=10, total_cycles=None, pop_size=80,
     if not engine.restore_state():
         engine.initialize(X.shape[1])
 
+    # ── Supabase Run Logger + Auto-Cut ──
+    run_logger = None
+    if _HAS_LOGGER:
+        try:
+            run_logger = RunLogger(local_dir=str(RESULTS_DIR / "run-logs"))
+            print("[RUN-LOGGER] Supabase logging + auto-cut ACTIVE")
+        except Exception as e:
+            print(f"[RUN-LOGGER] Init failed: {e}")
+
     # 4. CONTINUOUS EVOLUTION LOOP
     cycle = 0
     while True:
@@ -989,7 +1009,48 @@ def run_continuous(generations_per_cycle=10, total_cycles=None, pop_size=80,
 
         for gen in range(generations_per_cycle):
             try:
+                gen_start = time.time()
                 best = engine.evolve_one_generation(X, y)
+
+                # ── Log generation + auto-cut ──
+                if run_logger and best:
+                    try:
+                        pop_div = float(np.std([ind.n_features for ind in engine.population]))
+                        avg_comp = float(np.mean([ind.fitness["composite"] for ind in engine.population]))
+                        run_logger.log_generation(
+                            cycle=cycle, generation=engine.generation,
+                            best={"brier": best.fitness["brier"], "roi": best.fitness["roi"],
+                                  "sharpe": best.fitness["sharpe"], "composite": best.fitness["composite"],
+                                  "n_features": best.n_features, "model_type": best.hyperparams["model_type"]},
+                            mutation_rate=engine.mutation_rate, avg_composite=avg_comp,
+                            pop_diversity=pop_div, duration_s=time.time() - gen_start)
+
+                        # Auto-cut check
+                        cut_actions = run_logger.check_auto_cut(best.fitness, {
+                            "mutation_rate": engine.mutation_rate,
+                            "stagnation": engine.stagnation_counter,
+                            "pop_size": engine.pop_size,
+                            "pop_diversity": pop_div,
+                        })
+                        for action in cut_actions:
+                            atype = action["type"]
+                            params = action.get("params", {})
+                            if atype == "config" and "mutation_rate" in params:
+                                engine.mutation_rate = params["mutation_rate"]
+                            elif atype == "emergency_diversify":
+                                n_new = engine.pop_size // 3
+                                engine.population = sorted(engine.population, key=lambda x: x.fitness["composite"], reverse=True)[:engine.pop_size - n_new]
+                                for _ in range(n_new):
+                                    engine.population.append(Individual(engine.n_features, engine.target_features))
+                                print(f"  [AUTO-CUT] Diversified: {n_new} fresh individuals")
+                            elif atype == "full_reset":
+                                engine.population = sorted(engine.population, key=lambda x: x.fitness["composite"], reverse=True)[:engine.elite_size]
+                                while len(engine.population) < engine.pop_size:
+                                    engine.population.append(Individual(engine.n_features, engine.target_features))
+                                engine.stagnation_counter = 0
+                                print(f"  [AUTO-CUT] FULL RESET executed")
+                    except Exception as e:
+                        print(f"  [RUN-LOGGER] Error: {e}")
             except Exception as e:
                 print(f"  [ERROR] Generation failed: {e}")
                 traceback.print_exc()
@@ -1008,6 +1069,24 @@ def run_continuous(generations_per_cycle=10, total_cycles=None, pop_size=80,
             print(f"  BEST EVER: Brier={engine.best_ever.fitness['brier']:.4f} "
                   f"ROI={engine.best_ever.fitness['roi']:.1%} "
                   f"Features={engine.best_ever.n_features}")
+
+        # ── Log cycle to Supabase ──
+        if run_logger and results and engine.best_ever:
+            try:
+                pop_div = float(np.std([ind.n_features for ind in engine.population]))
+                avg_comp = float(np.mean([ind.fitness["composite"] for ind in engine.population]))
+                run_logger.log_cycle(
+                    cycle=cycle, generation=engine.generation,
+                    best=engine.best_ever.fitness | {"n_features": engine.best_ever.n_features,
+                                                      "model_type": engine.best_ever.hyperparams["model_type"]},
+                    pop_size=engine.pop_size, mutation_rate=engine.mutation_rate,
+                    crossover_rate=engine.crossover_rate, stagnation=engine.stagnation_counter,
+                    games=len(games), feature_candidates=X.shape[1],
+                    cycle_duration_s=cycle_elapsed, avg_composite=avg_comp, pop_diversity=pop_div,
+                    top5=results.get("top5"), selected_features=results.get("best", {}).get("selected_features"))
+                print(f"  [RUN-LOGGER] Cycle {cycle} logged to Supabase")
+            except Exception as e:
+                print(f"  [RUN-LOGGER] Cycle log error: {e}")
 
         # Callback to VM
         if results:
