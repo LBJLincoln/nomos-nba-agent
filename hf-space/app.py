@@ -261,6 +261,17 @@ def load_all_games():
 # ═══════════════════════════════════════════════════════
 
 def build_features(games):
+    """Build features using the full NBAFeatureEngine (2058 features)."""
+    try:
+        from features.engine import NBAFeatureEngine
+        engine = NBAFeatureEngine()
+        X, y, feature_names = engine.build(games)
+        X = np.nan_to_num(np.array(X, dtype=np.float64))
+        y = np.array(y, dtype=np.int32)
+        return X, y, feature_names
+    except Exception as e:
+        print(f"[WARN] NBAFeatureEngine failed ({e}), falling back to inline features")
+    # ── Fallback: inline 213 features (legacy) ──
     team_results = defaultdict(list)
     team_last = {}
     team_elo = defaultdict(lambda: 1500.0)
