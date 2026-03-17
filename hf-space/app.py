@@ -324,13 +324,113 @@ def build_features(games):
             names.extend(["rel_str", "rel_pd", "off_match", "def_match", "tempo_diff", "cons_edge",
                           "elo_h", "elo_a", "elo_diff", "elo_h_n", "elo_a_n", "elo_d_n"])
 
+        h_gp, a_gp = min(len(hr_), 82) / 82.0, min(len(ar_), 82) / 82.0
+        h_wp82, a_wp82 = wp(hr_, 82), wp(ar_, 82)
         row.extend([1.0, sp, math.sin(2 * math.pi * month / 12), math.cos(2 * math.pi * month / 12),
-                     dow / 6.0, float(dow >= 5), min(len(hr_), 82) / 82.0, min(len(ar_), 82) / 82.0,
-                     wp(hr_, 82) + wp(ar_, 82), wp(hr_, 82) - wp(ar_, 82),
-                     float(wp(hr_, 82) > 0.5 and wp(ar_, 82) > 0.5), ppg(hr_, 10) + ppg(ar_, 10)])
+                     dow / 6.0, float(dow >= 5), h_gp, a_gp,
+                     h_wp82 + a_wp82, h_wp82 - a_wp82,
+                     float(h_wp82 > 0.5 and a_wp82 > 0.5), ppg(hr_, 10) + ppg(ar_, 10)])
         if first:
             names.extend(["home_ct", "season_ph", "month_sin", "month_cos", "dow", "weekend",
                           "h_gp", "a_gp", "comb_wp", "wp_diff", "playoff_race", "exp_total"])
+
+        # ── ADDITIONAL FEATURES (v2 — tanking, season context, advanced) ──
+
+        # Tanking detection: teams with <35% WP after ASB are likely tanking
+        h_tanking = float(h_wp82 < 0.35 and h_gp > 0.5)
+        a_tanking = float(a_wp82 < 0.35 and a_gp > 0.5)
+        # Playoff motivation: teams between 40-60% WP fighting for spots
+        h_playoff_fight = float(0.40 <= h_wp82 <= 0.60 and h_gp > 0.6)
+        a_playoff_fight = float(0.40 <= a_wp82 <= 0.60 and a_gp > 0.6)
+        # Elite team indicator (>65% WP and coasting?)
+        h_elite = float(h_wp82 > 0.65)
+        a_elite = float(a_wp82 > 0.65)
+        # Season trajectory: recent form vs overall (improvement/decline)
+        h_trajectory = wp(hr_, 10) - h_wp82
+        a_trajectory = wp(ar_, 10) - a_wp82
+        # Scoring volatility
+        h_vol = consistency(hr_, 15) if len(hr_) >= 15 else consistency(hr_, 10)
+        a_vol = consistency(ar_, 15) if len(ar_) >= 15 else consistency(ar_, 10)
+        # Defensive rating proxy
+        h_drtg = papg(hr_, 10)
+        a_drtg = papg(ar_, 10)
+        h_ortg = ppg(hr_, 10)
+        a_ortg = ppg(ar_, 10)
+        h_netrtg = h_ortg - h_drtg
+        a_netrtg = a_ortg - a_drtg
+        # Pace proxy (total points)
+        h_pace = (ppg(hr_, 10) + papg(hr_, 10)) / 2
+        a_pace = (ppg(ar_, 10) + papg(ar_, 10)) / 2
+        pace_diff = h_pace - a_pace
+        # Close game performance (clutch proxy)
+        h_close_wp = sum(1 for x in hr_[-20:] if abs(x[2]) <= 5 and x[1]) / max(sum(1 for x in hr_[-20:] if abs(x[2]) <= 5), 1)
+        a_close_wp = sum(1 for x in ar_[-20:] if abs(x[2]) <= 5 and x[1]) / max(sum(1 for x in ar_[-20:] if abs(x[2]) <= 5), 1)
+        # Blowout tendency
+        h_blowout_rate = blowout_pct(hr_, 20)
+        a_blowout_rate = blowout_pct(ar_, 20)
+        # Home/away specific performance
+        h_home_games = [x for x in hr_ if True]  # All results are at home for home team
+        a_away_games = [x for x in ar_ if True]
+        h_home_wp = wp(hr_, 82)  # Proxy (would need H/A split)
+        a_away_wp = wp(ar_, 82)
+        # Strength of schedule recent (last 5 opponents)
+        h_recent_sos = sos(hr_, 5)
+        a_recent_sos = sos(ar_, 5)
+        # Win percentage vs good/bad teams (already have but add differential)
+        h_quality_diff = (sum(1 for r in hr_ if wp(team_results[r[3]], 82) > 0.5 and r[1]) / max(sum(1 for r in hr_ if wp(team_results[r[3]], 82) > 0.5), 1)) - (sum(1 for r in hr_ if wp(team_results[r[3]], 82) <= 0.5 and r[1]) / max(sum(1 for r in hr_ if wp(team_results[r[3]], 82) <= 0.5), 1))
+        a_quality_diff = (sum(1 for r in ar_ if wp(team_results[r[3]], 82) > 0.5 and r[1]) / max(sum(1 for r in ar_ if wp(team_results[r[3]], 82) > 0.5), 1)) - (sum(1 for r in ar_ if wp(team_results[r[3]], 82) <= 0.5 and r[1]) / max(sum(1 for r in ar_ if wp(team_results[r[3]], 82) <= 0.5), 1))
+        # Form acceleration (last 3 vs last 10)
+        h_accel = wp(hr_, 3) - wp(hr_, 10)
+        a_accel = wp(ar_, 3) - wp(ar_, 10)
+        # Elo confidence (distance from 1500)
+        h_elo_conf = abs(team_elo[home] - 1500) / 300
+        a_elo_conf = abs(team_elo[away] - 1500) / 300
+        # Combined metrics
+        matchup_quality = (h_wp82 + a_wp82) / 2  # How good is this game?
+        competitiveness = 1 - abs(h_wp82 - a_wp82)  # How close are teams?
+        upset_potential = max(0, a_wp82 - h_wp82)  # Away team better?
+
+        row.extend([
+            h_tanking, a_tanking, h_playoff_fight, a_playoff_fight, h_elite, a_elite,
+            h_trajectory, a_trajectory, h_trajectory - a_trajectory,
+            h_vol, a_vol, abs(h_vol - a_vol),
+            h_drtg, a_drtg, h_ortg, a_ortg, h_netrtg, a_netrtg, h_netrtg - a_netrtg,
+            h_pace, a_pace, pace_diff,
+            h_close_wp, a_close_wp, h_close_wp - a_close_wp,
+            h_blowout_rate, a_blowout_rate,
+            h_recent_sos, a_recent_sos, h_recent_sos - a_recent_sos,
+            h_quality_diff, a_quality_diff,
+            h_accel, a_accel, h_accel - a_accel,
+            h_elo_conf, a_elo_conf,
+            matchup_quality, competitiveness, upset_potential,
+            # Interaction features
+            h_wp82 * h_rest, a_wp82 * a_rest,  # quality × rest
+            h_netrtg * float(h_rest >= 2), a_netrtg * float(a_rest >= 2),  # net rating when rested
+            h_trajectory * h_gp, a_trajectory * a_gp,  # trajectory weighted by games played
+            (team_elo[home] - team_elo[away]) * sp,  # Elo diff × season phase
+            competitiveness * sp,  # Tighter games matter more late season
+            h_close_wp * competitiveness,  # Clutch ability in close matchups
+        ])
+        if first:
+            names.extend([
+                "h_tanking", "a_tanking", "h_playoff_fight", "a_playoff_fight", "h_elite", "a_elite",
+                "h_trajectory", "a_trajectory", "trajectory_diff",
+                "h_volatility", "a_volatility", "volatility_diff",
+                "h_drtg", "a_drtg", "h_ortg", "a_ortg", "h_netrtg", "a_netrtg", "netrtg_diff",
+                "h_pace", "a_pace", "pace_diff",
+                "h_clutch_wp", "a_clutch_wp", "clutch_diff",
+                "h_blowout_rate", "a_blowout_rate",
+                "h_recent_sos", "a_recent_sos", "recent_sos_diff",
+                "h_quality_diff", "a_quality_diff",
+                "h_form_accel", "a_form_accel", "accel_diff",
+                "h_elo_confidence", "a_elo_confidence",
+                "matchup_quality", "competitiveness", "upset_potential",
+                "h_quality_rest", "a_quality_rest",
+                "h_netrtg_rested", "a_netrtg_rested",
+                "h_traj_weighted", "a_traj_weighted",
+                "elo_season_interaction", "compete_season_interaction",
+                "clutch_compete_interaction",
+            ])
 
         X.append(row); y.append(1 if hs > as_ else 0)
         if first: feature_names = names; first = False
@@ -361,7 +461,7 @@ class Individual:
             "min_child_weight": random.randint(1, 15),
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
-            "model_type": random.choice(["xgboost", "lightgbm"]),
+            "model_type": random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees"]),
             "calibration": random.choice(["isotonic", "sigmoid", "none"]),
         }
         self.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
@@ -400,7 +500,7 @@ class Individual:
         if random.random() < 0.15: self.hyperparams["n_estimators"] = max(50, self.hyperparams["n_estimators"] + random.randint(-100, 100))
         if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(12, self.hyperparams["max_depth"] + random.randint(-2, 2)))
         if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.5, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
-        if random.random() < 0.05: self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm"])
+        if random.random() < 0.08: self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees"])
         if random.random() < 0.05: self.hyperparams["calibration"] = random.choice(["isotonic", "sigmoid", "none"])
         self.n_features = sum(self.features)
 
@@ -411,7 +511,7 @@ class Individual:
 
 def evaluate(ind, X, y, n_splits=5):
     selected = ind.selected_indices()
-    if len(selected) < 15 or len(selected) > 250:
+    if len(selected) < 20 or len(selected) > 400:
         ind.fitness = {"brier": 0.30, "roi": -0.10, "sharpe": -1.0, "calibration": 0.15, "composite": -1.0}
         return
     X_sub = np.nan_to_num(X[:, selected], nan=0.0, posinf=1e6, neginf=-1e6)
@@ -442,18 +542,39 @@ def evaluate(ind, X, y, n_splits=5):
 
 def _build(hp):
     try:
-        if hp["model_type"] == "xgboost":
+        mt = hp["model_type"]
+        if mt == "xgboost":
             return xgb.XGBClassifier(n_estimators=hp["n_estimators"], max_depth=hp["max_depth"],
                                      learning_rate=hp["learning_rate"], subsample=hp["subsample"],
                                      colsample_bytree=hp["colsample_bytree"], min_child_weight=hp["min_child_weight"],
                                      reg_alpha=hp["reg_alpha"], reg_lambda=hp["reg_lambda"],
                                      eval_metric="logloss", random_state=42, n_jobs=-1, tree_method="hist")
-        else:
+        elif mt == "lightgbm":
             return lgbm.LGBMClassifier(n_estimators=hp["n_estimators"], max_depth=hp["max_depth"],
                                        learning_rate=hp["learning_rate"], subsample=hp["subsample"],
-                                       num_leaves=min(2 ** hp["max_depth"] - 1, 127),
+                                       num_leaves=min(2 ** hp["max_depth"] - 1, 63),
                                        reg_alpha=hp["reg_alpha"], reg_lambda=hp["reg_lambda"],
+                                       min_child_samples=20, feature_fraction=0.7,
                                        verbose=-1, random_state=42, n_jobs=-1)
+        elif mt == "catboost":
+            from catboost import CatBoostClassifier
+            return CatBoostClassifier(iterations=hp["n_estimators"], depth=min(hp["max_depth"], 8),
+                                      learning_rate=hp["learning_rate"], l2_leaf_reg=hp["reg_lambda"],
+                                      verbose=0, random_state=42, thread_count=-1)
+        elif mt == "random_forest":
+            from sklearn.ensemble import RandomForestClassifier
+            return RandomForestClassifier(n_estimators=hp["n_estimators"], max_depth=hp["max_depth"],
+                                          min_samples_leaf=max(int(hp["min_child_weight"]), 5),
+                                          max_features="sqrt", random_state=42, n_jobs=-1)
+        elif mt == "extra_trees":
+            from sklearn.ensemble import ExtraTreesClassifier
+            return ExtraTreesClassifier(n_estimators=hp["n_estimators"], max_depth=hp["max_depth"],
+                                        min_samples_leaf=max(int(hp["min_child_weight"]), 5),
+                                        max_features="sqrt", random_state=42, n_jobs=-1)
+        else:
+            return xgb.XGBClassifier(n_estimators=hp["n_estimators"], max_depth=hp["max_depth"],
+                                     learning_rate=hp["learning_rate"], eval_metric="logloss",
+                                     random_state=42, n_jobs=-1, tree_method="hist")
     except Exception:
         from sklearn.ensemble import GradientBoostingClassifier
         return GradientBoostingClassifier(n_estimators=min(hp["n_estimators"], 200), max_depth=hp["max_depth"],
@@ -485,14 +606,16 @@ def _ece(probs, actuals, n_bins=10):
 # EVOLUTION ENGINE
 # ═══════════════════════════════════════════════════════
 
-POP_SIZE = 60
-ELITE_SIZE = 5
-BASE_MUT = 0.03
-CROSSOVER_RATE = 0.7
-TARGET_FEATURES = 100
+POP_SIZE = 150           # ↑ from 60 — more genetic diversity
+ELITE_SIZE = 10          # ↑ from 5 — preserve more good solutions
+BASE_MUT = 0.10          # ↑ from 0.03 — CRITICAL: explore more
+CROSSOVER_RATE = 0.85    # ↑ from 0.7 — more recombination
+TARGET_FEATURES = 200    # ↑ from 100 — use more of the feature space
 N_SPLITS = 5
 GENS_PER_CYCLE = 10
-COOLDOWN = 60
+COOLDOWN = 45            # ↓ from 60 — iterate faster
+TOURNAMENT_SIZE = 5      # ↓ from 7 — less selection pressure
+DIVERSITY_RESTART = 30   # NEW: restart portion of pop after N stagnant gens
 
 
 def evolution_loop():
@@ -550,9 +673,35 @@ def evolution_loop():
             log(f"Restore failed: {e}", "WARN")
             population = []
 
-    if not population:
-        population = [Individual(n_feat, TARGET_FEATURES) for _ in range(POP_SIZE)]
-        log(f"New population: {POP_SIZE} individuals")
+    # Force reset if population size or feature count changed
+    needs_reset = False
+    if population and len(population) != POP_SIZE:
+        log(f"POP_SIZE changed: {len(population)} → {POP_SIZE}. Resetting population.")
+        needs_reset = True
+    if population and len(population[0].features) != n_feat:
+        log(f"Feature count changed: {len(population[0].features)} → {n_feat}. Resetting population.")
+        needs_reset = True
+    if needs_reset:
+        # Keep top 5 elites, re-init rest
+        elites = sorted(population, key=lambda x: x.fitness.get("composite", 0), reverse=True)[:5]
+        population = []
+        for e in elites:
+            # Resize feature mask if needed
+            if len(e.features) < n_feat:
+                e.features.extend([random.randint(0, 1) for _ in range(n_feat - len(e.features))])
+            elif len(e.features) > n_feat:
+                e.features = e.features[:n_feat]
+            e.n_features = sum(e.features)
+            # Add new model types to elite hyperparams
+            if e.hyperparams.get("model_type") not in ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees"]:
+                e.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees"])
+            population.append(e)
+        log(f"Kept {len(population)} elites, generating {POP_SIZE - len(population)} fresh individuals")
+
+    if not population or needs_reset:
+        while len(population) < POP_SIZE:
+            population.append(Individual(n_feat, TARGET_FEATURES))
+        log(f"Population ready: {POP_SIZE} individuals, {n_feat} feature candidates")
 
     live["pop_size"] = len(population)
 
@@ -630,14 +779,23 @@ def evolution_loop():
                 e.generation = population[i].generation; new_pop.append(e)
 
             if stagnation >= 10:
-                for _ in range(POP_SIZE // 5):
+                n_inject = POP_SIZE // 4  # 25% fresh blood
+                for _ in range(n_inject):
                     new_pop.append(Individual(n_feat, TARGET_FEATURES))
-                log(f"  INJECTION: {POP_SIZE // 5} fresh individuals")
+                log(f"  INJECTION: {n_inject} fresh individuals (25% population reset)")
+
+            if stagnation >= DIVERSITY_RESTART:
+                n_restart = POP_SIZE // 2  # 50% restart for extreme stagnation
+                new_pop = new_pop[:ELITE_SIZE]  # Keep only elite
+                for _ in range(n_restart):
+                    new_pop.append(Individual(n_feat, TARGET_FEATURES))
+                log(f"  EMERGENCY RESTART: {n_restart} fresh individuals (50% population)")
+                stagnation = 0  # Reset counter
 
             while len(new_pop) < POP_SIZE:
-                cs = random.sample(population, min(7, len(population)))
+                cs = random.sample(population, min(TOURNAMENT_SIZE, len(population)))
                 p1 = max(cs, key=lambda x: x.fitness["composite"])
-                cs2 = random.sample(population, min(7, len(population)))
+                cs2 = random.sample(population, min(TOURNAMENT_SIZE, len(population)))
                 p2 = max(cs2, key=lambda x: x.fitness["composite"])
                 child = Individual.crossover(p1, p2) if random.random() < CROSSOVER_RATE else Individual.__new__(Individual)
                 if not hasattr(child, 'features') or child.features is None:
