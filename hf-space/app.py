@@ -19,7 +19,7 @@ import os, sys, json, time, math, threading, warnings, random, traceback
 import numpy as np
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 warnings.filterwarnings("ignore")
 
@@ -37,9 +37,10 @@ for f in [Path(".env"), Path(".env.local")]:
                 os.environ.setdefault(k.strip(), v.strip().strip("'\""))
 
 # ML imports
-from sklearn.model_selection import TimeSeriesSplit
+from sklearn.model_selection import TimeSeriesSplit, cross_val_predict
 from sklearn.metrics import brier_score_loss, accuracy_score
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.linear_model import LogisticRegression
 import xgboost as xgb
 import lightgbm as lgbm
 
@@ -510,7 +511,7 @@ class Individual:
             "min_child_weight": random.randint(1, 15),
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
-            "model_type": random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees"]),
+            "model_type": random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"]),
             "calibration": random.choice(["isotonic", "sigmoid", "none"]),
         }
         self.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
@@ -561,7 +562,7 @@ class Individual:
         if random.random() < 0.15: self.hyperparams["n_estimators"] = max(50, min(200, self.hyperparams["n_estimators"] + random.randint(-50, 50)))
         if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(8, self.hyperparams["max_depth"] + random.randint(-2, 2)))
         if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.3, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
-        if random.random() < 0.10: self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "random_forest", "extra_trees"])
+        if random.random() < 0.10: self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"])
         if random.random() < 0.05: self.hyperparams["calibration"] = random.choice(["isotonic", "sigmoid", "none"])
         self.n_features = sum(self.features)
 
@@ -569,6 +570,84 @@ class Individual:
 # ═══════════════════════════════════════════════════════
 # FITNESS EVALUATION
 # ═══════════════════════════════════════════════════════
+
+def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
+    """Stacking: XGBoost + LightGBM + CatBoost base models → LogisticRegression meta-learner."""
+    splits = n_splits if fast else max(n_splits, 3)
+    tscv = TimeSeriesSplit(n_splits=splits)
+    # Cap base learner estimators at 80 for speed
+    base_est = min(hp_eval.get("n_estimators", 80), 80)
+    depth = min(hp_eval.get("max_depth", 6), 6)
+    lr = hp_eval.get("learning_rate", 0.1)
+
+    briers, rois, all_p, all_y = [], [], [], []
+    for ti, vi in tscv.split(X_sub):
+        try:
+            X_tr, y_tr = X_sub[ti], y_eval[ti]
+            X_val, y_val = X_sub[vi], y_eval[vi]
+
+            # Build 3 base models (capped at 80 estimators each)
+            base_models = []
+            # XGBoost
+            base_models.append(xgb.XGBClassifier(
+                n_estimators=base_est, max_depth=depth, learning_rate=lr,
+                subsample=hp_eval.get("subsample", 0.8),
+                colsample_bytree=hp_eval.get("colsample_bytree", 0.8),
+                eval_metric="logloss", random_state=42, n_jobs=-1, tree_method="hist"))
+            # LightGBM
+            base_models.append(lgbm.LGBMClassifier(
+                n_estimators=base_est, max_depth=depth, learning_rate=lr,
+                subsample=hp_eval.get("subsample", 0.8),
+                num_leaves=min(2 ** depth - 1, 31),
+                verbose=-1, random_state=42, n_jobs=-1))
+            # CatBoost
+            try:
+                from catboost import CatBoostClassifier
+                base_models.append(CatBoostClassifier(
+                    iterations=min(base_est, 80), depth=min(depth, 6),
+                    learning_rate=lr, verbose=0, random_state=42, thread_count=-1))
+            except ImportError:
+                # Fallback: use RandomForest if CatBoost unavailable
+                from sklearn.ensemble import RandomForestClassifier
+                base_models.append(RandomForestClassifier(
+                    n_estimators=base_est, max_depth=depth,
+                    random_state=42, n_jobs=-1))
+
+            # Get OOF predictions from each base model using inner CV
+            inner_cv = TimeSeriesSplit(n_splits=2)
+            oof_preds = np.zeros((len(X_tr), len(base_models)))
+            for m_idx, bm in enumerate(base_models):
+                try:
+                    oof = cross_val_predict(bm, X_tr, y_tr, cv=inner_cv, method="predict_proba")[:, 1]
+                    oof_preds[:, m_idx] = oof
+                except Exception:
+                    # Fallback: use 0.5 if a base model fails
+                    oof_preds[:, m_idx] = 0.5
+
+            # Train meta-learner on OOF predictions
+            meta = LogisticRegression(C=1.0, max_iter=200, random_state=42)
+            meta.fit(oof_preds, y_tr)
+
+            # Train base models on full training fold for validation predictions
+            val_preds = np.zeros((len(X_val), len(base_models)))
+            for m_idx, bm in enumerate(base_models):
+                try:
+                    bm_fresh = type(bm)(**bm.get_params())
+                    bm_fresh.fit(X_tr, y_tr)
+                    val_preds[:, m_idx] = bm_fresh.predict_proba(X_val)[:, 1]
+                except Exception:
+                    val_preds[:, m_idx] = 0.5
+
+            # Final stacked prediction
+            p = meta.predict_proba(val_preds)[:, 1]
+            briers.append(brier_score_loss(y_val, p))
+            rois.append(_bet(p, y_val))
+            all_p.extend(p); all_y.extend(y_val)
+        except Exception:
+            briers.append(0.28); rois.append(-0.05)
+
+    return briers, rois, all_p, all_y
+
 
 def evaluate(ind, X, y, n_splits=2, fast=True):
     """Two-tier evaluation: fast (subsample + 2-fold) or full (all data + 3-fold)."""
@@ -591,24 +670,33 @@ def evaluate(ind, X, y, n_splits=2, fast=True):
     if fast:
         hp_eval["n_estimators"] = min(hp["n_estimators"], 120)
 
-    model = _build(hp_eval)
-    if model is None: ind.fitness["composite"] = -1.0; return
+    # ── STACKING: special path ──
+    if hp_eval["model_type"] == "stacking":
+        briers, rois, all_p, all_y = _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast)
+    else:
+        # ── Standard single-model path ──
+        model = _build(hp_eval)
+        if model is None: ind.fitness["composite"] = -1.0; return
 
-    splits = n_splits if fast else max(n_splits, 3)
-    tscv = TimeSeriesSplit(n_splits=splits)
-    briers, rois, all_p, all_y = [], [], [], []
-    for ti, vi in tscv.split(X_sub):
-        try:
-            m = type(model)(**model.get_params())
-            if hp_eval["calibration"] != "none":
-                m = CalibratedClassifierCV(m, method=hp_eval["calibration"], cv=2)
-            m.fit(X_sub[ti], y_eval[ti])
-            p = m.predict_proba(X_sub[vi])[:, 1]
-            briers.append(brier_score_loss(y_eval[vi], p))
-            rois.append(_bet(p, y_eval[vi]))
-            all_p.extend(p); all_y.extend(y_eval[vi])
-        except Exception:
-            briers.append(0.28); rois.append(-0.05)
+        splits = n_splits if fast else max(n_splits, 3)
+        tscv = TimeSeriesSplit(n_splits=splits)
+        briers, rois, all_p, all_y = [], [], [], []
+        for ti, vi in tscv.split(X_sub):
+            try:
+                m = type(model)(**model.get_params())
+                if hp_eval["calibration"] != "none":
+                    m = CalibratedClassifierCV(m, method=hp_eval["calibration"], cv=2)
+                m.fit(X_sub[ti], y_eval[ti])
+                p = m.predict_proba(X_sub[vi])[:, 1]
+                briers.append(brier_score_loss(y_eval[vi], p))
+                rois.append(_bet(p, y_eval[vi]))
+                all_p.extend(p); all_y.extend(y_eval[vi])
+            except Exception:
+                briers.append(0.28); rois.append(-0.05)
+
+    if not briers:
+        ind.fitness = {"brier": 0.30, "roi": -0.10, "sharpe": -1.0, "calibration": 0.15, "composite": -1.0}
+        return
     ab, ar = np.mean(briers), np.mean(rois)
     sh = np.mean(rois) / max(np.std(rois), 0.01) if len(rois) > 1 else 0.0
     ce = _ece(np.array(all_p), np.array(all_y)) if all_p else 0.15
@@ -652,6 +740,9 @@ def _build(hp):
             return ExtraTreesClassifier(n_estimators=n_est, max_depth=depth,
                                         min_samples_leaf=max(int(hp["min_child_weight"]), 5),
                                         max_features="sqrt", random_state=42, n_jobs=-1)
+        elif mt == "stacking":
+            # Return None — stacking is handled specially in evaluate()
+            return None
         else:
             return xgb.XGBClassifier(n_estimators=n_est, max_depth=depth,
                                      learning_rate=lr, eval_metric="logloss",
@@ -815,15 +906,23 @@ def evolution_loop():
                 e.features = e.features[:n_feat]
             e.n_features = sum(e.features)
             # Add new model types to elite hyperparams
-            if e.hyperparams.get("model_type") not in ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees"]:
-                e.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees"])
+            if e.hyperparams.get("model_type") not in ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"]:
+                e.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"])
             population.append(e)
         log(f"Kept {len(population)} elites, generating {POP_SIZE - len(population)} fresh individuals")
 
     if not population or needs_reset:
+        # Equal distribution of all 6 model types in initial population
+        all_model_types = ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"]
+        existing_count = len(population)
+        slots_left = POP_SIZE - existing_count
+        idx = 0
         while len(population) < POP_SIZE:
-            population.append(Individual(n_feat, TARGET_FEATURES))
-        log(f"Population ready: {POP_SIZE} individuals, {n_feat} feature candidates")
+            ind = Individual(n_feat, TARGET_FEATURES)
+            ind.hyperparams["model_type"] = all_model_types[idx % len(all_model_types)]
+            population.append(ind)
+            idx += 1
+        log(f"Population ready: {POP_SIZE} individuals, {n_feat} feature candidates (equal model distribution)")
 
     live["pop_size"] = len(population)
 
@@ -1026,14 +1125,42 @@ def evolution_loop():
                 stagnation = 0  # Reset counter
 
             # Anti-convergence: if top 5 all same model, force diversity
+            all_model_types = ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"]
             top_models = [population[i].hyperparams["model_type"] for i in range(min(5, len(population)))]
             if len(set(top_models)) == 1 and stagnation >= 3:
-                diverse_types = [t for t in ["xgboost", "lightgbm", "random_forest", "extra_trees"] if t != top_models[0]]
+                diverse_types = [t for t in all_model_types if t != top_models[0]]
                 for _ in range(3):
                     fresh = Individual(n_feat, TARGET_FEATURES)
                     fresh.hyperparams["model_type"] = random.choice(diverse_types)
                     new_pop.append(fresh)
                 log(f"  ANTI-CONVERGENCE: injected 3 diverse models (all top5 were {top_models[0]})")
+
+            # Force model diversity: if >70% same model_type, force 30% to random alternatives
+            pop_models = [ind.hyperparams["model_type"] for ind in new_pop]
+            model_counts = Counter(pop_models)
+            dominant_type, dominant_count = model_counts.most_common(1)[0]
+            if dominant_count > 0.70 * len(new_pop):
+                n_force = int(0.30 * len(new_pop))
+                alt_types = [t for t in all_model_types if t != dominant_type]
+                # Force the worst individuals (end of list after elites) to switch
+                candidates = list(range(ELITE_SIZE, len(new_pop)))
+                random.shuffle(candidates)
+                forced = 0
+                for ci in candidates:
+                    if forced >= n_force:
+                        break
+                    if new_pop[ci].hyperparams["model_type"] == dominant_type:
+                        new_pop[ci].hyperparams["model_type"] = random.choice(alt_types)
+                        forced += 1
+                log(f"  MODEL DIVERSITY: forced {forced} individuals away from {dominant_type} (was {dominant_count}/{len(new_pop)})")
+
+            # Every 5 generations: inject 3 stacking individuals
+            if generation % 5 == 0:
+                for _ in range(3):
+                    stk = Individual(n_feat, TARGET_FEATURES)
+                    stk.hyperparams["model_type"] = "stacking"
+                    new_pop.append(stk)
+                log(f"  STACKING INJECTION: 3 stacking individuals added (gen {generation})")
 
             while len(new_pop) < POP_SIZE:
                 cs = random.sample(population, min(TOURNAMENT_SIZE, len(population)))

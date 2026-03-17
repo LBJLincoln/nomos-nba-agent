@@ -918,6 +918,17 @@ class NBAFeatureEngine:
         team_away_results = defaultdict(list)
         h2h_results = defaultdict(list)    # (team1, team2) → results
 
+        # ── Category 24: Multi-ELO state trackers ──
+        team_elo_margin = defaultdict(lambda: 1500.0)     # Margin-adjusted ELO
+        team_elo_offense = defaultdict(lambda: 1500.0)    # Offensive ELO
+        team_elo_defense = defaultdict(lambda: 1500.0)    # Defensive ELO
+        team_elo_recency = defaultdict(lambda: 1500.0)    # Recency-weighted ELO
+        team_elo_history = defaultdict(list)               # team → [elo_after_each_game]
+        team_home_margin_sum = defaultdict(float)          # For home court advantage
+        team_home_games_count = defaultdict(int)
+        # ── Category 18: Season-level trackers (precomputed per game via records) ──
+        # These are derived from team_results on-the-fly (no extra state needed)
+
         X, y = [], []
         n_market = 32 if self.include_market else 0
 
@@ -958,6 +969,12 @@ class NBAFeatureEngine:
                                   team_home_results, team_away_results,
                                   h2h_results, home, away, hs, as_, gd,
                                   h_stats, a_stats)
+                # Update multi-ELO systems (Cat 24)
+                self._update_multi_elo(
+                    home, away, hs, as_, h_stats, a_stats,
+                    team_elo_margin, team_elo_offense, team_elo_defense,
+                    team_elo_recency, team_elo_history,
+                    team_home_margin_sum, team_home_games_count)
                 continue
 
             # ── Build feature vector ──
@@ -1247,6 +1264,862 @@ class NBAFeatureEngine:
                 pmkt.get("closing_line_value_history", 0.0),
             ])
 
+            # ── CATEGORIES 16-25: ADVANCED FEATURE COMPUTATION ──
+            # Build name→index lookup for values already computed (cats 1-15)
+            _cat15_end = len(row)
+            _name_idx = {}
+            for _i, _n in enumerate(self.feature_names):
+                if _i < _cat15_end:
+                    _name_idx[_n] = _i
+
+            def _val(name):
+                """Fast lookup of already-computed feature value by name."""
+                idx = _name_idx.get(name)
+                if idx is not None:
+                    return row[idx]
+                return 0.0
+
+            # 16. INTERACTION & POLYNOMIAL FEATURES
+            # 16a. Pairwise interaction products
+            inter_pairs = [
+                ("h_wp10", "a_wp10"), ("h_wp5", "a_wp5"), ("h_wp3", "a_wp3"),
+                ("h_ortg10", "a_drtg10"), ("h_ortg5", "a_drtg5"),
+                ("h_drtg10", "a_ortg10"), ("h_drtg5", "a_ortg5"),
+                ("h_netrtg10", "a_netrtg10"), ("h_netrtg5", "a_netrtg5"),
+                ("h_pace10", "a_pace10"), ("h_pace5", "a_pace5"),
+                ("h_ppg10", "a_ppg10"), ("h_ppg5", "a_ppg5"),
+                ("h_margin10", "a_margin10"), ("h_margin5", "a_margin5"),
+                ("h_efg10", "a_efg10"), ("h_efg5", "a_efg5"),
+                ("h_ts10", "a_ts10"), ("h_ts5", "a_ts5"),
+                ("h_tov_rate10", "a_tov_rate10"), ("h_tov_rate5", "a_tov_rate5"),
+                ("h_orb_rate10", "a_orb_rate10"), ("h_orb_rate5", "a_orb_rate5"),
+                ("h_3p_pct10", "a_3p_pct10"), ("h_3p_pct5", "a_3p_pct5"),
+                ("h_ft_rate10", "a_ft_rate10"), ("h_ft_rate5", "a_ft_rate5"),
+                ("h_pd10", "a_pd10"), ("h_pd5", "a_pd5"),
+                ("h_blowout10", "a_blowout10"), ("h_close10", "a_close10"),
+                ("h_wp10", "elo_diff"), ("a_wp10", "elo_diff"),
+                ("h_ortg10", "elo_diff"), ("h_streak", "a_streak"),
+                ("h_wp10", "h_rest_days"), ("a_wp10", "a_rest_days"),
+                ("h_netrtg10", "rest_advantage"), ("h_ortg10", "h_pace10"),
+                ("a_ortg10", "a_pace10"), ("h_drtg10", "a_3p_pct10"),
+                ("h_wp10", "h_sos10"), ("a_wp10", "a_sos10"),
+                ("h_efg10", "h_pace10"), ("a_efg10", "a_pace10"),
+                ("h_margin10", "h_consistency"), ("a_margin10", "a_consistency"),
+                ("h_ppg10", "a_papg10"), ("a_ppg10", "h_papg10"),
+                ("h_bench_pts10", "a_bench_pts10"),
+                ("h_fb_pts10", "a_fb_pts10"),
+                ("h_opp_efg10", "a_efg10"), ("a_opp_efg10", "h_efg10"),
+                ("h_wp20", "a_wp20"), ("h_wp15", "a_wp15"),
+                ("h_ortg10", "h_efg10"), ("a_ortg10", "a_efg10"),
+                ("h_drtg10", "h_opp_efg10"), ("a_drtg10", "a_opp_efg10"),
+                ("h_pace10", "h_3p_pct10"), ("a_pace10", "a_3p_pct10"),
+                ("h_ast_rate10", "a_tov_pct10"), ("a_ast_rate10", "h_tov_pct10"),
+                ("h_stl_rate10", "a_tov_pct10"), ("a_stl_rate10", "h_tov_pct10"),
+                ("h_blk_rate10", "a_paint_pts10"), ("a_blk_rate10", "h_paint_pts10"),
+                ("h_oreb_pct10", "a_dreb_pct10"), ("a_oreb_pct10", "h_dreb_pct10"),
+                ("h_3par10", "a_perimeter_defense"), ("a_3par10", "h_perimeter_defense"),
+                ("h_wp10", "a_consistency"), ("a_wp10", "h_consistency"),
+                ("h_margin10", "elo_diff"), ("a_margin10", "elo_diff"),
+                ("h_ppg10", "h_pace10"), ("a_ppg10", "a_pace10"),
+                ("h_papg10", "h_drtg10"), ("a_papg10", "a_drtg10"),
+                ("h_wp10", "h_home_wp"), ("a_wp10", "a_away_wp"),
+                ("h_streak", "h_wp10"), ("a_streak", "a_wp10"),
+                ("h_clutch_wp", "a_clutch_wp"), ("h_comeback_rate", "a_comeback_rate"),
+                ("h_scoring_trend", "a_defense_trend"),
+                ("a_scoring_trend", "h_defense_trend"),
+                ("h_ou_avg10", "a_ou_avg10"),
+                ("h_netrtg10", "h_consistency"), ("a_netrtg10", "a_consistency"),
+                ("h_efg10", "a_opp_efg10"), ("a_efg10", "h_opp_efg10"),
+                ("h_ts10", "h_3p_pct10"), ("a_ts10", "a_3p_pct10"),
+                ("h_ft_rate10", "h_ft_pct10"), ("a_ft_rate10", "a_ft_pct10"),
+                ("h_pts_off_tov10", "a_tov_rate10"), ("a_pts_off_tov10", "h_tov_rate10"),
+                ("h_2nd_pts10", "h_oreb_pct10"), ("a_2nd_pts10", "a_oreb_pct10"),
+                ("h_wp10", "season_phase"), ("a_wp10", "season_phase"),
+                ("elo_diff", "rest_advantage"), ("elo_diff", "travel_advantage"),
+                ("current_spread", "h_wp10"), ("current_spread", "a_wp10"),
+                ("current_spread", "elo_diff"), ("h_sos10", "a_sos10"),
+                ("h_wp_vs_above500", "a_wp_vs_above500"),
+                ("h_wp_vs_top10", "a_wp_vs_top10"),
+            ]
+            for x_name, y_name in inter_pairs:
+                row.append(_val(x_name) * _val(y_name))
+
+            # 16b. Ratio features
+            ratio_pairs = [
+                ("h_ortg10", "a_drtg10"), ("h_ortg5", "a_drtg5"),
+                ("a_ortg10", "h_drtg10"), ("a_ortg5", "h_drtg5"),
+                ("h_pace10", "a_pace10"), ("h_pace5", "a_pace5"),
+                ("h_efg10", "a_efg10"), ("h_efg5", "a_efg5"),
+                ("h_ts10", "a_ts10"), ("h_ts5", "a_ts5"),
+                ("h_ppg10", "a_ppg10"), ("h_ppg5", "a_ppg5"),
+                ("h_margin10", "a_margin10"), ("h_margin5", "a_margin5"),
+                ("h_wp10", "a_wp10"), ("h_wp5", "a_wp5"),
+                ("h_3p_pct10", "a_3p_pct10"), ("h_3p_pct5", "a_3p_pct5"),
+                ("h_ft_rate10", "a_ft_rate10"), ("h_ft_rate5", "a_ft_rate5"),
+                ("h_orb_rate10", "a_orb_rate10"), ("h_orb_rate5", "a_orb_rate5"),
+                ("h_tov_rate10", "a_tov_rate10"), ("h_tov_rate5", "a_tov_rate5"),
+                ("h_bench_pts10", "a_bench_pts10"), ("h_bench_pts5", "a_bench_pts5"),
+                ("h_papg10", "a_papg10"), ("h_papg5", "a_papg5"),
+                ("h_opp_efg10", "a_opp_efg10"), ("h_opp_efg5", "a_opp_efg5"),
+            ]
+            for x_name, y_name in ratio_pairs:
+                denom = _val(y_name)
+                row.append(_val(x_name) / (denom + 0.001) if abs(denom) > 0.0001 else 1.0)
+
+            # 16c. Squared terms
+            sq_features = [
+                "h_wp10", "a_wp10", "h_wp5", "a_wp5",
+                "h_ortg10", "a_ortg10", "h_drtg10", "a_drtg10",
+                "h_netrtg10", "a_netrtg10", "h_margin10", "a_margin10",
+                "elo_diff", "spread_movement", "current_spread",
+                "h_pace10", "a_pace10", "h_efg10", "a_efg10",
+                "h_ppg10", "a_ppg10", "h_ts10", "a_ts10",
+                "rest_advantage", "travel_advantage",
+                "h_streak", "a_streak", "h_sos10", "a_sos10",
+                "h_consistency", "a_consistency",
+            ]
+            for feat in sq_features:
+                v = _val(feat)
+                row.append(v * v)
+
+            # 16d. Trend delta features: short_window - long_window
+            trend_stats = ["wp", "ppg", "margin", "ortg", "drtg",
+                           "efg", "ts", "pace", "pd", "papg"]
+            trend_window_pairs = [
+                (3, 7), (3, 10), (3, 15), (3, 20),
+                (5, 10), (5, 15), (5, 20),
+                (7, 15), (7, 20), (10, 20),
+            ]
+            for prefix in ["h", "a"]:
+                for stat in trend_stats:
+                    for w1, w2 in trend_window_pairs:
+                        row.append(_val(f"{prefix}_{stat}{w1}") - _val(f"{prefix}_{stat}{w2}"))
+
+            # ══════════════════════════════════════════════════════════
+            # 17. ADVANCED ROLLING STATISTICS (168 features)
+            # EWMA, volatility, z-scores, skew/kurtosis, range, CV
+            # ══════════════════════════════════════════════════════════
+
+            # Stat name → record accessor (record = (date, win, margin, opp, stats_dict))
+            _STAT_KEY_17 = {
+                "ppg": lambda r: r[4].get("pts", 100),
+                "margin": lambda r: r[2],
+                "ortg": lambda r: r[4].get("ortg", 100),
+                "drtg": lambda r: r[4].get("drtg", 100),
+                "efg": lambda r: r[4].get("efg_pct", 0.5),
+                "ts": lambda r: r[4].get("ts_pct", 0.5),
+                "pace": lambda r: r[4].get("pace", 100),
+                "papg": lambda r: r[4].get("opp_pts", 100),
+                "3p_pct": lambda r: r[4].get("fg3_pct", 0.36),
+                "ft_rate": lambda r: r[4].get("ft_rate", 0.25),
+            }
+
+            def _extract(tr, stat, n):
+                """Extract last n values for a stat from team records."""
+                s = tr[-n:] if n <= len(tr) else tr
+                fn = _STAT_KEY_17.get(stat)
+                return [fn(r) for r in s] if fn and s else []
+
+            def _ewma_val(values, alpha):
+                """EWMA via manual recurrence — no pandas dependency."""
+                if not values:
+                    return 0.0
+                result = values[0]
+                for v in values[1:]:
+                    result = alpha * v + (1.0 - alpha) * result
+                return result
+
+            def _std_17(values):
+                """Sample standard deviation."""
+                n_v = len(values)
+                if n_v < 2:
+                    return 0.0
+                m = sum(values) / n_v
+                return math.sqrt(sum((v - m) ** 2 for v in values) / (n_v - 1))
+
+            _ALPHA_MAP_17 = {"01": 0.1, "03": 0.3, "05": 0.5}
+
+            # Pre-extract all needed stat series for both teams (avoid redundant slicing)
+            _tc = {}
+            for _pfx, _tr in [("h", hr_), ("a", ar_)]:
+                _tc[_pfx] = {}
+                for _st in ["ppg", "margin", "ortg", "drtg", "efg", "ts", "pace",
+                             "papg", "3p_pct", "ft_rate"]:
+                    _tc[_pfx][_st] = {}
+                    for _w in [5, 10, 20, 82]:
+                        _tc[_pfx][_st][_w] = _extract(_tr, _st, _w)
+
+            for _pfx in ["h", "a"]:
+                _c = _tc[_pfx]
+
+                # ── EWMA: 7 stats × 3 alphas = 21 per team ──
+                for _st in ["ppg", "margin", "ortg", "drtg", "efg", "ts", "pace"]:
+                    _v20 = _c[_st][20]
+                    for _ak in ["01", "03", "05"]:
+                        row.append(_ewma_val(_v20, _ALPHA_MAP_17[_ak]))
+
+                # ── Rolling volatility (std): 6 stats × 3 windows = 18 per team ──
+                for _st in ["margin", "ppg", "papg", "ortg", "drtg", "pace"]:
+                    for _w in [5, 10, 20]:
+                        row.append(_std_17(_c[_st][_w]))
+
+                # ── Rolling min/max: 4 stats × 2 windows × 2 = 16 per team ──
+                for _st in ["ppg", "papg", "margin", "ortg"]:
+                    for _w in [5, 10]:
+                        _vals = _c[_st][_w]
+                        if _vals:
+                            row.append(min(_vals))
+                            row.append(max(_vals))
+                        else:
+                            row.extend([0.0, 0.0])
+
+                # ── Z-scores vs season avg: 10 stats = 10 per team ──
+                for _st in ["ppg", "papg", "margin", "ortg", "drtg",
+                             "efg", "ts", "pace", "3p_pct", "ft_rate"]:
+                    _season = _c[_st][82]
+                    _recent = _c[_st][5]
+                    if len(_season) >= 5 and _recent:
+                        _s_mean = sum(_season) / len(_season)
+                        _s_var = sum((v - _s_mean) ** 2 for v in _season) / len(_season)
+                        _s_std = math.sqrt(_s_var) if _s_var > 0 else 1e-6
+                        _r_mean = sum(_recent) / len(_recent)
+                        row.append((_r_mean - _s_mean) / _s_std)
+                    else:
+                        row.append(0.0)
+
+                # ── Skew & kurtosis (window=10): 4 stats × 2 = 8 per team ──
+                for _st in ["margin", "ppg", "ortg", "drtg"]:
+                    _vals = _c[_st][10]
+                    if len(_vals) >= 3:
+                        _nv = len(_vals)
+                        _m = sum(_vals) / _nv
+                        _m2 = sum((v - _m) ** 2 for v in _vals) / _nv
+                        _sd = math.sqrt(_m2) if _m2 > 0 else 1e-6
+                        _m3 = sum((v - _m) ** 3 for v in _vals) / _nv
+                        _m4 = sum((v - _m) ** 4 for v in _vals) / _nv
+                        row.append(_m3 / (_sd ** 3) if _sd > 1e-9 else 0.0)  # skew
+                        row.append((_m4 / (_sd ** 4)) - 3.0 if _sd > 1e-9 else 0.0)  # kurtosis
+                    else:
+                        row.extend([0.0, 0.0])
+
+                # ── Range (max - min): 4 stats × 2 windows = 8 per team ──
+                for _st in ["ppg", "margin", "ortg", "drtg"]:
+                    for _w in [5, 10]:
+                        _vals = _c[_st][_w]
+                        row.append((max(_vals) - min(_vals)) if _vals else 0.0)
+
+                # ── Coefficient of variation: 3 stats = 3 per team ──
+                for _st in ["ppg", "margin", "ortg"]:
+                    _vals = _c[_st][10]
+                    if len(_vals) >= 2:
+                        _m = sum(_vals) / len(_vals)
+                        _sd = _std_17(_vals)
+                        row.append(_sd / abs(_m) if abs(_m) > 1e-6 else 0.0)
+                    else:
+                        row.append(0.0)
+
+            # ── Locate category boundaries once (cached after first game) ──
+            if not hasattr(self, '_cat_bounds'):
+                self._cat_bounds = {}
+                for _i, _n in enumerate(self.feature_names):
+                    if _n == "h_pyth_wp" and 18 not in self._cat_bounds:
+                        self._cat_bounds[18] = _i
+                    if _n == "h_starting5_netrtg" and 19 not in self._cat_bounds:
+                        self._cat_bounds[19] = _i
+                    if _n == "h_elo_standard" and 24 not in self._cat_bounds:
+                        self._cat_bounds[24] = _i
+                    if _n == "h_cumul_games_played" and 25 not in self._cat_bounds:
+                        self._cat_bounds[25] = _i
+
+            _cat25_start = self._cat_bounds.get(25, len(self.feature_names))
+
+            # ================================================================
+            # 18. SEASON TRAJECTORY & CONTEXT (86 features) — REAL COMPUTATION
+            # ================================================================
+            for prefix, tr, team_key in [("h", hr_, home), ("a", ar_, away)]:
+                n_games = len(tr)
+                home_tr = team_home_results.get(team_key, [])
+                away_tr = team_away_results.get(team_key, [])
+
+                # ── Pythagorean win expectation ──
+                total_pts = sum(r[4].get("pts", 100) for r in tr)
+                total_opp = sum(r[4].get("opp_pts", 100) for r in tr)
+                _e = 13.91
+                pts_exp = total_pts ** _e if total_pts > 0 else 1.0
+                opp_exp = total_opp ** _e if total_opp > 0 else 1.0
+                pyth_wp = pts_exp / (pts_exp + opp_exp) if (pts_exp + opp_exp) > 0 else 0.5
+                row.append(pyth_wp)
+
+                # Pythagorean vs actual (luck measure)
+                actual_wp = self._wp(tr, n_games)
+                row.append(pyth_wp - actual_wp)
+
+                # Win pace over 82 games
+                win_pace = actual_wp * 82.0
+                row.append(win_pace / 82.0)
+
+                # Playoff pace delta (vs 42-win threshold)
+                row.append((win_pace - 42.0) / 82.0)
+
+                # Games behind 1st in conference
+                conf = self._conference(team_key)
+                conf_wps = []
+                for t, recs in team_results.items():
+                    if recs and self._conference(t) == conf:
+                        conf_wps.append((t, self._wp(recs, len(recs))))
+                conf_wps.sort(key=lambda x: x[1], reverse=True)
+                best_wp = conf_wps[0][1] if conf_wps else 0.5
+                row.append(max(0, (best_wp - actual_wp) * n_games) / 82.0)
+
+                # Games behind 8th seed
+                eighth_wp = conf_wps[7][1] if len(conf_wps) >= 8 else 0.5
+                row.append((eighth_wp - actual_wp) * n_games / 82.0)
+
+                # Games ahead of lottery (worst record)
+                worst_wp = conf_wps[-1][1] if conf_wps else 0.5
+                row.append((actual_wp - worst_wp) * n_games / 82.0)
+
+                # Strength of remaining schedule
+                row.append(self._sos(tr, team_results, min(n_games, 20)))
+
+                # Conference ranking
+                team_rank = 15
+                for idx_r, (t, _) in enumerate(conf_wps):
+                    if t == team_key:
+                        team_rank = idx_r + 1
+                        break
+                row.append(team_rank / 15.0)
+
+                # Division ranking
+                div_code = self._division(team_key)
+                div_wps = [(t, w) for t, w in conf_wps if self._division(t) == div_code]
+                div_rank = 5
+                for idx_r, (t, _) in enumerate(div_wps):
+                    if t == team_key:
+                        div_rank = idx_r + 1
+                        break
+                row.append(div_rank / 5.0)
+
+                # Is playoff team (top 10 in conf)
+                row.append(1.0 if team_rank <= 10 else 0.0)
+
+                # Play-in range (7th-12th)
+                row.append(1.0 if 7 <= team_rank <= 12 else 0.0)
+
+                # Pre All-Star win% (first 55 games proxy)
+                pre_asg = tr[:min(55, n_games)]
+                row.append(self._wp(pre_asg, len(pre_asg)) if pre_asg else 0.5)
+
+                # Post All-Star win%
+                post_asg = tr[55:] if n_games > 55 else []
+                row.append(self._wp(post_asg, len(post_asg)) if post_asg else 0.5)
+
+                # All-Star delta
+                pre_wp = self._wp(pre_asg, len(pre_asg)) if pre_asg else 0.5
+                post_wp = self._wp(post_asg, len(post_asg)) if post_asg else 0.5
+                row.append(post_wp - pre_wp)
+
+                # Pre trade deadline win% (first 45 games proxy)
+                pre_dl = tr[:min(45, n_games)]
+                row.append(self._wp(pre_dl, len(pre_dl)) if pre_dl else 0.5)
+
+                # Post deadline win%
+                post_dl = tr[45:] if n_games > 45 else []
+                row.append(self._wp(post_dl, len(post_dl)) if post_dl else 0.5)
+
+                # Deadline delta
+                pre_dl_wp = self._wp(pre_dl, len(pre_dl)) if pre_dl else 0.5
+                post_dl_wp = self._wp(post_dl, len(post_dl)) if post_dl else 0.5
+                row.append(post_dl_wp - pre_dl_wp)
+
+                # Monthly win% trend
+                if n_games >= 30:
+                    row.append(self._wp(tr[-15:], 15) - self._wp(tr[-30:-15], 15))
+                else:
+                    row.append(0.0)
+
+                # Monthly ORtg trend
+                if n_games >= 30:
+                    row.append(self._ortg(tr, 15) - self._stat_avg(tr[-30:-15], 15, "ortg"))
+                else:
+                    row.append(0.0)
+
+                # Monthly DRtg trend
+                if n_games >= 30:
+                    row.append(self._drtg(tr, 15) - self._stat_avg(tr[-30:-15], 15, "drtg"))
+                else:
+                    row.append(0.0)
+
+                # Season half improvement: 2nd half vs 1st half win%
+                half = n_games // 2
+                if half >= 5:
+                    row.append(self._wp(tr[half:], n_games - half) - self._wp(tr[:half], half))
+                else:
+                    row.append(0.0)
+
+                # Regression indicator (distance from .500)
+                row.append(actual_wp - 0.5)
+
+                # Hot/cold regime (last 15: 1=hot, 0=neutral, -1=cold)
+                last15_wp = self._wp(tr, 15)
+                regime = 1.0 if last15_wp >= 0.667 else (-1.0 if last15_wp <= 0.333 else 0.0)
+                row.append(regime)
+
+                # Clinch status (0=eliminated, 1=alive, 2=clinched)
+                games_rem = max(0, 82 - n_games)
+                max_wins = actual_wp * n_games + games_rem
+                if max_wins / 82.0 < eighth_wp and eighth_wp > 0.3:
+                    clinch = 0.0
+                elif actual_wp * n_games > best_wp * 82:
+                    clinch = 2.0
+                else:
+                    clinch = 1.0
+                row.append(clinch / 2.0)
+
+                # Games remaining
+                row.append(games_rem / 82.0)
+
+                # Win% last 30 games
+                wp_last30 = self._wp(tr, 30)
+                row.append(wp_last30)
+
+                # Win% last 30 vs season (form delta)
+                row.append(wp_last30 - actual_wp)
+
+                # Home/road trend last 5
+                rec_h = home_tr[-5:] if len(home_tr) >= 5 else home_tr
+                rec_a = away_tr[-5:] if len(away_tr) >= 5 else away_tr
+                h_wp_5 = self._wp(rec_h, len(rec_h)) if rec_h else 0.5
+                a_wp_5 = self._wp(rec_a, len(rec_a)) if rec_a else 0.5
+                row.append(h_wp_5 - a_wp_5)
+
+                # Scoring variance trend
+                if n_games >= 20:
+                    row.append((self._consistency(tr[-20:-10], 10) - self._consistency(tr, 10)) / 15.0)
+                else:
+                    row.append(0.0)
+
+                # First half margin avg last 10 (proxy: half margin)
+                last10 = tr[-10:]
+                avg_m10 = sum(r[2] for r in last10) / max(len(last10), 1)
+                row.append(avg_m10 * 0.5 / 15.0)
+
+                # Second half margin avg last 10 (proxy)
+                row.append(avg_m10 * 0.5 / 15.0)
+
+                # Half margin delta (proxy: 0)
+                row.append(0.0)
+
+                # ATS record (placeholder)
+                row.append(0.5)
+
+                # ATS trend last 10 (placeholder)
+                row.append(0.5)
+
+                # Over rate season (placeholder)
+                row.append(0.5)
+
+                # Point diff: close games vs all
+                close_games = [r for r in tr if abs(r[2]) <= 5]
+                close_pd = sum(r[2] for r in close_games) / max(len(close_games), 1)
+                all_pd = sum(r[2] for r in tr) / max(n_games, 1)
+                row.append((close_pd - all_pd) / 15.0)
+
+                # Record after loss (resilience)
+                after_loss = [tr[i] for i in range(1, len(tr)) if not tr[i - 1][1]]
+                row.append(self._wp(after_loss, len(after_loss)) if after_loss else 0.5)
+
+                # Record after win (consistency)
+                after_win = [tr[i] for i in range(1, len(tr)) if tr[i - 1][1]]
+                row.append(self._wp(after_win, len(after_win)) if after_win else 0.5)
+
+                # Record after B2B
+                after_b2b = [tr[i] for i in range(1, len(tr)) if self._game_rest(tr[i], tr[:i + 1]) <= 1]
+                row.append(self._wp(after_b2b, len(after_b2b)) if after_b2b else 0.5)
+
+                # Blowout bounce-back
+                after_blow = [tr[i] for i in range(1, len(tr)) if not tr[i - 1][1] and tr[i - 1][2] <= -15]
+                row.append(self._wp(after_blow, len(after_blow)) if after_blow else 0.5)
+
+                # Overtime record (proxy: very close games)
+                ot_proxy = [r for r in tr if abs(r[2]) <= 3]
+                row.append(self._wp(ot_proxy, len(ot_proxy)) if ot_proxy else 0.5)
+
+            # Game-level trajectory differentials (2 features)
+            h_wp30 = self._wp(hr_, 30)
+            a_wp30 = self._wp(ar_, 30)
+            row.append(h_wp30 - a_wp30)
+
+            h_pts_s = sum(r[4].get("pts", 100) for r in hr_)
+            h_opp_s = sum(r[4].get("opp_pts", 100) for r in hr_)
+            a_pts_s = sum(r[4].get("pts", 100) for r in ar_)
+            a_opp_s = sum(r[4].get("opp_pts", 100) for r in ar_)
+            _e = 13.91
+            h_pyth = (h_pts_s ** _e) / ((h_pts_s ** _e) + (h_opp_s ** _e)) if h_pts_s > 0 else 0.5
+            a_pyth = (a_pts_s ** _e) / ((a_pts_s ** _e) + (a_opp_s ** _e)) if a_pts_s > 0 else 0.5
+            row.append(h_pyth - a_pyth)
+
+            # 19-23: Placeholder zeros
+            _n_cats_19_23 = self._cat_bounds.get(24, _cat25_start) - self._cat_bounds.get(19, _cat25_start)
+            row.extend([0.0] * _n_cats_19_23)
+
+            # ================================================================
+            # 24. POWER RATING COMPOSITES (64 features) — REAL COMPUTATION
+            # ================================================================
+            for prefix, team_key in [("h", home), ("a", away)]:
+                tr = team_results[team_key]
+                n_gp = len(tr)
+
+                # Standard ELO (normalized)
+                row.append((team_elo[team_key] - 1500.0) / 400.0)
+
+                # Margin-adjusted ELO
+                row.append((team_elo_margin[team_key] - 1500.0) / 400.0)
+
+                # Recency-weighted ELO
+                row.append((team_elo_recency[team_key] - 1500.0) / 400.0)
+
+                # Home-court adjusted ELO
+                hca_bonus = 0.0
+                if team_home_games_count[team_key] > 0:
+                    hca_bonus = team_home_margin_sum[team_key] / team_home_games_count[team_key]
+                row.append((team_elo[team_key] + hca_bonus * 2.0 - 1500.0) / 400.0)
+
+                # SOS-adjusted ELO
+                sos_val = self._sos(tr, team_results, min(n_gp, 20))
+                row.append((team_elo[team_key] * (0.5 + sos_val) - 1500.0) / 400.0)
+
+                # Conference-adjusted ELO
+                conf_elos = [team_elo[t] for t in team_results
+                             if team_results[t] and self._conference(t) == self._conference(team_key)]
+                conf_avg_elo = sum(conf_elos) / max(len(conf_elos), 1)
+                row.append((team_elo[team_key] - conf_avg_elo) / 200.0)
+
+                # Pace-adjusted ELO
+                pace_val = self._pace(tr, 10) if tr else 100.0
+                row.append((team_elo[team_key] - 1500.0) * (pace_val / 100.0) / 400.0)
+
+                # RAPTOR composite (offensive + defensive ELO blend)
+                off_elo = team_elo_offense[team_key]
+                def_elo = team_elo_defense[team_key]
+                raptor_comp = (off_elo + def_elo) / 2.0
+                row.append((raptor_comp - 1500.0) / 400.0)
+
+                # RAPTOR offense
+                row.append((off_elo - 1500.0) / 400.0)
+
+                # RAPTOR defense
+                row.append((def_elo - 1500.0) / 400.0)
+
+                # Power rank by offense (ORtg season)
+                ortg_s = self._ortg(tr, n_gp) if tr else 100.0
+                row.append(ortg_s / 120.0)
+
+                # Power rank by defense (DRtg season, lower=better)
+                drtg_s = self._drtg(tr, n_gp) if tr else 110.0
+                row.append(1.0 - drtg_s / 120.0)
+
+                # Power rank by net rating
+                netrtg_s = ortg_s - drtg_s
+                row.append(netrtg_s / 20.0)
+
+                # SRS (Simple Rating System)
+                avg_m = self._pd(tr, n_gp) if tr else 0.0
+                row.append((avg_m + (sos_val - 0.5) * 10) / 20.0)
+
+                # Composite power rank
+                composite = (
+                    (team_elo[team_key] - 1500) / 400 * 0.3 +
+                    netrtg_s / 20 * 0.3 +
+                    (raptor_comp - 1500) / 400 * 0.2 +
+                    (avg_m + (sos_val - 0.5) * 10) / 20 * 0.2
+                )
+                row.append(composite)
+
+                # Power rank trend (ELO change over last 10 games)
+                elo_hist = team_elo_history.get(team_key, [])
+                if len(elo_hist) >= 10:
+                    row.append((elo_hist[-1] - elo_hist[-10]) / 100.0)
+                elif len(elo_hist) >= 2:
+                    row.append((elo_hist[-1] - elo_hist[0]) / 100.0)
+                else:
+                    row.append(0.0)
+
+                # Power conf adjusted
+                row.append((team_elo[team_key] - conf_avg_elo + netrtg_s) / 30.0)
+
+                # Power stability (std dev of ELO last 20)
+                if len(elo_hist) >= 5:
+                    recent_elo = elo_hist[-20:]
+                    elo_m = sum(recent_elo) / len(recent_elo)
+                    elo_std = (sum((e - elo_m) ** 2 for e in recent_elo) / len(recent_elo)) ** 0.5
+                    row.append(elo_std / 100.0)
+                else:
+                    row.append(0.5)
+
+                # Power percentile in league
+                all_elos = [team_elo[t] for t in team_results if team_results[t]]
+                if all_elos:
+                    row.append(sum(1 for e in all_elos if e <= team_elo[team_key]) / len(all_elos))
+                else:
+                    row.append(0.5)
+
+                # Rating confidence (games played)
+                row.append(min(1.0, n_gp / 30.0))
+
+                # Bayesian rating
+                prior_w = 10.0
+                bayesian = (prior_w * 1500.0 + n_gp * team_elo[team_key]) / (prior_w + max(n_gp, 1))
+                row.append((bayesian - 1500.0) / 400.0)
+
+                # Glicko-style rating
+                row.append((team_elo[team_key] - 1500.0) / 400.0)
+
+                # Glicko RD (uncertainty)
+                glicko_rd = max(30.0, 350.0 - max(n_gp, 1) * 5.0)
+                row.append(glicko_rd / 350.0)
+
+                # TrueSkill mu
+                row.append((team_elo[team_key] - 1500.0) / 400.0)
+
+                # TrueSkill sigma
+                row.append(max(0.1, 1.0 - max(n_gp, 1) / 82.0))
+
+            # Pairwise power differentials (14 features)
+            h_elo_s = team_elo[home]
+            a_elo_s = team_elo[away]
+            row.append((h_elo_s - a_elo_s) / 400.0)                                     # elo_std_diff
+            row.append((team_elo_margin[home] - team_elo_margin[away]) / 400.0)          # elo_margin_diff
+            row.append((team_elo_recency[home] - team_elo_recency[away]) / 400.0)        # elo_recency_diff
+            h_rap = (team_elo_offense[home] + team_elo_defense[home]) / 2.0
+            a_rap = (team_elo_offense[away] + team_elo_defense[away]) / 2.0
+            row.append((h_rap - a_rap) / 400.0)                                          # raptor_diff
+            row.append((team_elo_offense[home] - team_elo_offense[away]) / 400.0)        # raptor_off_diff
+            row.append((team_elo_defense[home] - team_elo_defense[away]) / 400.0)        # raptor_def_diff
+            h_srs = self._pd(hr_, len(hr_)) + (self._sos(hr_, team_results, 20) - 0.5) * 10
+            a_srs = self._pd(ar_, len(ar_)) + (self._sos(ar_, team_results, 20) - 0.5) * 10
+            row.append((h_srs - a_srs) / 20.0)                                          # srs_diff
+            h_comp = ((h_elo_s - 1500) / 400 * 0.3 + self._netrtg(hr_, len(hr_)) / 20 * 0.3 +
+                      (h_rap - 1500) / 400 * 0.2 + h_srs / 20 * 0.2)
+            a_comp = ((a_elo_s - 1500) / 400 * 0.3 + self._netrtg(ar_, len(ar_)) / 20 * 0.3 +
+                      (a_rap - 1500) / 400 * 0.2 + a_srs / 20 * 0.2)
+            row.append(h_comp - a_comp)                                                  # composite_diff
+            h_ca = [team_elo[t] for t in team_results
+                    if team_results[t] and self._conference(t) == self._conference(home)]
+            a_ca = [team_elo[t] for t in team_results
+                    if team_results[t] and self._conference(t) == self._conference(away)]
+            h_ca_avg = sum(h_ca) / max(len(h_ca), 1)
+            a_ca_avg = sum(a_ca) / max(len(a_ca), 1)
+            row.append(((h_elo_s - h_ca_avg) - (a_elo_s - a_ca_avg)) / 200.0)           # conf_adj_diff
+            h_gp_d = max(len(hr_), 1)
+            a_gp_d = max(len(ar_), 1)
+            h_bay = (10 * 1500 + h_gp_d * h_elo_s) / (10 + h_gp_d)
+            a_bay = (10 * 1500 + a_gp_d * a_elo_s) / (10 + a_gp_d)
+            row.append((h_bay - a_bay) / 400.0)                                         # bayesian_diff
+            row.append((h_elo_s - a_elo_s) / 400.0)                                     # glicko_diff
+            row.append((h_elo_s - a_elo_s) / 400.0)                                     # trueskill_diff
+            _all_diffs = [
+                (h_elo_s - a_elo_s) / 400.0,
+                (team_elo_margin[home] - team_elo_margin[away]) / 400.0,
+                (team_elo_recency[home] - team_elo_recency[away]) / 400.0,
+                (h_rap - a_rap) / 400.0,
+            ]
+            row.append(max(_all_diffs, key=abs))                                         # max_diff
+            row.append(sum(_all_diffs) / len(_all_diffs))                                # avg_diff
+
+            # 25. FATIGUE & LOAD MANAGEMENT
+            for prefix, tr, team_key in [("h", hr_, home), ("a", ar_, away)]:
+                # Cumulative games played this season
+                cumul_gp = len(tr)
+                row.append(cumul_gp / 82.0)
+
+                # Cumulative minutes total (proxy: games × 48)
+                row.append(cumul_gp * 48.0 / (82.0 * 48.0))
+
+                # Avg minutes per game (proxy: constant 48 team mins)
+                row.append(48.0 / 48.0)
+
+                # Star minutes cumulative (proxy from player data)
+                pd_ = (player_data or {}).get(team_key, {})
+                star_min = pd_.get("star_minutes_load", 34.0) * cumul_gp
+                row.append(star_min / (82.0 * 40.0))  # Normalized
+
+                # Star minutes as pct of season capacity
+                row.append(star_min / max(82.0 * 40.0, 1))
+
+                # Travel miles this season
+                season_miles = self._total_miles_season(tr, team_key)
+                row.append(season_miles / 50000.0)  # Normalize
+
+                # Travel miles last 30 days
+                row.append(self._miles_in_window(tr, gd, 30, team_key) / 15000.0)
+
+                # Travel miles last 7 days
+                row.append(self._miles_in_window(tr, gd, 7, team_key) / 5000.0)
+
+                # Travel intensity: miles per game last 10
+                miles_10g = self._miles_last_n_games(tr, 10, team_key)
+                games_10 = min(len(tr), 10)
+                row.append((miles_10g / max(games_10, 1)) / 1000.0)
+
+                # Rest pattern consistency: std of rest days between last 10 games
+                rest_days_list = self._recent_rest_days(tr, 10)
+                if len(rest_days_list) >= 2:
+                    rm = sum(rest_days_list) / len(rest_days_list)
+                    rest_std = (sum((r - rm) ** 2 for r in rest_days_list) / len(rest_days_list)) ** 0.5
+                else:
+                    rest_std = 1.0
+                row.append(rest_std / 3.0)
+
+                # Rest deficit vs league avg (~1.2 days between games)
+                avg_rest = sum(rest_days_list) / len(rest_days_list) if rest_days_list else 1.5
+                row.append((avg_rest - 1.2) / 2.0)
+
+                # B2B count this season
+                b2b_season = self._count_b2b_in_window(tr, gd, 300)
+                row.append(b2b_season / 20.0)
+
+                # B2B count last 30 days
+                b2b_30d = self._count_b2b_in_window(tr, gd, 30)
+                row.append(b2b_30d / 5.0)
+
+                # 3-in-4 count this season
+                three_in_4 = self._count_dense_stretches(tr, gd, 300, 3, 4)
+                row.append(three_in_4 / 15.0)
+
+                # Dense schedule flag: 4+ games in last 7 days
+                g7 = self._games_in_window(tr, gd, 7)
+                row.append(1.0 if g7 >= 4 else 0.0)
+
+                # Road trip length (consecutive away games)
+                road_len = self._consecutive_away(tr)
+                row.append(road_len / 7.0)
+
+                # Home stand length (consecutive home games)
+                home_len = self._consecutive_home(tr)
+                row.append(home_len / 7.0)
+
+                # Road trip fatigue: road games × avg travel
+                row.append(road_len * (miles_10g / max(games_10, 1)) / 5000.0)
+
+                # Load management probability (high fatigue + star minutes)
+                this_rest = self._rest_days(team_key, gd, team_last)
+                load_mgmt = 0.0
+                if this_rest <= 1 and star_min / max(cumul_gp, 1) > 36:
+                    load_mgmt = 0.7
+                elif g7 >= 4:
+                    load_mgmt = 0.4
+                elif cumul_gp > 70:
+                    load_mgmt = 0.3
+                row.append(load_mgmt)
+
+                # Season fatigue curve: expected dropoff based on game number
+                row.append(max(0.0, (cumul_gp - 50) / 82.0))
+
+                # Relative fatigue vs league avg (~41 games at midseason)
+                # Approximate league avg as season_pct * 82
+                row.append((cumul_gp - 41 * sp) / 20.0 if sp > 0 else 0.0)
+
+                # Fatigue-adjusted ORtg
+                fatigue_penalty = 0.02 * max(0, g7 - 3) + 0.01 * (1 if this_rest <= 1 else 0)
+                ortg_val = self._ortg(tr, 10)
+                row.append(ortg_val * (1.0 - fatigue_penalty) / 110.0)
+
+                # Fatigue-adjusted DRtg (higher = worse defense when tired)
+                drtg_val = self._drtg(tr, 10)
+                row.append(drtg_val * (1.0 + fatigue_penalty * 0.5) / 110.0)
+
+                # Fatigue-adjusted win%
+                wp_val = self._wp(tr, 10)
+                row.append(wp_val * (1.0 - fatigue_penalty))
+
+                # Recovery quality: win% when rested 2+ days (historical)
+                rested_games = [r for r in tr[-30:] if self._game_rest(r, tr) >= 2]
+                row.append(self._wp(rested_games, len(rested_games)) if rested_games else 0.5)
+
+                # B2B performance drop
+                b2b_games = [r for r in tr[-30:] if self._game_rest(r, tr) <= 1]
+                non_b2b = [r for r in tr[-30:] if self._game_rest(r, tr) > 1]
+                b2b_margin = self._pd(b2b_games, len(b2b_games)) if b2b_games else 0.0
+                non_b2b_margin = self._pd(non_b2b, len(non_b2b)) if non_b2b else 0.0
+                row.append((b2b_margin - non_b2b_margin) / 10.0)
+
+                # Altitude fatigue cumulative (games at high altitude recently)
+                high_alt_games = sum(1 for r in tr[-10:]
+                                     if ARENA_ALTITUDE.get(r[3], 500) > 3000)
+                row.append(high_alt_games / 10.0)
+
+                # Timezone changes this season
+                tz_changes = self._count_tz_changes(tr)
+                row.append(tz_changes / 40.0)
+
+                # Circadian disruption (recent timezone impact)
+                row.append(abs(TIMEZONE_ET.get(team_key, 0) -
+                              TIMEZONE_ET.get(self._last_location(tr), 0)) / 3.0)
+
+                # Early season load: heavy in first 30 games
+                early_games = [r for r in tr[:30]]
+                early_b2b = sum(1 for i in range(1, len(early_games))
+                               if self._days_between(early_games[i-1][0], early_games[i][0]) <= 1)
+                row.append(early_b2b / 10.0 if len(early_games) >= 20 else 0.0)
+
+                # Late season load: games 60+
+                late_games = tr[60:] if len(tr) > 60 else []
+                late_density = len(late_games) / max(1, (cumul_gp - 60)) if cumul_gp > 60 else 0.0
+                row.append(late_density)
+
+                # Minutes distribution health (proxy: consistency of scoring)
+                scoring_std = self._consistency(tr, 10) / 15.0
+                row.append(max(0, 1.0 - scoring_std))
+
+                # Injury risk score (fatigue-based proxy)
+                injury_risk = (g7 / 5.0) * 0.3 + (1 if this_rest <= 1 else 0) * 0.3 + \
+                             (cumul_gp / 82.0) * 0.2 + (star_min / max(cumul_gp * 40, 1)) * 0.2
+                row.append(min(1.0, injury_risk))
+
+                # Stamina rating: Q4 vs Q1 performance proxy (use margin trend)
+                row.append(self._wp(tr[-5:], 5) - self._wp(tr[-15:], 15) + 0.5)
+
+                # Clutch fatigue: performance in close games on heavy schedule
+                recent_close = [r for r in tr[-10:] if abs(r[2]) <= 5]
+                row.append(self._wp(recent_close, len(recent_close)) if recent_close else 0.5)
+
+                # Fresh vs tired ratio
+                rested_wp = self._wp(rested_games, len(rested_games)) if rested_games else 0.5
+                tired_wp = self._wp(b2b_games, len(b2b_games)) if b2b_games else 0.5
+                row.append(rested_wp / max(tired_wp, 0.1))
+
+                # Optimal rest indicator: 2-3 days rest, no recent travel
+                row.append(1.0 if 2 <= this_rest <= 3 and g7 <= 3 else 0.0)
+
+                # Wear and tear index: composite fatigue accumulation
+                wear = (cumul_gp / 82.0) * 0.25 + \
+                       (b2b_30d / 5.0) * 0.2 + \
+                       (g7 / 5.0) * 0.2 + \
+                       (season_miles / 50000.0) * 0.15 + \
+                       (1 if this_rest <= 1 else 0) * 0.2
+                row.append(min(1.0, wear))
+
+            # Game-level fatigue differentials (8 features)
+            # Access the per-team fatigue values just computed
+            # Home team values start at _cat25_start, away at _cat25_start + 38
+            _h25 = _cat25_start
+            _a25 = _cat25_start + 38  # 38 per-team features
+            row.append(row[_h25] - row[_a25])                      # cumul_games diff
+            row.append(row[_h25 + 5] - row[_a25 + 5])              # travel_season diff
+            row.append(row[_h25 + 9] - row[_a25 + 9])              # rest_consistency diff
+            row.append(row[_h25 + 37] - row[_a25 + 37])            # wear_tear diff
+            row.append(row[_h25 + 4] - row[_a25 + 4])              # star_minutes_pct diff
+            row.append(row[_h25 + 12] - row[_a25 + 12])            # b2b_count_30d diff
+            # Fatigue-adjusted spread
+            mkt_spread = _val("current_spread")
+            h_wear = row[_h25 + 37]
+            a_wear = row[_a25 + 37]
+            row.append(mkt_spread + (h_wear - a_wear) * 2.0)       # fatigue-adjusted spread
+            # Fatigue composite edge
+            row.append((a_wear - h_wear) * 0.5 + (row[_a25 + 9] - row[_h25 + 9]) * 0.3 +
+                       (row[_a25 + 12] - row[_h25 + 12]) * 0.2)   # composite edge
+
             X.append(row)
             y.append(1 if hs > as_ else 0)
 
@@ -1255,6 +2128,12 @@ class NBAFeatureEngine:
                               team_home_results, team_away_results,
                               h2h_results, home, away, hs, as_, gd,
                               h_stats, a_stats)
+            # Update multi-ELO systems (Cat 24)
+            self._update_multi_elo(
+                home, away, hs, as_, h_stats, a_stats,
+                team_elo_margin, team_elo_offense, team_elo_defense,
+                team_elo_recency, team_elo_history,
+                team_home_margin_sum, team_home_games_count)
 
         X = np.nan_to_num(np.array(X, dtype=np.float64))
         y = np.array(y, dtype=np.int32)
@@ -1468,6 +2347,129 @@ class NBAFeatureEngine:
         b2b = 1 if rest <= 1 else 0
         return g7 * 0.3 + m7 * 0.3 + b2b * 0.4
 
+    def _total_miles_season(self, records, team):
+        """Total travel miles for the season (approximate from game locations)."""
+        total = 0.0
+        prev_loc = team  # Start at home
+        for r in records:
+            game_loc = team if r[4].get("is_home", False) else r[3]
+            if prev_loc in ARENA_COORDS and game_loc in ARENA_COORDS:
+                total += haversine(*ARENA_COORDS[prev_loc], *ARENA_COORDS[game_loc])
+            prev_loc = game_loc
+        return total
+
+    def _miles_last_n_games(self, records, n, team):
+        """Travel miles across last n games."""
+        recent = records[-n:]
+        total = 0.0
+        prev_loc = team
+        for r in recent:
+            game_loc = team if r[4].get("is_home", False) else r[3]
+            if prev_loc in ARENA_COORDS and game_loc in ARENA_COORDS:
+                total += haversine(*ARENA_COORDS[prev_loc], *ARENA_COORDS[game_loc])
+            prev_loc = game_loc
+        return total
+
+    def _recent_rest_days(self, records, n):
+        """List of rest days between last n games."""
+        recent = records[-n:]
+        rests = []
+        for i in range(1, len(recent)):
+            days = self._days_between(recent[i-1][0], recent[i][0])
+            rests.append(max(0, days))
+        return rests
+
+    def _days_between(self, date1, date2):
+        """Days between two date strings."""
+        try:
+            d1 = datetime.strptime(date1[:10], "%Y-%m-%d")
+            d2 = datetime.strptime(date2[:10], "%Y-%m-%d")
+            return abs((d2 - d1).days)
+        except:
+            return 2
+
+    def _count_b2b_in_window(self, records, game_date, days):
+        """Count back-to-back instances in the last N days."""
+        if not records or not game_date:
+            return 0
+        try:
+            gd = datetime.strptime(game_date[:10], "%Y-%m-%d")
+            recent = [r for r in records if (gd - datetime.strptime(r[0][:10], "%Y-%m-%d")).days <= days
+                      and (gd - datetime.strptime(r[0][:10], "%Y-%m-%d")).days > 0]
+            count = 0
+            for i in range(1, len(recent)):
+                if self._days_between(recent[i-1][0], recent[i][0]) <= 1:
+                    count += 1
+            return count
+        except:
+            return 0
+
+    def _count_dense_stretches(self, records, game_date, window_days, n_games, n_days):
+        """Count how many times team played n_games in n_days within window."""
+        if not records or not game_date:
+            return 0
+        try:
+            gd = datetime.strptime(game_date[:10], "%Y-%m-%d")
+            dates = []
+            for r in records:
+                rd = datetime.strptime(r[0][:10], "%Y-%m-%d")
+                if 0 < (gd - rd).days <= window_days:
+                    dates.append(rd)
+            dates.sort()
+            count = 0
+            for i in range(len(dates) - n_games + 1):
+                span = (dates[i + n_games - 1] - dates[i]).days
+                if span <= n_days:
+                    count += 1
+            return count
+        except:
+            return 0
+
+    def _consecutive_away(self, records):
+        """Count current consecutive away games (from most recent)."""
+        count = 0
+        for r in reversed(records):
+            if not r[4].get("is_home", False):
+                count += 1
+            else:
+                break
+        return count
+
+    def _consecutive_home(self, records):
+        """Count current consecutive home games (from most recent)."""
+        count = 0
+        for r in reversed(records):
+            if r[4].get("is_home", False):
+                count += 1
+            else:
+                break
+        return count
+
+    def _game_rest(self, game_record, all_records):
+        """Get rest days before a specific game record."""
+        idx = None
+        for i, r in enumerate(all_records):
+            if r[0] == game_record[0]:
+                idx = i
+                break
+        if idx is None or idx == 0:
+            return 3
+        return self._days_between(all_records[idx - 1][0], game_record[0])
+
+    def _count_tz_changes(self, records):
+        """Count timezone changes across the season."""
+        if len(records) < 2:
+            return 0
+        changes = 0
+        for i in range(1, len(records)):
+            loc1 = records[i-1][3] if not records[i-1][4].get("is_home", False) else records[i-1][4].get("team", "ATL")
+            loc2 = records[i][3] if not records[i][4].get("is_home", False) else records[i][4].get("team", "ATL")
+            tz1 = TIMEZONE_ET.get(loc1, 0)
+            tz2 = TIMEZONE_ET.get(loc2, 0)
+            if tz1 != tz2:
+                changes += 1
+        return changes
+
     def _sos(self, records, all_results, n):
         rec = records[-n:]
         if not rec:
@@ -1611,6 +2613,78 @@ class NBAFeatureEngine:
         result = 1.0 if home_win else 0.0
         team_elo[home] += K * (result - expected_home)
         team_elo[away] += K * ((1 - result) - (1 - expected_home))
+
+    def _update_multi_elo(self, home, away, hs, as_, h_stats, a_stats,
+                          team_elo_margin, team_elo_offense, team_elo_defense,
+                          team_elo_recency, team_elo_history,
+                          team_home_margin_sum, team_home_games_count):
+        """Update multi-ELO rating systems for Category 24 (Power Ratings).
+
+        Called after _record_game to update:
+        - Margin-adjusted ELO (MOV capped at 20 pts)
+        - Offensive ELO (based on points scored)
+        - Defensive ELO (based on points allowed)
+        - Recency-weighted ELO (K=30, decays faster)
+        - ELO history (for trend / momentum features)
+        - Home court advantage tracking
+        """
+        margin = hs - as_
+        home_win = hs > as_
+
+        # Parse stats for ORtg/DRtg
+        if isinstance(h_stats, dict):
+            h_ortg = h_stats.get("ortg", hs * 100 / max(h_stats.get("poss", 100), 1))
+            h_drtg = h_stats.get("drtg", as_ * 100 / max(h_stats.get("poss", 100), 1))
+        else:
+            h_ortg = hs
+            h_drtg = as_
+        if isinstance(a_stats, dict):
+            a_ortg = a_stats.get("ortg", as_ * 100 / max(a_stats.get("poss", 100), 1))
+            a_drtg = a_stats.get("drtg", hs * 100 / max(a_stats.get("poss", 100), 1))
+        else:
+            a_ortg = as_
+            a_drtg = hs
+
+        result = 1.0 if home_win else 0.0
+        HCA = 50  # Home court advantage in ELO terms
+
+        # ── Margin-adjusted ELO (MOV capped, multiplier) ──
+        K_m = 20
+        mov_mult = min(abs(margin), 20) / 10.0  # Cap at 20pt margin
+        e_m = 1 / (1 + 10 ** ((team_elo_margin[away] - team_elo_margin[home] - HCA) / 400))
+        team_elo_margin[home] += K_m * mov_mult * (result - e_m)
+        team_elo_margin[away] += K_m * mov_mult * ((1 - result) - (1 - e_m))
+
+        # ── Offensive ELO (based on scoring performance) ──
+        K_o = 15
+        # Home offense result: fraction of total points scored by home
+        off_result = hs / max(hs + as_, 1)
+        e_off = 1 / (1 + 10 ** ((team_elo_offense[away] - team_elo_offense[home]) / 400))
+        team_elo_offense[home] += K_o * (off_result - e_off)
+        team_elo_offense[away] += K_o * ((1 - off_result) - (1 - e_off))
+
+        # ── Defensive ELO (lower opponent scoring = better) ──
+        K_d = 15
+        # Home defense result: inverse — fewer points allowed = better
+        def_result = as_ / max(hs + as_, 1)  # away scored / total — lower is better for home D
+        def_result = 1.0 - def_result  # Flip: home defense success
+        e_def = 1 / (1 + 10 ** ((team_elo_defense[away] - team_elo_defense[home]) / 400))
+        team_elo_defense[home] += K_d * (def_result - e_def)
+        team_elo_defense[away] += K_d * ((1 - def_result) - (1 - e_def))
+
+        # ── Recency-weighted ELO (higher K for faster adaptation) ──
+        K_r = 30
+        e_r = 1 / (1 + 10 ** ((team_elo_recency[away] - team_elo_recency[home] - HCA) / 400))
+        team_elo_recency[home] += K_r * (result - e_r)
+        team_elo_recency[away] += K_r * ((1 - result) - (1 - e_r))
+
+        # ── ELO history (for trend/momentum tracking) ──
+        team_elo_history[home].append(team_elo_margin[home])
+        team_elo_history[away].append(team_elo_margin[away])
+
+        # ── Home court advantage tracking ──
+        team_home_margin_sum[home] += margin
+        team_home_games_count[home] += 1
 
     def _parse_stats(self, stats, pts, opp_pts, is_home=True):
         """Extract stats from game data, with defaults."""
