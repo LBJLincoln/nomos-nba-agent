@@ -1053,7 +1053,7 @@ def evolution_loop():
                         cycle_duration_s=time.time() - cycle_start,
                         avg_composite=float(avg_comp), pop_diversity=float(pop_diversity),
                         top5=results["top5"], selected_features=sel_features[:50])
-                    log("[RUN-LOGGER] Cycle logged to Supabase")
+                    log("[RUN-LOGGER] Cycle logged")
                 except Exception as e:
                     log(f"[RUN-LOGGER] Cycle log error: {e}", "WARN")
         except Exception as e:

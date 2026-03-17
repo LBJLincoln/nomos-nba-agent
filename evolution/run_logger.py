@@ -42,14 +42,22 @@ def _get_pg():
         return _pg_pool
     db_url = _DATABASE_URL
     if not db_url:
+        print(f"[RUN-LOGGER] DATABASE_URL not set — Supabase logging disabled")
         return None
     try:
         import psycopg2
         from psycopg2 import pool as pg_pool
         _pg_pool = pg_pool.SimpleConnectionPool(1, 3, db_url)
+        # Test the connection
+        conn = _pg_pool.getconn()
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+        _pg_pool.putconn(conn)
+        print(f"[RUN-LOGGER] PostgreSQL connected to Supabase OK")
         return _pg_pool
     except Exception as e:
         print(f"[RUN-LOGGER] PostgreSQL connection failed: {e}")
+        _pg_pool = None
         return None
 
 
@@ -67,15 +75,21 @@ def _exec_sql(sql, params=None):
             try:
                 return cur.fetchall()
             except Exception:
-                return []
+                return True  # INSERT/UPDATE succeeded but no rows to fetch
     except Exception as e:
         if conn:
-            conn.rollback()
-        print(f"[RUN-LOGGER] SQL error: {e}")
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        print(f"[RUN-LOGGER] SQL error: {e}", flush=True)
         return None
     finally:
         if conn and pool:
-            pool.putconn(conn)
+            try:
+                pool.putconn(conn)
+            except Exception:
+                pass
 
 
 def _ensure_tables():
