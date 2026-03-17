@@ -17,11 +17,64 @@ HF_TOKEN = os.environ.get("HF_TOKEN") or os.environ.get("HF_TOKEN_2")
 LOCAL_DIR = Path(__file__).parent
 
 SECRETS = {
+    # ── Core DB ──
     "DATABASE_URL": os.environ.get("DATABASE_URL", ""),
     "SUPABASE_URL": os.environ.get("SUPABASE_URL", ""),
     "SUPABASE_API_KEY": os.environ.get("SUPABASE_API_KEY", ""),
+    "SUPABASE_PASSWORD": os.environ.get("SUPABASE_PASSWORD", ""),
+    "SUPABASE_URL_2": os.environ.get("SUPABASE_URL_2", ""),
+    "SUPABASE_ANON_KEY_2": os.environ.get("SUPABASE_ANON_KEY_2", ""),
+    "SUPABASE_PASSWORD_2": os.environ.get("SUPABASE_PASSWORD_2", ""),
+    "SUPABASE_POOLER_2": os.environ.get("SUPABASE_POOLER_2", ""),
+    # ── Neo4j ──
+    "NEO4J_URI": os.environ.get("NEO4J_URI", ""),
+    "NEO4J_USER": os.environ.get("NEO4J_USER", ""),
+    "NEO4J_PASSWORD": os.environ.get("NEO4J_PASSWORD", ""),
+    "NEO4J_URI_2": os.environ.get("NEO4J_URI_2", ""),
+    "NEO4J_USER_2": os.environ.get("NEO4J_USER_2", ""),
+    "NEO4J_PASSWORD_2": os.environ.get("NEO4J_PASSWORD_2", ""),
+    # ── Pinecone ──
+    "PINECONE_API_KEY": os.environ.get("PINECONE_API_KEY", ""),
+    "PINECONE_API_KEY_2": os.environ.get("PINECONE_API_KEY_2", ""),
+    "PINECONE_HOST": os.environ.get("PINECONE_HOST", ""),
+    # ── Sports / Odds ──
     "ODDS_API_KEY": os.environ.get("ODDS_API_KEY", ""),
+    # ── LLM Keys (for CrewAI, agents, research) ──
+    "OPENROUTER_API_KEY": os.environ.get("OPENROUTER_API_KEY", ""),
+    "OPENROUTER_KEY_QUANTITATIVE": os.environ.get("OPENROUTER_KEY_QUANTITATIVE", ""),
+    "OPENROUTER_KEY_SPARE": os.environ.get("OPENROUTER_KEY_SPARE", ""),
+    "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
+    "GROQ_API_KEY": os.environ.get("GROQ_API_KEY", ""),
+    "GROQ_API_KEY_2": os.environ.get("GROQ_API_KEY_2", ""),
+    "GROQ_API_KEY_3": os.environ.get("GROQ_API_KEY_3", ""),
+    "XAI_API_KEY": os.environ.get("XAI_API_KEY", ""),
+    "COHERE_API_KEY": os.environ.get("COHERE_API_KEY", ""),
+    "KIMI_API_KEY": os.environ.get("KIMI_API_KEY", ""),
+    "LITELLM_PROXY_URL": os.environ.get("LITELLM_PROXY_URL", ""),
+    "LITELLM_MASTER_KEY": os.environ.get("LITELLM_MASTER_KEY", ""),
+    # ── Telegram ──
+    "TELEGRAM_BOT_TOKEN": os.environ.get("TELEGRAM_BOT_TOKEN", ""),
+    "ADMIN_TELEGRAM_ID": os.environ.get("ADMIN_TELEGRAM_ID", ""),
+    "TELEGRAM_CHANNEL_ID": os.environ.get("TELEGRAM_CHANNEL_ID", ""),
+    # ── Search / Research ──
+    "BRAVE_API_KEY": os.environ.get("BRAVE_API_KEY", ""),
+    "TAVILY_API_KEY": os.environ.get("TAVILY_API_KEY", ""),
+    "EXA_API_KEY": os.environ.get("EXA_API_KEY", ""),
+    "JINA_API_KEY": os.environ.get("JINA_API_KEY", ""),
+    # ── GitHub ──
+    "GH_TOKEN": os.environ.get("GH_TOKEN", ""),
+    "GITHUB_TOKEN": os.environ.get("GITHUB_TOKEN", ""),
+    # ── HuggingFace ──
+    "HF_TOKEN": os.environ.get("HF_TOKEN", ""),
+    "HF_TOKEN_2": os.environ.get("HF_TOKEN_2", ""),
+    "HF_TOKEN_3": os.environ.get("HF_TOKEN_3", ""),
+    # ── Infrastructure ──
     "VM_CALLBACK_URL": os.environ.get("VM_CALLBACK_URL", "http://34.136.180.66:8080"),
+    "VM_HOST": os.environ.get("VM_HOST", ""),
+    "REDIS_URL": os.environ.get("REDIS_URL", ""),
+    "REMOTE_CONTROL_KEY": os.environ.get("REMOTE_CONTROL_KEY", ""),
+    # ── Google ──
+    "GOOGLE_API_KEY": os.environ.get("GOOGLE_API_KEY", ""),
 }
 
 

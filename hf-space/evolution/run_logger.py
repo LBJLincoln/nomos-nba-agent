@@ -40,14 +40,15 @@ def _get_pg():
     global _pg_pool
     if _pg_pool is not None:
         return _pg_pool
-    db_url = _DATABASE_URL
+    # Read at call time, not import time (HF Spaces set env late)
+    db_url = os.environ.get("DATABASE_URL", "") or _DATABASE_URL
     if not db_url:
         print(f"[RUN-LOGGER] DATABASE_URL not set — Supabase logging disabled")
         return None
     try:
         import psycopg2
         from psycopg2 import pool as pg_pool
-        _pg_pool = pg_pool.SimpleConnectionPool(1, 3, db_url)
+        _pg_pool = pg_pool.SimpleConnectionPool(1, 3, db_url, options="-c search_path=public")
         # Test the connection
         conn = _pg_pool.getconn()
         with conn.cursor() as cur:
@@ -95,7 +96,7 @@ def _exec_sql(sql, params=None):
 def _ensure_tables():
     """Create logging tables if they don't exist."""
     sqls = [
-        """CREATE TABLE IF NOT EXISTS nba_evolution_runs (
+        """CREATE TABLE IF NOT EXISTS public.nba_evolution_runs (
             id SERIAL PRIMARY KEY,
             ts TIMESTAMPTZ DEFAULT NOW(),
             cycle INT,
@@ -119,7 +120,7 @@ def _ensure_tables():
             top5 JSONB,
             selected_features JSONB
         )""",
-        """CREATE TABLE IF NOT EXISTS nba_evolution_gens (
+        """CREATE TABLE IF NOT EXISTS public.nba_evolution_gens (
             id SERIAL PRIMARY KEY,
             ts TIMESTAMPTZ DEFAULT NOW(),
             cycle INT,
@@ -136,7 +137,7 @@ def _ensure_tables():
             gen_duration_s FLOAT,
             improved BOOLEAN DEFAULT FALSE
         )""",
-        """CREATE TABLE IF NOT EXISTS nba_evolution_cuts (
+        """CREATE TABLE IF NOT EXISTS public.nba_evolution_cuts (
             id SERIAL PRIMARY KEY,
             ts TIMESTAMPTZ DEFAULT NOW(),
             cut_type TEXT,
@@ -146,7 +147,7 @@ def _ensure_tables():
             action_taken TEXT,
             params_applied JSONB
         )""",
-        """CREATE TABLE IF NOT EXISTS nba_evolution_evals (
+        """CREATE TABLE IF NOT EXISTS public.nba_evolution_evals (
             id SERIAL PRIMARY KEY,
             ts TIMESTAMPTZ DEFAULT NOW(),
             generation INT,
@@ -198,7 +199,7 @@ class RunLogger:
         improved = best["brier"] < self.last_best_brier - 0.0001
 
         # Supabase
-        _exec_sql("""INSERT INTO nba_evolution_gens
+        _exec_sql("""INSERT INTO public.nba_evolution_gens
             (cycle, generation, best_brier, best_roi, best_sharpe, best_composite,
              n_features, model_type, mutation_rate, avg_composite, pop_diversity,
              gen_duration_s, improved)
@@ -218,7 +219,7 @@ class RunLogger:
                   stagnation, games, feature_candidates, cycle_duration_s,
                   avg_composite, pop_diversity, top5=None, selected_features=None):
         """Log one full cycle (multiple generations) result."""
-        _exec_sql("""INSERT INTO nba_evolution_runs
+        _exec_sql("""INSERT INTO public.nba_evolution_runs
             (cycle, generation, best_brier, best_roi, best_sharpe, best_calibration,
              best_composite, best_features, best_model_type, pop_size, mutation_rate,
              crossover_rate, stagnation, games, feature_candidates, cycle_duration_s,
@@ -245,7 +246,7 @@ class RunLogger:
     def log_top_evals(self, generation, top_individuals):
         """Log top 10 individuals for this generation."""
         for rank, ind in enumerate(top_individuals[:10]):
-            _exec_sql("""INSERT INTO nba_evolution_evals
+            _exec_sql("""INSERT INTO public.nba_evolution_evals
                 (generation, individual_rank, brier, roi, sharpe, composite, n_features, model_type)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
                 (generation, rank + 1,
@@ -258,7 +259,7 @@ class RunLogger:
 
     def log_cut(self, cut_type, reason, brier_before, brier_after, action, params=None):
         """Log an auto-cut event."""
-        _exec_sql("""INSERT INTO nba_evolution_cuts
+        _exec_sql("""INSERT INTO public.nba_evolution_cuts
             (cut_type, reason, brier_before, brier_after, action_taken, params_applied)
             VALUES (%s,%s,%s,%s,%s,%s)""",
             (cut_type, reason, brier_before, brier_after, action,
@@ -367,17 +368,17 @@ class RunLogger:
     def get_recent_runs(self, limit=20):
         """Get recent cycle logs from Supabase."""
         rows = _exec_sql(
-            "SELECT * FROM nba_evolution_runs ORDER BY ts DESC LIMIT %s", (limit,))
+            "SELECT * FROM public.nba_evolution_runs ORDER BY ts DESC LIMIT %s", (limit,))
         return rows or []
 
     def get_recent_cuts(self, limit=10):
         rows = _exec_sql(
-            "SELECT * FROM nba_evolution_cuts ORDER BY ts DESC LIMIT %s", (limit,))
+            "SELECT * FROM public.nba_evolution_cuts ORDER BY ts DESC LIMIT %s", (limit,))
         return rows or []
 
     def get_brier_trend(self, last_n=50):
         rows = _exec_sql(
-            "SELECT generation, best_brier FROM nba_evolution_gens ORDER BY ts DESC LIMIT %s",
+            "SELECT generation, best_brier FROM public.nba_evolution_gens ORDER BY ts DESC LIMIT %s",
             (last_n,))
         if rows:
             return [(r[0], r[1]) for r in reversed(rows)]
@@ -385,11 +386,11 @@ class RunLogger:
 
     def get_stats(self):
         """Summary stats for dashboard."""
-        total_gens = _exec_sql("SELECT COUNT(*) FROM nba_evolution_gens")
-        total_runs = _exec_sql("SELECT COUNT(*) FROM nba_evolution_runs")
-        total_cuts = _exec_sql("SELECT COUNT(*) FROM nba_evolution_cuts")
+        total_gens = _exec_sql("SELECT COUNT(*) FROM public.nba_evolution_gens")
+        total_runs = _exec_sql("SELECT COUNT(*) FROM public.nba_evolution_runs")
+        total_cuts = _exec_sql("SELECT COUNT(*) FROM public.nba_evolution_cuts")
         best_ever = _exec_sql(
-            "SELECT MIN(best_brier) FROM nba_evolution_runs")
+            "SELECT MIN(best_brier) FROM public.nba_evolution_runs")
 
         return {
             "total_generations": total_gens[0][0] if total_gens else 0,

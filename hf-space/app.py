@@ -727,7 +727,23 @@ def evolution_loop():
         try:
             run_logger = RunLogger(local_dir=str(DATA_DIR / "run-logs"))
             _global_logger = run_logger
-            log("[RUN-LOGGER] Initialized — Supabase logging + auto-cut ACTIVE")
+            # Test DB connection explicitly
+            db_url = os.environ.get("DATABASE_URL", "")
+            if db_url:
+                log(f"[RUN-LOGGER] DATABASE_URL set ({db_url[:25]}...)")
+                try:
+                    import psycopg2
+                    conn = psycopg2.connect(db_url, connect_timeout=10, options="-c search_path=public")
+                    cur = conn.cursor()
+                    cur.execute("SELECT COUNT(*) FROM public.nba_evolution_gens")
+                    cnt = cur.fetchone()[0]
+                    conn.close()
+                    log(f"[RUN-LOGGER] Supabase CONNECTED — {cnt} existing gen rows")
+                except Exception as e:
+                    log(f"[RUN-LOGGER] Supabase connection FAILED: {e}", "ERROR")
+            else:
+                log("[RUN-LOGGER] DATABASE_URL NOT SET — logging local only", "WARN")
+            log("[RUN-LOGGER] Initialized — auto-cut ACTIVE")
         except Exception as e:
             log(f"[RUN-LOGGER] Init failed: {e} — continuing without", "WARN")
 
@@ -899,18 +915,53 @@ def evolution_loop():
                 f"Sharpe={best.fitness['sharpe']:.2f} Feat={best.n_features} "
                 f"Model={best.hyperparams['model_type']} Stag={stagnation} ({ge:.0f}s)")
 
-            # ── Supabase: log generation ──
+            # ── Supabase: log generation (direct psycopg2 — bypasses pool) ──
+            try:
+                _db_url = os.environ.get("DATABASE_URL", "")
+                if _db_url:
+                    import psycopg2
+                    _dbconn = psycopg2.connect(_db_url, connect_timeout=10, options="-c search_path=public")
+                    _dbconn.autocommit = True
+                    _cur = _dbconn.cursor()
+                    pop_diversity = float(np.std([ind.fitness.get("composite", 0) for ind in population]))
+                    avg_comp = float(np.mean([ind.fitness.get("composite", 0) for ind in population]))
+                    _cur.execute("""INSERT INTO public.nba_evolution_gens
+                        (cycle, generation, best_brier, best_roi, best_sharpe, best_composite,
+                         n_features, model_type, mutation_rate, avg_composite, pop_diversity,
+                         gen_duration_s, improved)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                        (cycle, generation, float(best.fitness["brier"]), float(best.fitness["roi"]),
+                         float(best.fitness["sharpe"]), float(best.fitness["composite"]),
+                         int(best.n_features), str(best.hyperparams["model_type"]),
+                         float(mutation_rate), avg_comp, pop_diversity, float(ge),
+                         bool(best_ever is not None and best.fitness["brier"] < best_ever.fitness["brier"] - 0.0001)))
+                    log(f"[SUPABASE] Gen {generation} logged OK")
+                    # Log top 10 evals
+                    for rank, ind in enumerate(population[:10]):
+                        _cur.execute("""INSERT INTO public.nba_evolution_evals
+                            (generation, individual_rank, brier, roi, sharpe, composite, n_features, model_type)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
+                            (generation, rank + 1, float(ind.fitness["brier"]), float(ind.fitness["roi"]),
+                             float(ind.fitness["sharpe"]), float(ind.fitness["composite"]),
+                             int(ind.n_features), str(ind.hyperparams["model_type"])))
+                    log(f"[SUPABASE] Top 10 evals logged OK")
+                    _cur.close()
+                    _dbconn.close()
+            except Exception as e:
+                log(f"[SUPABASE] Gen log FAILED: {e}", "ERROR")
+
+            # ── Auto-Cut check ──
             if run_logger:
                 try:
-                    pop_diversity = np.std([ind.fitness.get("composite", 0) for ind in population])
-                    avg_comp = np.mean([ind.fitness.get("composite", 0) for ind in population])
+                    pop_diversity = float(np.std([ind.fitness.get("composite", 0) for ind in population]))
+                    avg_comp = float(np.mean([ind.fitness.get("composite", 0) for ind in population]))
                     run_logger.log_generation(
                         cycle=cycle, generation=generation,
                         best={"brier": best.fitness["brier"], "roi": best.fitness["roi"],
                               "sharpe": best.fitness["sharpe"], "composite": best.fitness["composite"],
                               "n_features": best.n_features, "model_type": best.hyperparams["model_type"]},
-                        mutation_rate=mutation_rate, avg_composite=float(avg_comp),
-                        pop_diversity=float(pop_diversity), duration_s=ge)
+                        mutation_rate=mutation_rate, avg_composite=avg_comp,
+                        pop_diversity=pop_diversity, duration_s=ge)
 
                     # Log top 10 evals
                     top10 = [{"brier": ind.fitness["brier"], "roi": ind.fitness["roi"],
@@ -1035,27 +1086,36 @@ def evolution_loop():
             live["top5"] = results["top5"]
             log(f"Results saved: evolution-{ts}.json")
 
-            # ── Supabase: log cycle ──
-            if run_logger:
-                try:
-                    pop_diversity = np.std([ind.fitness.get("composite", 0) for ind in population])
-                    avg_comp = np.mean([ind.fitness.get("composite", 0) for ind in population])
+            # ── Supabase: log cycle (direct psycopg2) ──
+            try:
+                _db_url = os.environ.get("DATABASE_URL", "")
+                if _db_url:
+                    import psycopg2
+                    _dbconn = psycopg2.connect(_db_url, connect_timeout=10, options="-c search_path=public")
+                    _dbconn.autocommit = True
+                    _cur = _dbconn.cursor()
+                    pop_diversity = float(np.std([ind.fitness.get("composite", 0) for ind in population]))
+                    avg_comp = float(np.mean([ind.fitness.get("composite", 0) for ind in population]))
                     sel_features = [feature_names[i] for i in best_ever.selected_indices() if i < len(feature_names)] if best_ever else []
-                    run_logger.log_cycle(
-                        cycle=cycle, generation=generation,
-                        best={"brier": best_ever.fitness["brier"], "roi": best_ever.fitness["roi"],
-                              "sharpe": best_ever.fitness["sharpe"], "composite": best_ever.fitness["composite"],
-                              "calibration": best_ever.fitness.get("calibration", 0),
-                              "n_features": best_ever.n_features, "model_type": best_ever.hyperparams["model_type"]},
-                        pop_size=len(population), mutation_rate=mutation_rate,
-                        crossover_rate=CROSSOVER_RATE, stagnation=stagnation,
-                        games=len(games), feature_candidates=n_feat,
-                        cycle_duration_s=time.time() - cycle_start,
-                        avg_composite=float(avg_comp), pop_diversity=float(pop_diversity),
-                        top5=results["top5"], selected_features=sel_features[:50])
-                    log("[RUN-LOGGER] Cycle logged")
-                except Exception as e:
-                    log(f"[RUN-LOGGER] Cycle log error: {e}", "WARN")
+                    _cur.execute("""INSERT INTO public.nba_evolution_runs
+                        (cycle, generation, best_brier, best_roi, best_sharpe, best_calibration,
+                         best_composite, best_features, best_model_type, pop_size, mutation_rate,
+                         crossover_rate, stagnation, games, feature_candidates, cycle_duration_s,
+                         avg_composite, pop_diversity, top5, selected_features)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                        (cycle, generation, float(best_ever.fitness["brier"]), float(best_ever.fitness["roi"]),
+                         float(best_ever.fitness["sharpe"]), float(best_ever.fitness.get("calibration", 0)),
+                         float(best_ever.fitness["composite"]), int(best_ever.n_features),
+                         str(best_ever.hyperparams["model_type"]), len(population), float(mutation_rate),
+                         float(CROSSOVER_RATE), stagnation, len(games), n_feat,
+                         float(time.time() - cycle_start), avg_comp, pop_diversity,
+                         json.dumps(results.get("top5", [])[:5], default=str),
+                         json.dumps(sel_features[:50], default=str)))
+                    _cur.close()
+                    _dbconn.close()
+                    log("[SUPABASE] Cycle logged OK")
+            except Exception as e:
+                log(f"[SUPABASE] Cycle log FAILED: {e}", "ERROR")
         except Exception as e:
             log(f"Save error: {e}", "ERROR")
 
@@ -1222,16 +1282,18 @@ control_api = FastAPI()
 
 @control_api.get("/api/status")
 async def api_status():
-    # Ensure all values are JSON-serializable (no numpy types)
-    safe = {}
-    for k, v in live.items():
-        if hasattr(v, 'item'):  # numpy scalar
-            safe[k] = v.item()
-        elif isinstance(v, float):
-            safe[k] = round(v, 6)
-        else:
-            safe[k] = v
-    return JSONResponse(safe)
+    # Deep-convert numpy types to native Python for JSON serialization
+    def _safe(obj):
+        if hasattr(obj, 'item'):  # numpy scalar
+            return obj.item()
+        if isinstance(obj, dict):
+            return {k: _safe(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [_safe(x) for x in obj]
+        if isinstance(obj, float):
+            return round(obj, 6)
+        return obj
+    return JSONResponse(_safe(dict(live)))
 
 
 @control_api.get("/api/results")
