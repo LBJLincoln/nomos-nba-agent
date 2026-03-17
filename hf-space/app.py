@@ -168,27 +168,43 @@ def haversine(lat1, lon1, lat2, lon2):
 
 
 def pull_seasons():
+    existing = {f.stem.replace("games-", "") for f in HIST_DIR.glob("games-*.json")}
+    log(f"Cached seasons: {sorted(existing) if existing else 'none'}")
+
+    # Count total cached games
+    total_cached = 0
+    for f in HIST_DIR.glob("games-*.json"):
+        try:
+            total_cached += len(json.loads(f.read_text()))
+        except:
+            pass
+    log(f"Total cached games: {total_cached}")
+
+    # If we have enough data, skip NBA API entirely (it's slow and unreliable)
+    if total_cached >= 500:
+        log(f"Enough cached data ({total_cached} games). Skipping NBA API pull.")
+        return
+
     try:
         from nba_api.stats.endpoints import leaguegamefinder
     except ImportError:
-        log("nba_api not installed — using cached data", "WARN")
+        log("nba_api not installed — using cached data only", "WARN")
         return
-    existing = {f.stem.replace("games-", "") for f in HIST_DIR.glob("games-*.json")}
-    log(f"Cached seasons: {sorted(existing) if existing else 'none'}")
+
     targets = ["2018-19", "2019-20", "2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26"]
     missing = [s for s in targets if s not in existing]
     if not missing:
         log("All seasons cached — skipping NBA API pull")
         return
-    log(f"Missing seasons: {missing} — pulling from NBA API (timeout 30s each)")
-    for season in missing:
+    log(f"Missing seasons: {missing} — pulling from NBA API (timeout 20s each, max 3)")
+    pulled = 0
+    for season in missing[:3]:  # Max 3 pulls to avoid long startup
         log(f"Pulling {season}...")
         try:
-            time.sleep(3)
-            from nba_api.stats.endpoints import leaguegamefinder
+            time.sleep(2)
             finder = leaguegamefinder.LeagueGameFinder(
                 season_nullable=season, league_id_nullable="00",
-                season_type_nullable="Regular Season", timeout=30)
+                season_type_nullable="Regular Season", timeout=20)
             df = finder.get_data_frames()[0]
             if df.empty:
                 log(f"  {season}: empty response", "WARN")
@@ -214,8 +230,11 @@ def pull_seasons():
             if games:
                 (HIST_DIR / f"games-{season}.json").write_text(json.dumps(games))
                 log(f"  {len(games)} games for {season}")
+                pulled += 1
         except Exception as e:
-            log(f"  {season} failed (continuing): {e}", "WARN")
+            log(f"  {season} failed (skipping): {e}", "WARN")
+    if pulled == 0 and total_cached < 500:
+        log("WARNING: No data available — evolution cannot start", "ERROR")
 
 
 def load_all_games():
@@ -649,6 +668,7 @@ remote_config = {
 
 def evolution_loop():
     """Main 24/7 genetic evolution loop — runs in background thread."""
+    global TARGET_FEATURES, CROSSOVER_RATE, COOLDOWN, POP_SIZE
     log("=" * 60)
     log("REAL GENETIC EVOLUTION LOOP v3 — STARTING")
     log(f"Pop: {POP_SIZE} | Target features: {TARGET_FEATURES} | Gens/cycle: {GENS_PER_CYCLE}")
