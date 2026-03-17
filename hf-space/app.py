@@ -493,7 +493,7 @@ class Individual:
         prob = target / max(n_features, 1)
         self.features = [1 if random.random() < prob else 0 for _ in range(n_features)]
         self.hyperparams = {
-            "n_estimators": random.randint(100, 600),
+            "n_estimators": random.randint(50, 300),
             "max_depth": random.randint(3, 10),
             "learning_rate": 10 ** random.uniform(-2.5, -0.5),
             "subsample": random.uniform(0.5, 1.0),
@@ -646,16 +646,16 @@ def _ece(probs, actuals, n_bins=10):
 # EVOLUTION ENGINE
 # ═══════════════════════════════════════════════════════
 
-POP_SIZE = 150           # ↑ from 60 — more genetic diversity
-ELITE_SIZE = 10          # ↑ from 5 — preserve more good solutions
-BASE_MUT = 0.10          # ↑ from 0.03 — CRITICAL: explore more
-CROSSOVER_RATE = 0.85    # ↑ from 0.7 — more recombination
-TARGET_FEATURES = 200    # ↑ from 100 — use more of the feature space
-N_SPLITS = 5
-GENS_PER_CYCLE = 10
-COOLDOWN = 45            # ↓ from 60 — iterate faster
-TOURNAMENT_SIZE = 5      # ↓ from 7 — less selection pressure
-DIVERSITY_RESTART = 30   # NEW: restart portion of pop after N stagnant gens
+POP_SIZE = 50            # Reduced for 2 vCPU free tier (increase via /api/config)
+ELITE_SIZE = 5           # Top 10% preserved
+BASE_MUT = 0.10          # Explore aggressively
+CROSSOVER_RATE = 0.85    # High recombination
+TARGET_FEATURES = 120    # Target ~60% of 213 features per individual
+N_SPLITS = 3             # 3-fold CV (faster than 5)
+GENS_PER_CYCLE = 5       # 5 gens per cycle (then save)
+COOLDOWN = 30            # Fast iteration
+TOURNAMENT_SIZE = 5      # Balanced selection pressure
+DIVERSITY_RESTART = 20   # Restart sooner on stagnation
 
 # ── Remote Config (mutable at runtime via API) ──
 remote_config = {
