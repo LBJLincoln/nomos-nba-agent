@@ -1222,7 +1222,16 @@ control_api = FastAPI()
 
 @control_api.get("/api/status")
 async def api_status():
-    return JSONResponse(live)
+    # Ensure all values are JSON-serializable (no numpy types)
+    safe = {}
+    for k, v in live.items():
+        if hasattr(v, 'item'):  # numpy scalar
+            safe[k] = v.item()
+        elif isinstance(v, float):
+            safe[k] = round(v, 6)
+        else:
+            safe[k] = v
+    return JSONResponse(safe)
 
 
 @control_api.get("/api/results")
