@@ -4,3 +4,5 @@ xgboost>=3.0
 lightgbm>=4.0
 nba_api>=1.4
 gradio>=5.0
+uvicorn>=0.30
+catboost>=1.2

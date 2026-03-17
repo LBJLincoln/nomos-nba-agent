@@ -44,6 +44,8 @@ import xgboost as xgb
 import lightgbm as lgbm
 
 import gradio as gr
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 # ── Paths ──
 DATA_DIR = Path("data")
@@ -617,6 +619,14 @@ COOLDOWN = 45            # ↓ from 60 — iterate faster
 TOURNAMENT_SIZE = 5      # ↓ from 7 — less selection pressure
 DIVERSITY_RESTART = 30   # NEW: restart portion of pop after N stagnant gens
 
+# ── Remote Config (mutable at runtime via API) ──
+remote_config = {
+    "pending_reset": False,
+    "pending_params": {},
+    "injected_features": [],     # Feature ideas from OpenClaw
+    "commands": [],              # Queued commands (restart, diversify, etc.)
+}
+
 
 def evolution_loop():
     """Main 24/7 genetic evolution loop — runs in background thread."""
@@ -857,6 +867,58 @@ def evolution_loop():
         except Exception:
             pass  # Best-effort
 
+        # ── Check remote commands from OpenClaw ──
+        if remote_config["pending_params"]:
+            params = remote_config["pending_params"]
+            log(f"REMOTE CONFIG UPDATE: {params}")
+            if "pop_size" in params:
+                POP_SIZE_NEW = int(params["pop_size"])
+                if POP_SIZE_NEW != len(population):
+                    # Resize population
+                    if POP_SIZE_NEW > len(population):
+                        while len(population) < POP_SIZE_NEW:
+                            population.append(Individual(n_feat, TARGET_FEATURES))
+                        log(f"Population expanded: {len(population)} → {POP_SIZE_NEW}")
+                    else:
+                        population = sorted(population, key=lambda x: x.fitness["composite"], reverse=True)[:POP_SIZE_NEW]
+                        log(f"Population reduced to top {POP_SIZE_NEW}")
+                    live["pop_size"] = len(population)
+            if "mutation_rate" in params:
+                mutation_rate = float(params["mutation_rate"])
+                log(f"Mutation rate set to {mutation_rate}")
+            if "target_features" in params:
+                TARGET_FEATURES = int(params["target_features"])
+            if "crossover_rate" in params:
+                CROSSOVER_RATE = float(params["crossover_rate"])
+            if "cooldown" in params:
+                COOLDOWN = int(params["cooldown"])
+            remote_config["pending_params"] = {}
+
+        if remote_config["pending_reset"]:
+            log("REMOTE RESET: Reinitializing 50% of population with fresh individuals")
+            n_keep = max(ELITE_SIZE, len(population) // 4)
+            population = sorted(population, key=lambda x: x.fitness["composite"], reverse=True)[:n_keep]
+            while len(population) < POP_SIZE:
+                population.append(Individual(n_feat, TARGET_FEATURES))
+            live["pop_size"] = len(population)
+            stagnation = 0
+            mutation_rate = BASE_MUT
+            remote_config["pending_reset"] = False
+            log(f"Reset complete: kept {n_keep} elites, {len(population)} total")
+
+        for cmd in remote_config.get("commands", []):
+            if cmd == "diversify":
+                n_new = POP_SIZE // 3
+                worst = len(population) - n_new
+                population = sorted(population, key=lambda x: x.fitness["composite"], reverse=True)[:worst]
+                for _ in range(n_new):
+                    population.append(Individual(n_feat, TARGET_FEATURES))
+                log(f"REMOTE DIVERSIFY: replaced {n_new} worst with fresh individuals")
+            elif cmd == "boost_mutation":
+                mutation_rate = min(0.25, mutation_rate * 2)
+                log(f"REMOTE: mutation boosted to {mutation_rate}")
+        remote_config["commands"] = []
+
         # Refresh data every 10 cycles
         if cycle % 10 == 0:
             try:
@@ -947,6 +1009,89 @@ def dash_api():
     return "{}"
 
 
+# ═══════════════════════════════════════════════════════
+# FASTAPI REMOTE CONTROL API (called by OpenClaw autonomously)
+# ═══════════════════════════════════════════════════════
+
+control_api = FastAPI()
+
+
+@control_api.get("/api/status")
+async def api_status():
+    return JSONResponse(live)
+
+
+@control_api.get("/api/results")
+async def api_results():
+    latest = RESULTS_DIR / "evolution-latest.json"
+    if latest.exists():
+        return JSONResponse(json.loads(latest.read_text()))
+    return JSONResponse({"status": "no results yet"})
+
+
+@control_api.post("/api/config")
+async def api_config(request: Request):
+    """Update GA parameters at runtime. OpenClaw calls this to apply improvements."""
+    body = await request.json()
+    allowed = {"pop_size", "mutation_rate", "target_features", "crossover_rate",
+               "cooldown", "elite_size", "tournament_size"}
+    updates = {k: v for k, v in body.items() if k in allowed}
+    if not updates:
+        return JSONResponse({"error": "no valid params", "allowed": list(allowed)}, status_code=400)
+    remote_config["pending_params"].update(updates)
+    log(f"[REMOTE] Config queued: {updates}")
+    return JSONResponse({"status": "queued", "params": updates})
+
+
+@control_api.post("/api/reset")
+async def api_reset(request: Request):
+    """Force population reset — keeps elites, replaces rest with fresh individuals."""
+    remote_config["pending_reset"] = True
+    log("[REMOTE] Population reset requested")
+    return JSONResponse({"status": "reset queued"})
+
+
+@control_api.post("/api/command")
+async def api_command(request: Request):
+    """Execute a command: diversify, boost_mutation, etc."""
+    body = await request.json()
+    cmd = body.get("command", "")
+    valid = ["diversify", "boost_mutation"]
+    if cmd not in valid:
+        return JSONResponse({"error": f"unknown command, valid: {valid}"}, status_code=400)
+    remote_config["commands"].append(cmd)
+    log(f"[REMOTE] Command queued: {cmd}")
+    return JSONResponse({"status": "command queued", "command": cmd})
+
+
+@control_api.post("/api/inject-features")
+async def api_inject_features(request: Request):
+    """Receive feature ideas from OpenClaw's research. Stored for logging/tracking."""
+    body = await request.json()
+    features = body.get("features", [])
+    if not features:
+        return JSONResponse({"error": "no features provided"}, status_code=400)
+    remote_config["injected_features"].extend(features)
+    if len(remote_config["injected_features"]) > 200:
+        remote_config["injected_features"] = remote_config["injected_features"][-200:]
+    log(f"[REMOTE] {len(features)} feature ideas injected: {[f.get('name', '?') for f in features[:5]]}")
+    return JSONResponse({"status": "injected", "count": len(features),
+                         "total_pool": len(remote_config["injected_features"])})
+
+
+@control_api.get("/api/remote-log")
+async def api_remote_log():
+    """Return recent remote commands and injections."""
+    return JSONResponse({
+        "pending_params": remote_config["pending_params"],
+        "pending_reset": remote_config["pending_reset"],
+        "queued_commands": remote_config["commands"],
+        "injected_features_count": len(remote_config["injected_features"]),
+        "recent_features": remote_config["injected_features"][-10:],
+        "log_tail": live["log"][-30:],
+    })
+
+
 with gr.Blocks(title="NOMOS NBA QUANT — Genetic Evolution", theme=gr.themes.Monochrome()) as app:
     gr.Markdown("# NOMOS NBA QUANT AI — Real Genetic Evolution 24/7")
     gr.Markdown("*Population of 60 individuals evolving feature selection + hyperparameters. Multi-objective: Brier + ROI + Sharpe + Calibration.*")
@@ -978,10 +1123,15 @@ with gr.Blocks(title="NOMOS NBA QUANT — Genetic Evolution", theme=gr.themes.Mo
     timer.tick(dash_logs, outputs=logs_box)
 
 
+# ── Mount FastAPI control API onto Gradio's app ──
+gr_app = gr.mount_gradio_app(control_api, app, path="/")
+
 # ── Launch ──
 _thread = threading.Thread(target=evolution_loop, daemon=True, name="GeneticEvolution")
 _thread.start()
 log("Genetic evolution thread launched")
 
 if __name__ == "__main__":
-    app.launch(server_name="0.0.0.0", server_port=7860, share=False)
+    import uvicorn
+    log("Starting with FastAPI + Gradio (remote control API enabled)")
+    uvicorn.run(gr_app, host="0.0.0.0", port=7860)
