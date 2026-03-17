@@ -543,13 +543,25 @@ class Individual:
         child.n_features = sum(child.features)
         return child
 
-    def mutate(self, rate=0.03):
+    def mutate(self, rate=0.03, feature_importance=None):
+        """Directed mutation: bias towards features that top performers use."""
         for i in range(len(self.features)):
-            if random.random() < rate: self.features[i] = 1 - self.features[i]
-        if random.random() < 0.15: self.hyperparams["n_estimators"] = max(50, self.hyperparams["n_estimators"] + random.randint(-100, 100))
-        if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(12, self.hyperparams["max_depth"] + random.randint(-2, 2)))
-        if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.5, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
-        if random.random() < 0.08: self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees"])
+            if random.random() < rate:
+                if feature_importance is not None and i < len(feature_importance):
+                    # Directed: more likely to ADD features that top performers use
+                    imp = feature_importance[i]
+                    if self.features[i] == 0 and imp > 0.5:
+                        self.features[i] = 1  # Add high-importance feature
+                    elif self.features[i] == 1 and imp < 0.15:
+                        self.features[i] = 0  # Drop low-importance feature
+                    else:
+                        self.features[i] = 1 - self.features[i]
+                else:
+                    self.features[i] = 1 - self.features[i]
+        if random.random() < 0.15: self.hyperparams["n_estimators"] = max(50, min(200, self.hyperparams["n_estimators"] + random.randint(-50, 50)))
+        if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(8, self.hyperparams["max_depth"] + random.randint(-2, 2)))
+        if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.3, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
+        if random.random() < 0.10: self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "random_forest", "extra_trees"])
         if random.random() < 0.05: self.hyperparams["calibration"] = random.choice(["isotonic", "sigmoid", "none"])
         self.n_features = sum(self.features)
 
@@ -558,75 +570,95 @@ class Individual:
 # FITNESS EVALUATION
 # ═══════════════════════════════════════════════════════
 
-def evaluate(ind, X, y, n_splits=5):
+def evaluate(ind, X, y, n_splits=2, fast=True):
+    """Two-tier evaluation: fast (subsample + 2-fold) or full (all data + 3-fold)."""
     selected = ind.selected_indices()
-    if len(selected) < 20 or len(selected) > 400:
+    if len(selected) < 15 or len(selected) > 400:
         ind.fitness = {"brier": 0.30, "roi": -0.10, "sharpe": -1.0, "calibration": 0.15, "composite": -1.0}
         return
-    X_sub = np.nan_to_num(X[:, selected], nan=0.0, posinf=1e6, neginf=-1e6)
-    tscv = TimeSeriesSplit(n_splits=n_splits)
+
+    # Fast mode: subsample recent games for speed
+    if fast and X.shape[0] > FAST_EVAL_GAMES:
+        X_eval, y_eval = X[-FAST_EVAL_GAMES:], y[-FAST_EVAL_GAMES:]
+    else:
+        X_eval, y_eval = X, y
+
+    X_sub = np.nan_to_num(X_eval[:, selected], nan=0.0, posinf=1e6, neginf=-1e6)
     hp = ind.hyperparams
-    model = _build(hp)
+
+    # Cap estimators for speed (fast mode)
+    hp_eval = dict(hp)
+    if fast:
+        hp_eval["n_estimators"] = min(hp["n_estimators"], 120)
+
+    model = _build(hp_eval)
     if model is None: ind.fitness["composite"] = -1.0; return
+
+    splits = n_splits if fast else max(n_splits, 3)
+    tscv = TimeSeriesSplit(n_splits=splits)
     briers, rois, all_p, all_y = [], [], [], []
     for ti, vi in tscv.split(X_sub):
         try:
             m = type(model)(**model.get_params())
-            if hp["calibration"] != "none":
-                m = CalibratedClassifierCV(m, method=hp["calibration"], cv=3)
-            m.fit(X_sub[ti], y[ti])
+            if hp_eval["calibration"] != "none":
+                m = CalibratedClassifierCV(m, method=hp_eval["calibration"], cv=2)
+            m.fit(X_sub[ti], y_eval[ti])
             p = m.predict_proba(X_sub[vi])[:, 1]
-            briers.append(brier_score_loss(y[vi], p))
-            rois.append(_bet(p, y[vi]))
-            all_p.extend(p); all_y.extend(y[vi])
+            briers.append(brier_score_loss(y_eval[vi], p))
+            rois.append(_bet(p, y_eval[vi]))
+            all_p.extend(p); all_y.extend(y_eval[vi])
         except Exception:
             briers.append(0.28); rois.append(-0.05)
     ab, ar = np.mean(briers), np.mean(rois)
     sh = np.mean(rois) / max(np.std(rois), 0.01) if len(rois) > 1 else 0.0
     ce = _ece(np.array(all_p), np.array(all_y)) if all_p else 0.15
+    # Brier-heavy fitness — Brier is king, ROI secondary, Sharpe normalized
     ind.fitness = {"brier": round(ab, 5), "roi": round(ar, 4), "sharpe": round(sh, 4),
                    "calibration": round(ce, 4),
-                   "composite": round(0.40 * (1 - ab) + 0.25 * max(0, ar) + 0.20 * max(0, sh / 3) + 0.15 * (1 - ce), 5)}
+                   "composite": round(0.45 * (1 - ab) + 0.25 * max(0, ar) + 0.15 * max(0, min(sh, 5) / 5) + 0.15 * (1 - ce), 5)}
 
 
 def _build(hp):
     try:
         mt = hp["model_type"]
+        n_est = min(hp["n_estimators"], 200)  # Cap for speed
+        depth = min(hp["max_depth"], 8)       # Cap to prevent overfitting
+        lr = hp["learning_rate"]
         if mt == "xgboost":
-            return xgb.XGBClassifier(n_estimators=hp["n_estimators"], max_depth=hp["max_depth"],
-                                     learning_rate=hp["learning_rate"], subsample=hp["subsample"],
+            return xgb.XGBClassifier(n_estimators=n_est, max_depth=depth,
+                                     learning_rate=lr, subsample=hp["subsample"],
                                      colsample_bytree=hp["colsample_bytree"], min_child_weight=hp["min_child_weight"],
                                      reg_alpha=hp["reg_alpha"], reg_lambda=hp["reg_lambda"],
                                      eval_metric="logloss", random_state=42, n_jobs=-1, tree_method="hist")
         elif mt == "lightgbm":
-            return lgbm.LGBMClassifier(n_estimators=hp["n_estimators"], max_depth=hp["max_depth"],
-                                       learning_rate=hp["learning_rate"], subsample=hp["subsample"],
-                                       num_leaves=min(2 ** hp["max_depth"] - 1, 63),
+            return lgbm.LGBMClassifier(n_estimators=n_est, max_depth=depth,
+                                       learning_rate=lr, subsample=hp["subsample"],
+                                       num_leaves=min(2 ** depth - 1, 31),
                                        reg_alpha=hp["reg_alpha"], reg_lambda=hp["reg_lambda"],
                                        min_child_samples=20, feature_fraction=0.7,
                                        verbose=-1, random_state=42, n_jobs=-1)
         elif mt == "catboost":
             from catboost import CatBoostClassifier
-            return CatBoostClassifier(iterations=hp["n_estimators"], depth=min(hp["max_depth"], 8),
-                                      learning_rate=hp["learning_rate"], l2_leaf_reg=hp["reg_lambda"],
+            return CatBoostClassifier(iterations=min(n_est, 100), depth=min(depth, 6),
+                                      learning_rate=lr, l2_leaf_reg=hp["reg_lambda"],
                                       verbose=0, random_state=42, thread_count=-1)
         elif mt == "random_forest":
             from sklearn.ensemble import RandomForestClassifier
-            return RandomForestClassifier(n_estimators=hp["n_estimators"], max_depth=hp["max_depth"],
+            return RandomForestClassifier(n_estimators=n_est, max_depth=depth,
                                           min_samples_leaf=max(int(hp["min_child_weight"]), 5),
                                           max_features="sqrt", random_state=42, n_jobs=-1)
         elif mt == "extra_trees":
             from sklearn.ensemble import ExtraTreesClassifier
-            return ExtraTreesClassifier(n_estimators=hp["n_estimators"], max_depth=hp["max_depth"],
+            return ExtraTreesClassifier(n_estimators=n_est, max_depth=depth,
                                         min_samples_leaf=max(int(hp["min_child_weight"]), 5),
                                         max_features="sqrt", random_state=42, n_jobs=-1)
         else:
-            return xgb.XGBClassifier(n_estimators=hp["n_estimators"], max_depth=hp["max_depth"],
-                                     learning_rate=hp["learning_rate"], eval_metric="logloss",
+            return xgb.XGBClassifier(n_estimators=n_est, max_depth=depth,
+                                     learning_rate=lr, eval_metric="logloss",
                                      random_state=42, n_jobs=-1, tree_method="hist")
     except Exception:
         from sklearn.ensemble import GradientBoostingClassifier
-        return GradientBoostingClassifier(n_estimators=min(hp["n_estimators"], 200), max_depth=hp["max_depth"],
+        return GradientBoostingClassifier(n_estimators=min(hp["n_estimators"], 100), max_depth=min(hp["max_depth"], 6),
                                           learning_rate=hp["learning_rate"], random_state=42)
 
 
@@ -655,16 +687,21 @@ def _ece(probs, actuals, n_bins=10):
 # EVOLUTION ENGINE
 # ═══════════════════════════════════════════════════════
 
-POP_SIZE = 50            # Reduced for 2 vCPU free tier (increase via /api/config)
-ELITE_SIZE = 5           # Top 10% preserved
-BASE_MUT = 0.10          # Explore aggressively
+POP_SIZE = 40            # Smaller pop = faster gens, quality from elitism
+ELITE_SIZE = 6           # Top 15% preserved (more elitism = faster convergence)
+BASE_MUT = 0.08          # Moderate exploration
 CROSSOVER_RATE = 0.85    # High recombination
-TARGET_FEATURES = 120    # Target ~60% of 213 features per individual
-N_SPLITS = 3             # 3-fold CV (faster than 5)
-GENS_PER_CYCLE = 5       # 5 gens per cycle (then save)
-COOLDOWN = 30            # Fast iteration
+TARGET_FEATURES = 90     # Focused feature sets converge faster
+N_SPLITS = 2             # 2-fold fast screening (top candidates get 3-fold)
+GENS_PER_CYCLE = 3       # Save every 3 gens — faster feedback loop
+COOLDOWN = 5             # Minimal cooldown — maximize evolution time
 TOURNAMENT_SIZE = 5      # Balanced selection pressure
-DIVERSITY_RESTART = 20   # Restart sooner on stagnation
+DIVERSITY_RESTART = 15   # Restart sooner on stagnation
+FAST_EVAL_GAMES = 5000   # Subsample for fast eval (last N games)
+FULL_EVAL_TOP = 8        # Full eval only for top N after fast screening
+
+# ── Feature importance tracking (directed mutation) ──
+_feature_importance = None  # numpy array: how often each feature appears in top individuals
 
 # ── Remote Config (mutable at runtime via API) ──
 remote_config = {
@@ -790,13 +827,33 @@ def evolution_loop():
             live["generation"] = generation
             gen_start = time.time()
 
-            # Evaluate
+            # ── FAST EVAL: all non-elites (elites keep their fitness) ──
             for i, ind in enumerate(population):
-                evaluate(ind, X, y, N_SPLITS)
+                if i < ELITE_SIZE and ind.fitness.get("composite", 0) > 0:
+                    continue  # Skip re-eval of elites — already scored
+                evaluate(ind, X, y, N_SPLITS, fast=True)
 
-            # Sort
+            # Sort by composite
+            population.sort(key=lambda x: x.fitness["composite"], reverse=True)
+
+            # ── FULL EVAL: top candidates get precise 3-fold on ALL data ──
+            for ind in population[:FULL_EVAL_TOP]:
+                evaluate(ind, X, y, n_splits=3, fast=False)
+
+            # Re-sort after full eval
             population.sort(key=lambda x: x.fitness["composite"], reverse=True)
             best = population[0]
+
+            # ── Update feature importance from top performers ──
+            global _feature_importance
+            if _feature_importance is None:
+                _feature_importance = np.zeros(n_feat)
+            top_features = np.zeros(n_feat)
+            for ind in population[:10]:
+                for idx in ind.selected_indices():
+                    if idx < n_feat:
+                        top_features[idx] += 1
+            _feature_importance = 0.7 * _feature_importance + 0.3 * (top_features / 10.0)
 
             # Track best
             prev_brier = best_ever.fitness["brier"] if best_ever else 1.0
@@ -814,10 +871,13 @@ def evolution_loop():
             else:
                 stagnation = 0
 
-            if stagnation >= 5:
-                mutation_rate = min(0.15, mutation_rate * 1.5)
+            # Adaptive mutation — more aggressive when stuck
+            if stagnation >= 8:
+                mutation_rate = min(0.20, mutation_rate * 1.5)
+            elif stagnation >= 4:
+                mutation_rate = min(0.15, mutation_rate * 1.2)
             elif stagnation == 0:
-                mutation_rate = max(BASE_MUT, mutation_rate * 0.9)
+                mutation_rate = max(BASE_MUT, mutation_rate * 0.85)
 
             # Update live state
             live["best_brier"] = best_ever.fitness["brier"]
@@ -914,6 +974,16 @@ def evolution_loop():
                 log(f"  EMERGENCY RESTART: {n_restart} fresh individuals (50% population)")
                 stagnation = 0  # Reset counter
 
+            # Anti-convergence: if top 5 all same model, force diversity
+            top_models = [population[i].hyperparams["model_type"] for i in range(min(5, len(population)))]
+            if len(set(top_models)) == 1 and stagnation >= 3:
+                diverse_types = [t for t in ["xgboost", "lightgbm", "random_forest", "extra_trees"] if t != top_models[0]]
+                for _ in range(3):
+                    fresh = Individual(n_feat, TARGET_FEATURES)
+                    fresh.hyperparams["model_type"] = random.choice(diverse_types)
+                    new_pop.append(fresh)
+                log(f"  ANTI-CONVERGENCE: injected 3 diverse models (all top5 were {top_models[0]})")
+
             while len(new_pop) < POP_SIZE:
                 cs = random.sample(population, min(TOURNAMENT_SIZE, len(population)))
                 p1 = max(cs, key=lambda x: x.fitness["composite"])
@@ -923,7 +993,7 @@ def evolution_loop():
                 if not hasattr(child, 'features') or child.features is None:
                     child.features = p1.features[:]; child.hyperparams = dict(p1.hyperparams)
                     child.fitness = dict(p1.fitness); child.n_features = p1.n_features; child.generation = generation
-                child.mutate(mutation_rate)
+                child.mutate(mutation_rate, feature_importance=_feature_importance)
                 new_pop.append(child)
 
             population = new_pop
