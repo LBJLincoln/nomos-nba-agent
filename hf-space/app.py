@@ -47,13 +47,24 @@ import gradio as gr
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-# ── Paths ──
-DATA_DIR = Path("data")
+# ── Paths (use /data for HF Space persistent storage) ──
+_persistent = Path("/data")
+DATA_DIR = _persistent if _persistent.exists() else Path("data")
 HIST_DIR = DATA_DIR / "historical"
 RESULTS_DIR = DATA_DIR / "results"
 STATE_DIR = DATA_DIR / "evolution-state"
 for d in [DATA_DIR, HIST_DIR, RESULTS_DIR, STATE_DIR]:
     d.mkdir(parents=True, exist_ok=True)
+
+# Copy bundled game data to persistent storage if not already there
+_repo_hist = Path("data/historical")
+if _repo_hist.exists() and DATA_DIR != Path("data"):
+    import shutil
+    for f in _repo_hist.glob("games-*.json"):
+        dest = HIST_DIR / f.name
+        if not dest.exists():
+            shutil.copy2(f, dest)
+            print(f"Copied {f.name} to persistent storage")
 
 VM_URL = os.environ.get("VM_CALLBACK_URL", "http://34.136.180.66:8080")
 ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
@@ -163,17 +174,25 @@ def pull_seasons():
         log("nba_api not installed — using cached data", "WARN")
         return
     existing = {f.stem.replace("games-", "") for f in HIST_DIR.glob("games-*.json")}
+    log(f"Cached seasons: {sorted(existing) if existing else 'none'}")
     targets = ["2018-19", "2019-20", "2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26"]
-    for season in [s for s in targets if s not in existing]:
+    missing = [s for s in targets if s not in existing]
+    if not missing:
+        log("All seasons cached — skipping NBA API pull")
+        return
+    log(f"Missing seasons: {missing} — pulling from NBA API (timeout 30s each)")
+    for season in missing:
         log(f"Pulling {season}...")
         try:
             time.sleep(3)
             from nba_api.stats.endpoints import leaguegamefinder
             finder = leaguegamefinder.LeagueGameFinder(
                 season_nullable=season, league_id_nullable="00",
-                season_type_nullable="Regular Season", timeout=60)
+                season_type_nullable="Regular Season", timeout=30)
             df = finder.get_data_frames()[0]
-            if df.empty: continue
+            if df.empty:
+                log(f"  {season}: empty response", "WARN")
+                continue
             pairs = {}
             for _, row in df.iterrows():
                 gid = row["GAME_ID"]
@@ -196,7 +215,7 @@ def pull_seasons():
                 (HIST_DIR / f"games-{season}.json").write_text(json.dumps(games))
                 log(f"  {len(games)} games for {season}")
         except Exception as e:
-            log(f"  Error: {e}", "ERROR")
+            log(f"  {season} failed (continuing): {e}", "WARN")
 
 
 def load_all_games():
