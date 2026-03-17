@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-NBA Quant Feature Engine — 500+ Features with Genetic Selection
+NBA Quant Feature Engine — 640+ Features with Genetic Selection
 ================================================================
-Generates ~580 feature candidates across 10 categories, then uses
-genetic algorithm (DEAP) to select optimal 150-300 features.
+Generates ~640 feature candidates across 15 categories, then uses
+genetic algorithm to select optimal 150-300 features.
 
 Categories:
   1. ROLLING PERFORMANCE (6 windows × 8 stats × 2 teams = 96)
@@ -16,7 +16,12 @@ Categories:
   8. MATCHUP & H2H (18 features)
   9. MARKET MICROSTRUCTURE (30+ features — CLV, line movement, steam)
   10. CONTEXT & SITUATIONAL (20 features)
-  ≈ 580+ feature candidates
+  11. REFEREE FEATURES (10 features — bias, foul rates, tendencies)
+  12. PLAYER IMPACT (16 features — star usage, injuries, depth)
+  13. QUARTER-LEVEL PATTERNS (14 features — Q1/Q3/Q4 trends)
+  14. DEFENSIVE MATCHUP ADVANCED (12 features — paint/perimeter/rim)
+  15. POLYMARKET & PREDICTION MARKETS (8 features — market wisdom)
+  ≈ 640+ feature candidates
 
 Architecture inspired by:
   - Starlizard: 500+ features, genetic selection, real-time adjustment
@@ -106,7 +111,7 @@ def haversine(lat1, lon1, lat2, lon2):
 
 class NBAFeatureEngine:
     """
-    Generates 580+ features for each game from historical data.
+    Generates 640+ features for each game from historical data.
 
     Usage:
         engine = NBAFeatureEngine()
@@ -311,9 +316,65 @@ class NBAFeatureEngine:
             "total_expected",                      # Expected total points
         ])
 
+        # 11. REFEREE FEATURES (10 features) — NEW 2026
+        names.extend([
+            "ref_home_foul_bias",              # Avg (home_fouls - away_fouls) for this crew
+            "ref_total_fouls_avg",             # Avg total fouls called per game
+            "ref_foul_rate_vs_league",         # This crew's foul rate vs league avg
+            "ref_home_ft_advantage",           # Avg FTA differential (home-away) for crew
+            "ref_experience_games",            # Total games officiated this season
+            "ref_over_tendency",               # % of games going over total for crew
+            "ref_close_game_bias",             # Home win % in close games for crew
+            "ref_tech_foul_rate",              # Technical fouls per game for crew
+            "ref_home_win_rate",               # Home team win % with this crew
+            "ref_pace_impact",                 # Avg pace delta vs league avg for crew
+        ])
+
+        # 12. PLAYER IMPACT FEATURES (16 features) — NEW 2026
+        for prefix in ["h", "a"]:
+            names.append(f"{prefix}_star_usage_rate")      # Top 2 players usage rate combined
+            names.append(f"{prefix}_star_minutes_load")    # Top 2 players avg minutes last 5
+            names.append(f"{prefix}_injury_impact_score")  # Weighted injury severity (0-1)
+            names.append(f"{prefix}_injured_war_lost")     # WAR of injured players
+            names.append(f"{prefix}_lineup_continuity")    # % same starting lineup last 5
+            names.append(f"{prefix}_bench_depth_rating")   # Bench net rating last 10
+            names.append(f"{prefix}_star_rest_status")     # 1 if star on B2B, 0.5 if 1 rest day
+            names.append(f"{prefix}_rotation_depth")       # Number of players with 10+ min
+
+        # 13. QUARTER-LEVEL PATTERNS (14 features) — NEW 2026
+        for prefix in ["h", "a"]:
+            names.append(f"{prefix}_q1_margin_avg")        # Avg Q1 margin (last 10)
+            names.append(f"{prefix}_q3_margin_avg")        # Avg Q3 margin (comeback indicator)
+            names.append(f"{prefix}_q4_clutch_netrtg")     # Net rating last 5 min, close games
+            names.append(f"{prefix}_half_adjustment")      # Q3 performance vs Q1 (coaching adj)
+            names.append(f"{prefix}_comeback_win_pct")     # Win% when trailing after Q3
+            names.append(f"{prefix}_blowout_hold_pct")     # % holding 10+ pt leads
+            names.append(f"{prefix}_garbage_time_margin")  # Avg margin change in Q4 blowouts
+
+        # 14. DEFENSIVE MATCHUP ADVANCED (12 features) — NEW 2026
+        for prefix in ["h", "a"]:
+            names.append(f"{prefix}_paint_defense_rating")  # Opp points in paint allowed
+            names.append(f"{prefix}_perimeter_defense")     # Opp 3pt% allowed
+            names.append(f"{prefix}_transition_defense")    # Opp fast break pts allowed
+            names.append(f"{prefix}_shot_contest_rate")     # % of shots contested
+            names.append(f"{prefix}_deflections_per_game")  # Deflections avg
+            names.append(f"{prefix}_rim_protection_rate")   # FG% allowed at rim
+
+        # 15. POLYMARKET & PREDICTION MARKET (8 features) — NEW 2026
+        names.extend([
+            "polymarket_home_prob",             # Polymarket implied probability
+            "polymarket_volume",               # Trading volume (confidence indicator)
+            "polymarket_line_movement",        # Movement in last 6 hours
+            "polymarket_vs_books",             # Polymarket prob - books prob (divergence)
+            "prediction_market_consensus",     # Avg of multiple prediction markets
+            "market_wisdom_confidence",        # How much markets agree (1 - std)
+            "smart_vs_public_divergence",      # Sharp money vs public bets
+            "closing_line_value_history",      # Our historical CLV performance
+        ])
+
         self.feature_names = names
 
-    def build(self, games, market_data=None):
+    def build(self, games, market_data=None, referee_data=None, player_data=None, quarter_data=None):
         """
         Build feature matrix from historical games.
 
@@ -600,6 +661,67 @@ class NBAFeatureEngine:
                 self._wp(hr_, 82) + self._wp(ar_, 82),
                 0.5,  # game importance (needs standings)
                 self._ppg(hr_, 10) + self._ppg(ar_, 10),
+            ])
+
+            # 11. REFEREE FEATURES (10 features)
+            ref = (referee_data or {}).get(game.get("id", gd), {})
+            row.extend([
+                ref.get("home_foul_bias", 0.0),
+                ref.get("total_fouls_avg", 42.0),
+                ref.get("foul_rate_vs_league", 1.0),
+                ref.get("home_ft_advantage", 0.0),
+                ref.get("experience_games", 40) / 82.0,
+                ref.get("over_tendency", 0.5),
+                ref.get("close_game_bias", 0.5),
+                ref.get("tech_foul_rate", 0.3),
+                ref.get("home_win_rate", 0.58),
+                ref.get("pace_impact", 0.0),
+            ])
+
+            # 12. PLAYER IMPACT FEATURES (16 features)
+            for prefix, team_key in [("h", home), ("a", away)]:
+                pd_ = (player_data or {}).get(team_key, {})
+                row.append(pd_.get("star_usage_rate", 0.55))
+                row.append(pd_.get("star_minutes_load", 34.0) / 48.0)
+                row.append(pd_.get("injury_impact_score", 0.0))
+                row.append(pd_.get("injured_war_lost", 0.0))
+                row.append(pd_.get("lineup_continuity", 0.8))
+                row.append(pd_.get("bench_depth_rating", 0.0) / 10.0)
+                rest = self._rest_days(team_key, gd, team_last)
+                row.append(1.0 if rest <= 1 else (0.5 if rest <= 2 else 0.0))
+                row.append(pd_.get("rotation_depth", 8) / 15.0)
+
+            # 13. QUARTER-LEVEL PATTERNS (14 features)
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                qd_ = (quarter_data or {}).get(home if prefix == "h" else away, {})
+                row.append(qd_.get("q1_margin_avg", 0.0))
+                row.append(qd_.get("q3_margin_avg", 0.0))
+                row.append(qd_.get("q4_clutch_netrtg", 0.0) / 10.0)
+                row.append(qd_.get("half_adjustment", 0.0))
+                row.append(qd_.get("comeback_win_pct", 0.3))
+                row.append(qd_.get("blowout_hold_pct", 0.7))
+                row.append(qd_.get("garbage_time_margin", 0.0))
+
+            # 14. DEFENSIVE MATCHUP ADVANCED (12 features)
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                row.append(self._stat_avg(tr, 10, "opp_paint_pts") / 50.0)
+                row.append(self._stat_avg(tr, 10, "opp_fg3_pct"))
+                row.append(self._stat_avg(tr, 10, "fb_pts") / 20.0)  # proxy: own FB pts
+                row.append(0.6)  # contest rate placeholder
+                row.append(self._stat_avg(tr, 10, "stl_rate") * 5)  # proxy: deflections
+                row.append(0.55)  # rim protection placeholder
+
+            # 15. POLYMARKET & PREDICTION MARKET (8 features)
+            pmkt = (market_data or {}).get(game.get("id", gd), {})
+            row.extend([
+                pmkt.get("polymarket_home_prob", 0.5),
+                pmkt.get("polymarket_volume", 0.5),
+                pmkt.get("polymarket_line_movement", 0.0),
+                pmkt.get("polymarket_vs_books", 0.0),
+                pmkt.get("prediction_market_consensus", 0.5),
+                pmkt.get("market_wisdom_confidence", 0.5),
+                pmkt.get("smart_vs_public_divergence", 0.0),
+                pmkt.get("closing_line_value_history", 0.0),
             ])
 
             X.append(row)
