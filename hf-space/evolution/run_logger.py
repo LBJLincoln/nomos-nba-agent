@@ -302,14 +302,18 @@ class RunLogger:
                 self.regression_count = 0
 
         # ── RULE 2: STAGNATION CUT ──
+        # At 20+ gens stagnation, diversify moderately (don't destroy good individuals)
         stagnation = engine_state.get("stagnation", 0)
         if stagnation >= 20:
-            self.log_cut("STAGNATION", f"No improvement for {stagnation} generations",
-                         brier, brier, "emergency_diversify",
-                         {"pop_size": 200, "mutation_rate": 0.20, "target_features": 300})
+            current_mut = engine_state.get("mutation_rate", 0.04)
+            # Boost mutation by 2x (capped at 0.15) — enough to explore without random noise
+            new_mut = min(0.15, current_mut * 2)
+            self.log_cut("STAGNATION", f"No improvement for {stagnation} gens (mutation {current_mut:.3f} → {new_mut:.3f})",
+                         brier, brier, "moderate_diversify",
+                         {"mutation_rate": new_mut})
             actions.append({
                 "type": "emergency_diversify",
-                "params": {"pop_size": 200, "mutation_rate": 0.20, "target_features": 300},
+                "params": {"mutation_rate": new_mut},
             })
 
         # ── RULE 3: ROI CUT ──
@@ -343,16 +347,19 @@ class RunLogger:
             })
 
         # ── RULE 6: BRIER FLOOR ──
-        # If Brier is stuck above 0.24 for 30+ gens, force aggressive exploration
-        if len(self.brier_history) >= 30:
-            if all(b > 0.24 for b in self.brier_history[-30:]):
-                self.log_cut("BRIER_FLOOR", "Brier stuck above 0.24 for 30+ gens",
-                             brier, brier, "full_reset",
-                             {"mutation_rate": 0.25, "pop_size": 250, "target_features": 400})
+        # If Brier is stuck above 0.24 for 50+ gens, try moderate exploration (NOT full reset)
+        # Old rule was destroying progress: mutation 0.25 = random noise, pop 250 > hard cap 80
+        if len(self.brier_history) >= 50:
+            if all(b > 0.24 for b in self.brier_history[-50:]):
+                self.log_cut("BRIER_FLOOR", f"Brier stuck above 0.24 for 50+ gens (best: {min(self.brier_history[-50:]):.4f})",
+                             brier, brier, "moderate_diversify",
+                             {"mutation_rate": 0.12, "target_features": 150})
                 actions.append({
-                    "type": "full_reset",
-                    "params": {"mutation_rate": 0.25, "pop_size": 250, "target_features": 400},
+                    "type": "emergency_diversify",
+                    "params": {"mutation_rate": 0.12, "target_features": 150},
                 })
+                # Clear history so rule doesn't fire every single generation
+                self.brier_history = self.brier_history[-10:]
 
         # Update tracking
         if brier < self.last_best_brier:

@@ -808,6 +808,13 @@ FULL_EVAL_TOP = 10       # Full eval for top 10 — better selection of champion
 # ── Feature importance tracking (directed mutation) ──
 _feature_importance = None  # numpy array: how often each feature appears in top individuals
 
+# ── Shared state for /api/predict (set from evolution_loop) ──
+_evo_X = None          # Full feature matrix
+_evo_y = None          # Labels
+_evo_features = None   # Feature names list
+_evo_best = None       # Best individual (dict with features, hyperparams, fitness)
+_evo_games = None      # Raw games list (for building today's features)
+
 # ── Remote Config (mutable at runtime via API) ──
 remote_config = {
     "pending_reset": False,
@@ -820,6 +827,7 @@ remote_config = {
 def evolution_loop():
     """Main 24/7 genetic evolution loop — runs in background thread."""
     global TARGET_FEATURES, CROSSOVER_RATE, COOLDOWN, POP_SIZE
+    global _evo_X, _evo_y, _evo_features, _evo_best, _evo_games
     log("=" * 60)
     log("REAL GENETIC EVOLUTION LOOP v3 — STARTING")
     log(f"Pop: {POP_SIZE} | Target features: {TARGET_FEATURES} | Gens/cycle: {GENS_PER_CYCLE}")
@@ -881,6 +889,12 @@ def evolution_loop():
     n_feat = X.shape[1]
     live["feature_candidates"] = n_feat
     log(f"Clean feature matrix: {X.shape} ({n_feat} usable features)")
+
+    # ── Share state for /api/predict ──
+    _evo_X = X
+    _evo_y = y
+    _evo_features = feature_names
+    _evo_games = games
 
     # Try restore state
     population = []
@@ -1006,6 +1020,14 @@ def evolution_loop():
                 best_ever.fitness = dict(best.fitness)
                 best_ever.n_features = best.n_features
                 best_ever.generation = generation
+                # Share for /api/predict
+                _evo_best = {
+                    "features": best_ever.features[:],
+                    "hyperparams": dict(best_ever.hyperparams),
+                    "fitness": dict(best_ever.fitness),
+                    "generation": best_ever.generation,
+                    "n_features": best_ever.n_features,
+                }
 
             # Stagnation detection
             if abs(best.fitness["brier"] - prev_brier) < 0.0005:
@@ -1576,6 +1598,172 @@ async def api_recent_runs():
         return JSONResponse({"runs": [list(r) for r in runs] if runs else []})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+# ═══════════════════════════════════════════════════════
+# PREDICT API — Use evolved model for live predictions
+# ═══════════════════════════════════════════════════════
+
+@control_api.post("/api/predict")
+async def api_predict(request: Request):
+    """Generate predictions using the best evolved individual.
+
+    Body: {"games": [{"home_team": "Boston Celtics", "away_team": "Miami Heat"}, ...]}
+    Or: {"date": "2026-03-18"} to predict all games on a date (fetches from ESPN schedule).
+
+    Returns probabilities from the evolved model trained on ALL historical data.
+    """
+    global _evo_X, _evo_y, _evo_features, _evo_best, _evo_games
+
+    if _evo_best is None or _evo_X is None:
+        return JSONResponse({"error": "evolution not ready — model still loading"}, status_code=503)
+
+    body = await request.json()
+    games_to_predict = body.get("games", [])
+    date_str = body.get("date")
+
+    # If date provided, fetch today's schedule from ESPN
+    if date_str and not games_to_predict:
+        try:
+            import urllib.request
+            url = f"https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates={date_str.replace('-', '')}"
+            req = urllib.request.Request(url, headers={"User-Agent": "NomosQuant/1.0"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode())
+            for ev in data.get("events", []):
+                comps = ev.get("competitions", [{}])[0]
+                teams = comps.get("competitors", [])
+                if len(teams) == 2:
+                    home = next((t for t in teams if t.get("homeAway") == "home"), None)
+                    away = next((t for t in teams if t.get("homeAway") == "away"), None)
+                    if home and away:
+                        games_to_predict.append({
+                            "home_team": home["team"]["displayName"],
+                            "away_team": away["team"]["displayName"],
+                            "game_id": ev.get("id"),
+                            "status": comps.get("status", {}).get("type", {}).get("name", ""),
+                        })
+        except Exception as e:
+            return JSONResponse({"error": f"ESPN fetch failed: {e}"}, status_code=502)
+
+    if not games_to_predict:
+        return JSONResponse({"error": "no games to predict — provide 'games' array or 'date'"}, status_code=400)
+
+    try:
+        # Get best individual's config
+        best = _evo_best
+        selected = [i for i, b in enumerate(best["features"]) if b]
+        hp = best["hyperparams"]
+
+        if len(selected) < 5:
+            return JSONResponse({"error": "best individual has too few features"}, status_code=503)
+
+        # Train model on ALL historical data using best individual's features + hyperparams
+        X_train = np.nan_to_num(_evo_X[:, selected], nan=0.0, posinf=1e6, neginf=-1e6)
+        y_train = _evo_y
+
+        hp_build = dict(hp)
+        hp_build["n_estimators"] = min(hp.get("n_estimators", 150), 200)
+        hp_build["max_depth"] = min(hp.get("max_depth", 6), 8)
+
+        if hp_build.get("model_type") == "stacking":
+            # For stacking, use XGBoost as fallback for prediction
+            hp_build["model_type"] = "xgboost"
+
+        model = _build(hp_build)
+        if model is None:
+            return JSONResponse({"error": "model build failed"}, status_code=500)
+
+        # Apply calibration if specified
+        if hp_build.get("calibration", "none") != "none":
+            model = CalibratedClassifierCV(model, method=hp_build["calibration"], cv=3)
+
+        model.fit(X_train, y_train)
+
+        # Build features for today's games
+        # We append each game to historical data and build features for the last row
+        selected_names = [_evo_features[i] for i in selected if i < len(_evo_features)]
+        predictions = []
+
+        for game in games_to_predict:
+            home = game.get("home_team", "")
+            away = game.get("away_team", "")
+            h_abbr = resolve(home)
+            a_abbr = resolve(away)
+
+            if not h_abbr or not a_abbr:
+                predictions.append({
+                    "home_team": home, "away_team": away,
+                    "error": "team not recognized"
+                })
+                continue
+
+            # Create a synthetic game entry (no score yet — we just need features)
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            synthetic_game = {
+                "game_date": today,
+                "home_team": home, "away_team": away,
+                "home": {"team_name": home, "pts": 0},
+                "away": {"team_name": away, "pts": 0},
+            }
+
+            # Build features for this game using historical context
+            try:
+                all_games = list(_evo_games) + [synthetic_game]
+                X_all, y_all, fn_all = build_features(all_games)
+
+                # Apply same variance filter
+                if X_all.shape[1] != _evo_X.shape[1]:
+                    # Feature count mismatch — use column mapping by name
+                    fn_map = {name: i for i, name in enumerate(fn_all)}
+                    game_vec = np.zeros(len(selected))
+                    for j, si in enumerate(selected):
+                        if si < len(_evo_features):
+                            fname = _evo_features[si]
+                            if fname in fn_map:
+                                game_vec[j] = X_all[-1, fn_map[fname]]
+                else:
+                    game_vec = np.nan_to_num(X_all[-1, selected], nan=0.0, posinf=1e6, neginf=-1e6)
+
+                prob = float(model.predict_proba(game_vec.reshape(1, -1))[0, 1])
+
+                # Kelly criterion (25% fractional)
+                if prob > 0.55:
+                    edge = prob - 0.5
+                    kelly = (edge / 0.5) * 0.25  # fractional Kelly
+                else:
+                    kelly = 0.0
+
+                predictions.append({
+                    "home_team": home, "away_team": away,
+                    "home_win_prob": round(prob, 4),
+                    "away_win_prob": round(1 - prob, 4),
+                    "confidence": round(abs(prob - 0.5) * 2, 4),
+                    "kelly_stake": round(kelly, 4),
+                    "model_type": best["hyperparams"]["model_type"],
+                    "features_used": best["n_features"],
+                    "brier_cv": best["fitness"]["brier"],
+                })
+            except Exception as e:
+                predictions.append({
+                    "home_team": home, "away_team": away,
+                    "error": f"feature build failed: {str(e)[:100]}"
+                })
+
+        return JSONResponse({
+            "predictions": predictions,
+            "model": {
+                "type": best["hyperparams"]["model_type"],
+                "generation": best["generation"],
+                "brier_cv": best["fitness"]["brier"],
+                "roi_cv": best["fitness"]["roi"],
+                "features": best["n_features"],
+            },
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
+    except Exception as e:
+        return JSONResponse({"error": f"prediction failed: {str(e)[:200]}"}, status_code=500)
 
 
 with gr.Blocks(title="NOMOS NBA QUANT — Genetic Evolution", theme=gr.themes.Monochrome()) as app:
