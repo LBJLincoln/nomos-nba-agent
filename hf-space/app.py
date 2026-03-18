@@ -865,9 +865,22 @@ def evolution_loop():
 
     live["status"] = "BUILDING FEATURES"
     X, y, feature_names = build_features(games)
+    log(f"Raw feature matrix: {X.shape} ({X.shape[1]} features)")
+
+    # ── CRITICAL: Remove zero-variance (noise) features ──
+    # Categories 11-15 (referee, player, quarter, defense, polymarket) have no data
+    # and compute to constant defaults (0.0, 0.5, etc.). These add noise, not signal.
+    live["status"] = "FILTERING NOISE FEATURES"
+    variances = np.var(X, axis=0)
+    valid_mask = variances > 1e-10  # Keep only features with real variance
+    n_removed = int((~valid_mask).sum())
+    if n_removed > 0:
+        X = X[:, valid_mask]
+        feature_names = [f for f, v in zip(feature_names, valid_mask) if v]
+        log(f"NOISE FILTER: removed {n_removed} zero-variance features (no real data)")
     n_feat = X.shape[1]
     live["feature_candidates"] = n_feat
-    log(f"Feature matrix: {X.shape} ({n_feat} features)")
+    log(f"Clean feature matrix: {X.shape} ({n_feat} usable features)")
 
     # Try restore state
     population = []
