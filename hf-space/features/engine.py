@@ -129,8 +129,9 @@ class NBAFeatureEngine:
         # X.shape = (n_games, ~2000)
     """
 
-    def __init__(self, include_market=True):
+    def __init__(self, include_market=True, skip_placeholder=False):
         self.include_market = include_market
+        self.skip_placeholder = skip_placeholder
         self.feature_names = []
         self._build_feature_names()
 
@@ -326,61 +327,63 @@ class NBAFeatureEngine:
             "total_expected",                      # Expected total points
         ])
 
-        # 11. REFEREE FEATURES (10 features) — NEW 2026
-        names.extend([
-            "ref_home_foul_bias",              # Avg (home_fouls - away_fouls) for this crew
-            "ref_total_fouls_avg",             # Avg total fouls called per game
-            "ref_foul_rate_vs_league",         # This crew's foul rate vs league avg
-            "ref_home_ft_advantage",           # Avg FTA differential (home-away) for crew
-            "ref_experience_games",            # Total games officiated this season
-            "ref_over_tendency",               # % of games going over total for crew
-            "ref_close_game_bias",             # Home win % in close games for crew
-            "ref_tech_foul_rate",              # Technical fouls per game for crew
-            "ref_home_win_rate",               # Home team win % with this crew
-            "ref_pace_impact",                 # Avg pace delta vs league avg for crew
-        ])
+        # 11-15. PLACEHOLDER CATEGORIES (skippable — all zeros/defaults without real data)
+        if not self.skip_placeholder:
+            # 11. REFEREE FEATURES (10 features) — NEW 2026
+            names.extend([
+                "ref_home_foul_bias",              # Avg (home_fouls - away_fouls) for this crew
+                "ref_total_fouls_avg",             # Avg total fouls called per game
+                "ref_foul_rate_vs_league",         # This crew's foul rate vs league avg
+                "ref_home_ft_advantage",           # Avg FTA differential (home-away) for crew
+                "ref_experience_games",            # Total games officiated this season
+                "ref_over_tendency",               # % of games going over total for crew
+                "ref_close_game_bias",             # Home win % in close games for crew
+                "ref_tech_foul_rate",              # Technical fouls per game for crew
+                "ref_home_win_rate",               # Home team win % with this crew
+                "ref_pace_impact",                 # Avg pace delta vs league avg for crew
+            ])
 
-        # 12. PLAYER IMPACT FEATURES (16 features) — NEW 2026
-        for prefix in ["h", "a"]:
-            names.append(f"{prefix}_star_usage_rate")      # Top 2 players usage rate combined
-            names.append(f"{prefix}_star_minutes_load")    # Top 2 players avg minutes last 5
-            names.append(f"{prefix}_injury_impact_score")  # Weighted injury severity (0-1)
-            names.append(f"{prefix}_injured_war_lost")     # WAR of injured players
-            names.append(f"{prefix}_lineup_continuity")    # % same starting lineup last 5
-            names.append(f"{prefix}_bench_depth_rating")   # Bench net rating last 10
-            names.append(f"{prefix}_star_rest_status")     # 1 if star on B2B, 0.5 if 1 rest day
-            names.append(f"{prefix}_rotation_depth")       # Number of players with 10+ min
+            # 12. PLAYER IMPACT FEATURES (16 features) — NEW 2026
+            for prefix in ["h", "a"]:
+                names.append(f"{prefix}_star_usage_rate")      # Top 2 players usage rate combined
+                names.append(f"{prefix}_star_minutes_load")    # Top 2 players avg minutes last 5
+                names.append(f"{prefix}_injury_impact_score")  # Weighted injury severity (0-1)
+                names.append(f"{prefix}_injured_war_lost")     # WAR of injured players
+                names.append(f"{prefix}_lineup_continuity")    # % same starting lineup last 5
+                names.append(f"{prefix}_bench_depth_rating")   # Bench net rating last 10
+                names.append(f"{prefix}_star_rest_status")     # 1 if star on B2B, 0.5 if 1 rest day
+                names.append(f"{prefix}_rotation_depth")       # Number of players with 10+ min
 
-        # 13. QUARTER-LEVEL PATTERNS (14 features) — NEW 2026
-        for prefix in ["h", "a"]:
-            names.append(f"{prefix}_q1_margin_avg")        # Avg Q1 margin (last 10)
-            names.append(f"{prefix}_q3_margin_avg")        # Avg Q3 margin (comeback indicator)
-            names.append(f"{prefix}_q4_clutch_netrtg")     # Net rating last 5 min, close games
-            names.append(f"{prefix}_half_adjustment")      # Q3 performance vs Q1 (coaching adj)
-            names.append(f"{prefix}_comeback_win_pct")     # Win% when trailing after Q3
-            names.append(f"{prefix}_blowout_hold_pct")     # % holding 10+ pt leads
-            names.append(f"{prefix}_garbage_time_margin")  # Avg margin change in Q4 blowouts
+            # 13. QUARTER-LEVEL PATTERNS (14 features) — NEW 2026
+            for prefix in ["h", "a"]:
+                names.append(f"{prefix}_q1_margin_avg")        # Avg Q1 margin (last 10)
+                names.append(f"{prefix}_q3_margin_avg")        # Avg Q3 margin (comeback indicator)
+                names.append(f"{prefix}_q4_clutch_netrtg")     # Net rating last 5 min, close games
+                names.append(f"{prefix}_half_adjustment")      # Q3 performance vs Q1 (coaching adj)
+                names.append(f"{prefix}_comeback_win_pct")     # Win% when trailing after Q3
+                names.append(f"{prefix}_blowout_hold_pct")     # % holding 10+ pt leads
+                names.append(f"{prefix}_garbage_time_margin")  # Avg margin change in Q4 blowouts
 
-        # 14. DEFENSIVE MATCHUP ADVANCED (12 features) — NEW 2026
-        for prefix in ["h", "a"]:
-            names.append(f"{prefix}_paint_defense_rating")  # Opp points in paint allowed
-            names.append(f"{prefix}_perimeter_defense")     # Opp 3pt% allowed
-            names.append(f"{prefix}_transition_defense")    # Opp fast break pts allowed
-            names.append(f"{prefix}_shot_contest_rate")     # % of shots contested
-            names.append(f"{prefix}_deflections_per_game")  # Deflections avg
-            names.append(f"{prefix}_rim_protection_rate")   # FG% allowed at rim
+            # 14. DEFENSIVE MATCHUP ADVANCED (12 features) — NEW 2026
+            for prefix in ["h", "a"]:
+                names.append(f"{prefix}_paint_defense_rating")  # Opp points in paint allowed
+                names.append(f"{prefix}_perimeter_defense")     # Opp 3pt% allowed
+                names.append(f"{prefix}_transition_defense")    # Opp fast break pts allowed
+                names.append(f"{prefix}_shot_contest_rate")     # % of shots contested
+                names.append(f"{prefix}_deflections_per_game")  # Deflections avg
+                names.append(f"{prefix}_rim_protection_rate")   # FG% allowed at rim
 
-        # 15. POLYMARKET & PREDICTION MARKET (8 features) — NEW 2026
-        names.extend([
-            "polymarket_home_prob",             # Polymarket implied probability
-            "polymarket_volume",               # Trading volume (confidence indicator)
-            "polymarket_line_movement",        # Movement in last 6 hours
-            "polymarket_vs_books",             # Polymarket prob - books prob (divergence)
-            "prediction_market_consensus",     # Avg of multiple prediction markets
-            "market_wisdom_confidence",        # How much markets agree (1 - std)
-            "smart_vs_public_divergence",      # Sharp money vs public bets
-            "closing_line_value_history",      # Our historical CLV performance
-        ])
+            # 15. POLYMARKET & PREDICTION MARKET (8 features) — NEW 2026
+            names.extend([
+                "polymarket_home_prob",             # Polymarket implied probability
+                "polymarket_volume",               # Trading volume (confidence indicator)
+                "polymarket_line_movement",        # Movement in last 6 hours
+                "polymarket_vs_books",             # Polymarket prob - books prob (divergence)
+                "prediction_market_consensus",     # Avg of multiple prediction markets
+                "market_wisdom_confidence",        # How much markets agree (1 - std)
+                "smart_vs_public_divergence",      # Sharp money vs public bets
+                "closing_line_value_history",      # Our historical CLV performance
+            ])
 
         # =====================================================================
         # CATEGORIES 16-25: ADVANCED FEATURE EXPANSION (1400+ new features)
@@ -1203,66 +1206,68 @@ class NBAFeatureEngine:
                 self._ppg(hr_, 10) + self._ppg(ar_, 10),
             ])
 
-            # 11. REFEREE FEATURES (10 features)
-            ref = (referee_data or {}).get(game.get("id", gd), {})
-            row.extend([
-                ref.get("home_foul_bias", 0.0),
-                ref.get("total_fouls_avg", 42.0),
-                ref.get("foul_rate_vs_league", 1.0),
-                ref.get("home_ft_advantage", 0.0),
-                ref.get("experience_games", 40) / 82.0,
-                ref.get("over_tendency", 0.5),
-                ref.get("close_game_bias", 0.5),
-                ref.get("tech_foul_rate", 0.3),
-                ref.get("home_win_rate", 0.58),
-                ref.get("pace_impact", 0.0),
-            ])
+            # 11-15. PLACEHOLDER CATEGORIES (skippable — all zeros/defaults without real data)
+            if not self.skip_placeholder:
+                # 11. REFEREE FEATURES (10 features)
+                ref = (referee_data or {}).get(game.get("id", gd), {})
+                row.extend([
+                    ref.get("home_foul_bias", 0.0),
+                    ref.get("total_fouls_avg", 42.0),
+                    ref.get("foul_rate_vs_league", 1.0),
+                    ref.get("home_ft_advantage", 0.0),
+                    ref.get("experience_games", 40) / 82.0,
+                    ref.get("over_tendency", 0.5),
+                    ref.get("close_game_bias", 0.5),
+                    ref.get("tech_foul_rate", 0.3),
+                    ref.get("home_win_rate", 0.58),
+                    ref.get("pace_impact", 0.0),
+                ])
 
-            # 12. PLAYER IMPACT FEATURES (16 features)
-            for prefix, team_key in [("h", home), ("a", away)]:
-                pd_ = (player_data or {}).get(team_key, {})
-                row.append(pd_.get("star_usage_rate", 0.55))
-                row.append(pd_.get("star_minutes_load", 34.0) / 48.0)
-                row.append(pd_.get("injury_impact_score", 0.0))
-                row.append(pd_.get("injured_war_lost", 0.0))
-                row.append(pd_.get("lineup_continuity", 0.8))
-                row.append(pd_.get("bench_depth_rating", 0.0) / 10.0)
-                rest = self._rest_days(team_key, gd, team_last)
-                row.append(1.0 if rest <= 1 else (0.5 if rest <= 2 else 0.0))
-                row.append(pd_.get("rotation_depth", 8) / 15.0)
+                # 12. PLAYER IMPACT FEATURES (16 features)
+                for prefix, team_key in [("h", home), ("a", away)]:
+                    pd_ = (player_data or {}).get(team_key, {})
+                    row.append(pd_.get("star_usage_rate", 0.55))
+                    row.append(pd_.get("star_minutes_load", 34.0) / 48.0)
+                    row.append(pd_.get("injury_impact_score", 0.0))
+                    row.append(pd_.get("injured_war_lost", 0.0))
+                    row.append(pd_.get("lineup_continuity", 0.8))
+                    row.append(pd_.get("bench_depth_rating", 0.0) / 10.0)
+                    rest = self._rest_days(team_key, gd, team_last)
+                    row.append(1.0 if rest <= 1 else (0.5 if rest <= 2 else 0.0))
+                    row.append(pd_.get("rotation_depth", 8) / 15.0)
 
-            # 13. QUARTER-LEVEL PATTERNS (14 features)
-            for prefix, tr in [("h", hr_), ("a", ar_)]:
-                qd_ = (quarter_data or {}).get(home if prefix == "h" else away, {})
-                row.append(qd_.get("q1_margin_avg", 0.0))
-                row.append(qd_.get("q3_margin_avg", 0.0))
-                row.append(qd_.get("q4_clutch_netrtg", 0.0) / 10.0)
-                row.append(qd_.get("half_adjustment", 0.0))
-                row.append(qd_.get("comeback_win_pct", 0.3))
-                row.append(qd_.get("blowout_hold_pct", 0.7))
-                row.append(qd_.get("garbage_time_margin", 0.0))
+                # 13. QUARTER-LEVEL PATTERNS (14 features)
+                for prefix, tr in [("h", hr_), ("a", ar_)]:
+                    qd_ = (quarter_data or {}).get(home if prefix == "h" else away, {})
+                    row.append(qd_.get("q1_margin_avg", 0.0))
+                    row.append(qd_.get("q3_margin_avg", 0.0))
+                    row.append(qd_.get("q4_clutch_netrtg", 0.0) / 10.0)
+                    row.append(qd_.get("half_adjustment", 0.0))
+                    row.append(qd_.get("comeback_win_pct", 0.3))
+                    row.append(qd_.get("blowout_hold_pct", 0.7))
+                    row.append(qd_.get("garbage_time_margin", 0.0))
 
-            # 14. DEFENSIVE MATCHUP ADVANCED (12 features)
-            for prefix, tr in [("h", hr_), ("a", ar_)]:
-                row.append(self._stat_avg(tr, 10, "opp_paint_pts") / 50.0)
-                row.append(self._stat_avg(tr, 10, "opp_fg3_pct"))
-                row.append(self._stat_avg(tr, 10, "fb_pts") / 20.0)  # proxy: own FB pts
-                row.append(0.6)  # contest rate placeholder
-                row.append(self._stat_avg(tr, 10, "stl_rate") * 5)  # proxy: deflections
-                row.append(0.55)  # rim protection placeholder
+                # 14. DEFENSIVE MATCHUP ADVANCED (12 features)
+                for prefix, tr in [("h", hr_), ("a", ar_)]:
+                    row.append(self._stat_avg(tr, 10, "opp_paint_pts") / 50.0)
+                    row.append(self._stat_avg(tr, 10, "opp_fg3_pct"))
+                    row.append(self._stat_avg(tr, 10, "fb_pts") / 20.0)  # proxy: own FB pts
+                    row.append(0.6)  # contest rate placeholder
+                    row.append(self._stat_avg(tr, 10, "stl_rate") * 5)  # proxy: deflections
+                    row.append(0.55)  # rim protection placeholder
 
-            # 15. POLYMARKET & PREDICTION MARKET (8 features)
-            pmkt = (market_data or {}).get(game.get("id", gd), {})
-            row.extend([
-                pmkt.get("polymarket_home_prob", 0.5),
-                pmkt.get("polymarket_volume", 0.5),
-                pmkt.get("polymarket_line_movement", 0.0),
-                pmkt.get("polymarket_vs_books", 0.0),
-                pmkt.get("prediction_market_consensus", 0.5),
-                pmkt.get("market_wisdom_confidence", 0.5),
-                pmkt.get("smart_vs_public_divergence", 0.0),
-                pmkt.get("closing_line_value_history", 0.0),
-            ])
+                # 15. POLYMARKET & PREDICTION MARKET (8 features)
+                pmkt = (market_data or {}).get(game.get("id", gd), {})
+                row.extend([
+                    pmkt.get("polymarket_home_prob", 0.5),
+                    pmkt.get("polymarket_volume", 0.5),
+                    pmkt.get("polymarket_line_movement", 0.0),
+                    pmkt.get("polymarket_vs_books", 0.0),
+                    pmkt.get("prediction_market_consensus", 0.5),
+                    pmkt.get("market_wisdom_confidence", 0.5),
+                    pmkt.get("smart_vs_public_divergence", 0.0),
+                    pmkt.get("closing_line_value_history", 0.0),
+                ])
 
             # ── CATEGORIES 16-25: ADVANCED FEATURE COMPUTATION ──
             # Build name→index lookup for values already computed (cats 1-15)
@@ -2687,42 +2692,74 @@ class NBAFeatureEngine:
         team_home_games_count[home] += 1
 
     def _parse_stats(self, stats, pts, opp_pts, is_home=True):
-        """Extract stats from game data, with defaults."""
+        """Extract stats from game data. Uses REAL box score when available, estimates otherwise."""
         if not isinstance(stats, dict):
             stats = {}
-        d = {
-            "pts": pts, "opp_pts": opp_pts, "is_home": is_home,
-            "ortg": stats.get("ortg", pts * 100 / max(stats.get("poss", 100), 1)),
-            "drtg": stats.get("drtg", opp_pts * 100 / max(stats.get("poss", 100), 1)),
-            "pace": stats.get("pace", (pts + opp_pts) / 2.0),
-            "poss": stats.get("poss", (pts + opp_pts) / 2.0),
-        }
-        # Four Factors
-        fga = stats.get("fga", max(pts / 1.1, 80))
-        fg3m = stats.get("fg3m", pts * 0.3 / 3)
-        fta = stats.get("fta", pts * 0.2)
-        tov = stats.get("tov", 13)
-        orb = stats.get("oreb", 10)
-        drb = stats.get("dreb", 34)
+
+        # Detect real box score data (backfilled via backfill-boxscores.py)
+        has_boxscore = "fga" in stats and stats["fga"] is not None and stats["fga"] > 0
+
+        if has_boxscore:
+            # ── REAL DATA PATH ──
+            fga = stats["fga"]
+            fgm = stats.get("fgm", pts / 2.0)
+            fg3a = stats.get("fg3a", fga * 0.38)
+            fg3m = stats.get("fg3m", fg3a * 0.36)
+            ftm = stats.get("ftm", pts * 0.17)
+            fta = stats.get("fta", ftm / 0.78 if ftm else pts * 0.2)
+            oreb = stats.get("oreb", 10)
+            dreb = stats.get("dreb", 34)
+            tov = stats.get("tov", 13)
+            pf = stats.get("pf", 20)
+            # Real possessions: standard formula
+            poss = max(fga + 0.44 * fta + tov - oreb, 60)
+            # Real efficiency
+            ortg = pts * 100 / poss
+            drtg = opp_pts * 100 / poss
+            pace = poss
+        else:
+            # ── ESTIMATE PATH (backward compat for old seasons) ──
+            fga = max(pts / 1.1, 80)
+            fgm = pts / 2.0
+            fg3a = fga * 0.38
+            fg3m = pts * 0.3 / 3
+            ftm = pts * 0.17
+            fta = pts * 0.2
+            oreb = 10
+            dreb = 34
+            tov = 13
+            pf = 20
+            poss = stats.get("poss", (pts + opp_pts) / 2.0)
+            ortg = stats.get("ortg", pts * 100 / max(poss, 1))
+            drtg = stats.get("drtg", opp_pts * 100 / max(poss, 1))
+            pace = poss
+
         opp_drb = stats.get("opp_dreb", 34)
 
-        d["efg_pct"] = stats.get("efg_pct", (pts / 2.0) / max(fga, 1))
-        d["tov_rate"] = stats.get("tov_rate", tov / max(fga + 0.44 * fta + tov, 1))
-        d["oreb_pct"] = stats.get("oreb_pct", orb / max(orb + opp_drb, 1))
-        d["ft_rate"] = stats.get("ft_rate", fta / max(fga, 1))
-        d["ts_pct"] = stats.get("ts_pct", pts / max(2 * (fga + 0.44 * fta), 1))
+        d = {
+            "pts": pts, "opp_pts": opp_pts, "is_home": is_home,
+            "ortg": ortg, "drtg": drtg, "pace": pace, "poss": poss,
+            "has_boxscore": 1.0 if has_boxscore else 0.0,
+        }
 
-        # Opponent Four Factors (estimated)
+        # Four Factors (REAL when boxscore available)
+        d["efg_pct"] = (fgm + 0.5 * fg3m) / max(fga, 1) if has_boxscore else stats.get("efg_pct", (pts / 2.0) / max(fga, 1))
+        d["tov_rate"] = tov / max(fga + 0.44 * fta + tov, 1)
+        d["oreb_pct"] = stats.get("oreb_pct", oreb / max(oreb + opp_drb, 1))
+        d["ft_rate"] = fta / max(fga, 1)
+        d["ts_pct"] = pts / max(2 * (fga + 0.44 * fta), 1)
+
+        # Opponent Four Factors (estimated — opponent box score not in same dict)
         d["opp_efg_pct"] = stats.get("opp_efg_pct", d["efg_pct"] * 0.95)
         d["opp_tov_rate"] = stats.get("opp_tov_rate", d["tov_rate"])
         d["opp_oreb_pct"] = stats.get("opp_oreb_pct", d["oreb_pct"])
         d["opp_ft_rate"] = stats.get("opp_ft_rate", d["ft_rate"])
 
         # Shooting profile
-        d["3par"] = stats.get("3par", fg3m * 3 / max(pts, 1))
-        d["fg3_pct"] = stats.get("fg3_pct", 0.36)
-        d["fg2_pct"] = stats.get("fg2_pct", 0.52)
-        d["ft_pct"] = stats.get("ft_pct", 0.78)
+        d["3par"] = fg3a / max(fga, 1) if has_boxscore else stats.get("3par", fg3m * 3 / max(pts, 1))
+        d["fg3_pct"] = fg3m / max(fg3a, 1) if has_boxscore else stats.get("fg3_pct", 0.36)
+        d["fg2_pct"] = (fgm - fg3m) / max(fga - fg3a, 1) if has_boxscore else stats.get("fg2_pct", 0.52)
+        d["ft_pct"] = ftm / max(fta, 1) if has_boxscore else stats.get("ft_pct", 0.78)
         d["paint_pts"] = stats.get("paint_pts", pts * 0.4)
         d["fb_pts"] = stats.get("fb_pts", pts * 0.1)
         d["bench_pts"] = stats.get("bench_pts", pts * 0.3)
@@ -2731,11 +2768,11 @@ class NBAFeatureEngine:
         d["pts_off_tov"] = stats.get("pts_off_tov", pts * 0.12)
 
         # Rates
-        d["ast_rate"] = stats.get("ast_rate", 0.6)
-        d["stl_rate"] = stats.get("stl_rate", 0.08)
-        d["blk_rate"] = stats.get("blk_rate", 0.05)
+        d["ast_rate"] = stats.get("ast_rate", stats.get("ast", 24) / max(fgm, 1) if has_boxscore else 0.6)
+        d["stl_rate"] = stats.get("stl_rate", stats.get("stl", 7) / max(poss, 1) if has_boxscore else 0.08)
+        d["blk_rate"] = stats.get("blk_rate", stats.get("blk", 5) / max(fga, 1) if has_boxscore else 0.05)
         d["tov_pct"] = d["tov_rate"]
-        d["dreb_pct"] = stats.get("dreb_pct", drb / max(drb + orb, 1))
+        d["dreb_pct"] = stats.get("dreb_pct", dreb / max(dreb + oreb, 1))
 
         # Opponent shooting
         d["opp_fg3_pct"] = stats.get("opp_fg3_pct", 0.36)

@@ -663,7 +663,7 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
 def evaluate(ind, X, y, n_splits=2, fast=True):
     """Two-tier evaluation: fast (subsample + 2-fold) or full (all data + 3-fold)."""
     selected = ind.selected_indices()
-    if len(selected) < 15 or len(selected) > 150:
+    if len(selected) < 15 or len(selected) > 200:
         ind.fitness = {"brier": 0.30, "roi": -0.10, "sharpe": -1.0, "calibration": 0.15, "composite": -1.0}
         return
 
@@ -711,13 +711,15 @@ def evaluate(ind, X, y, n_splits=2, fast=True):
     ab, ar = np.mean(briers), np.mean(rois)
     sh = np.mean(rois) / max(np.std(rois), 0.01) if len(rois) > 1 else 0.0
     ce = _ece(np.array(all_p), np.array(all_y)) if all_p else 0.15
-    # Brier-DOMINANT fitness — Brier 60%, Calibration 20%, ROI 10%, Sharpe 10%
-    # Rationale: we want the BEST PREDICTOR, not the best bettor.
-    # ROI and Sharpe can be gamed by betting few games at high confidence.
-    # Good predictions (low Brier + good calibration) naturally yield good bets.
+    # Brier-DOMINANT fitness — Brier 70%, Calibration 20%, ROI 5%, Sharpe 5%
+    # Rationale: ROI/Sharpe use synthetic odds (model prob, not market). Overweighting
+    # them rewards confident-but-wrong predictions. Focus on prediction accuracy.
+    n_features = len(selected)
+    feature_penalty = 0.001 * max(0, n_features - 80)  # Soft pressure toward 80 features
+    composite = 0.70 * (1 - ab) + 0.20 * (1 - ce) + 0.05 * max(0, ar) + 0.05 * max(0, min(sh, 3) / 3) - feature_penalty
     ind.fitness = {"brier": round(ab, 5), "roi": round(ar, 4), "sharpe": round(sh, 4),
                    "calibration": round(ce, 4),
-                   "composite": round(0.60 * (1 - ab) + 0.20 * (1 - ce) + 0.10 * max(0, ar) + 0.10 * max(0, min(sh, 3) / 3), 5)}
+                   "composite": round(composite, 5)}
 
 
 def _build(hp):
@@ -814,6 +816,11 @@ _evo_y = None          # Labels
 _evo_features = None   # Feature names list
 _evo_best = None       # Best individual (dict with features, hyperparams, fitness)
 _evo_games = None      # Raw games list (for building today's features)
+
+# ── Checkpoint system (monotonic ratchet) ──
+_checkpoints = []      # Last 10 checkpoints: [{best, brier, generation, timestamp}]
+CHECKPOINT_DIR = Path(__file__).parent / "data" / "checkpoints"
+CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Remote Config (mutable at runtime via API) ──
 remote_config = {
@@ -1505,15 +1512,97 @@ async def api_reset(request: Request):
 
 @control_api.post("/api/command")
 async def api_command(request: Request):
-    """Execute a command: diversify, boost_mutation, etc."""
+    """Execute a command: diversify, boost_mutation, backfill_boxscores, etc."""
     body = await request.json()
     cmd = body.get("command", "")
-    valid = ["diversify", "boost_mutation"]
+    valid = ["diversify", "boost_mutation", "backfill_boxscores"]
     if cmd not in valid:
         return JSONResponse({"error": f"unknown command, valid: {valid}"}, status_code=400)
+
+    if cmd == "backfill_boxscores":
+        import threading
+        def _run_backfill():
+            try:
+                import subprocess, sys
+                log("[BACKFILL] Starting box score backfill...")
+                live["backfill_progress"] = "running"
+                result = subprocess.run(
+                    [sys.executable, "ops/backfill-boxscores.py"],
+                    capture_output=True, text=True, timeout=14400,  # 4h max
+                    cwd=str(Path(__file__).parent.parent)
+                )
+                live["backfill_progress"] = "complete" if result.returncode == 0 else f"failed: {result.stderr[-200:]}"
+                log(f"[BACKFILL] Done: rc={result.returncode}")
+            except Exception as e:
+                live["backfill_progress"] = f"error: {e}"
+                log(f"[BACKFILL] Error: {e}")
+        threading.Thread(target=_run_backfill, daemon=True).start()
+        return JSONResponse({"status": "backfill started", "monitor": "/api/status → backfill_progress"})
+
     remote_config["commands"].append(cmd)
     log(f"[REMOTE] Command queued: {cmd}")
     return JSONResponse({"status": "command queued", "command": cmd})
+
+
+@control_api.post("/api/checkpoint")
+async def api_checkpoint(request: Request):
+    """Save current best individual as a checkpoint."""
+    global _checkpoints, _evo_best
+    if not _evo_best:
+        return JSONResponse({"error": "No evolution best available"}, status_code=400)
+
+    cp = {
+        "best": dict(_evo_best),
+        "brier": _evo_best.get("fitness", {}).get("brier", 1.0),
+        "generation": _evo_best.get("generation", 0),
+        "timestamp": datetime.now().isoformat(),
+    }
+    _checkpoints.append(cp)
+    if len(_checkpoints) > 10:
+        _checkpoints = _checkpoints[-10:]
+
+    # Persist to disk
+    cp_file = CHECKPOINT_DIR / f"cp-{cp['generation']}-{int(time.time())}.json"
+    cp_file.write_text(json.dumps(cp, indent=2, default=str))
+    log(f"[CHECKPOINT] Saved gen {cp['generation']}, Brier {cp['brier']:.4f}")
+    return JSONResponse({"status": "checkpoint saved", "brier": cp["brier"], "generation": cp["generation"]})
+
+
+@control_api.post("/api/rollback")
+async def api_rollback(request: Request):
+    """Rollback to a specific checkpoint (by generation) or best checkpoint."""
+    global _evo_best, _checkpoints
+    body = await request.json()
+    target_gen = body.get("generation")
+
+    if not _checkpoints:
+        return JSONResponse({"error": "No checkpoints available"}, status_code=400)
+
+    if target_gen is not None:
+        cp = next((c for c in _checkpoints if c["generation"] == target_gen), None)
+        if not cp:
+            return JSONResponse({"error": f"No checkpoint for gen {target_gen}"}, status_code=404)
+    else:
+        # Rollback to best (lowest Brier)
+        cp = min(_checkpoints, key=lambda c: c["brier"])
+
+    _evo_best = cp["best"]
+    log(f"[ROLLBACK] Reverted to gen {cp['generation']}, Brier {cp['brier']:.4f}")
+    return JSONResponse({"status": "rolled back", "brier": cp["brier"], "generation": cp["generation"]})
+
+
+@control_api.get("/api/checkpoint/best")
+async def api_checkpoint_best(request: Request):
+    """Return the checkpoint with lowest Brier score."""
+    if not _checkpoints:
+        return JSONResponse({"error": "No checkpoints"}, status_code=404)
+    best_cp = min(_checkpoints, key=lambda c: c["brier"])
+    return JSONResponse({
+        "brier": best_cp["brier"],
+        "generation": best_cp["generation"],
+        "timestamp": best_cp["timestamp"],
+        "total_checkpoints": len(_checkpoints),
+    })
 
 
 @control_api.post("/api/inject-features")

@@ -106,7 +106,7 @@ def main():
     try:
         api.create_commit(
             repo_id=SPACE_ID, repo_type="space", operations=operations,
-            commit_message="Deploy: RunLogger + auto-cut + 2058 features (25 categories)",
+            commit_message="feat: real box scores + skip_placeholder + checkpoint/rollback + Brier-dominant fitness",
         )
         print("Upload OK!")
     except Exception as e:
@@ -116,7 +116,7 @@ def main():
                            space_hardware="cpu-basic", private=False)
             api.create_commit(
                 repo_id=SPACE_ID, repo_type="space", operations=operations,
-                commit_message="Deploy: RunLogger + auto-cut + 2058 features (25 categories)",
+                commit_message="feat: real box scores + skip_placeholder + checkpoint/rollback + Brier-dominant fitness",
             )
         else:
             raise

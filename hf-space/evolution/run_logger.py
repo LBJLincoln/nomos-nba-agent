@@ -361,6 +361,21 @@ class RunLogger:
                 # Clear history so rule doesn't fire every single generation
                 self.brier_history = self.brier_history[-10:]
 
+        # ── RULE 7: LIVE REGRESSION CUT ──
+        # If live Brier (from daily eval) is worse than best checkpoint + 0.01 → rollback
+        live_brier = engine_state.get("live_brier")
+        best_cp_brier = engine_state.get("best_checkpoint_brier")
+        if live_brier is not None and best_cp_brier is not None:
+            if live_brier > best_cp_brier + 0.01:
+                self.log_cut("LIVE_REGRESSION",
+                             f"Live Brier {live_brier:.4f} > checkpoint {best_cp_brier:.4f} + 0.01",
+                             best_cp_brier, live_brier, "rollback_to_checkpoint",
+                             {"target_brier": best_cp_brier})
+                actions.append({
+                    "type": "rollback",
+                    "params": {"reason": "live_regression", "live_brier": live_brier, "checkpoint_brier": best_cp_brier},
+                })
+
         # Update tracking
         if brier < self.last_best_brier:
             self.last_best_brier = brier

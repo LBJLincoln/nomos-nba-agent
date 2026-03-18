@@ -452,11 +452,36 @@ def load_evolution_model() -> Optional[Dict]:
 # STEP 3: GENERATE PREDICTIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def predict_game(home_team: str, away_team: str, evolution_model: Optional[Dict] = None) -> Dict:
+def fetch_evolved_predictions(games):
+    """
+    Fetch predictions from S10's evolved model via /api/predict.
+    Returns dict: {(home, away): evolved_home_prob}
+    """
+    S10_URL = os.environ.get("S10_URL", "https://lbjlincoln-nomos-nba-quant.hf.space")
+    results = {}
+    try:
+        import requests
+        payload = {"games": [{"home_team": g["home"], "away_team": g["away"]} for g in games]}
+        resp = requests.post(f"{S10_URL}/api/predict", json=payload, timeout=30)
+        if resp.status_code == 200:
+            data = resp.json()
+            for pred in data.get("predictions", []):
+                key = (pred.get("home_team", ""), pred.get("away_team", ""))
+                results[key] = pred.get("home_win_prob", 0.5)
+            print(f"[EVOLVED] Got {len(results)} predictions from S10")
+        else:
+            print(f"[EVOLVED] S10 returned {resp.status_code}: {resp.text[:200]}")
+    except Exception as e:
+        print(f"[EVOLVED] S10 unreachable: {e}")
+    return results
+
+
+def predict_game(home_team: str, away_team: str, evolution_model: Optional[Dict] = None,
+                 evolved_prob: Optional[float] = None) -> Dict:
     """
     Generate full prediction for a single game.
     Uses ensemble model (power ratings + ELO + Poisson + Monte Carlo).
-    If evolution model is available, blends it in.
+    Blends with evolved model probability when available.
     """
     # Resolve team abbreviations
     home_abbrev = _match_team_name(home_team) or home_team
@@ -480,27 +505,32 @@ def predict_game(home_team: str, away_team: str, evolution_model: Optional[Dict]
         }
 
     # Extract key values
-    home_prob = ensemble["ensemble_home_win_prob"]
+    ensemble_prob = ensemble["ensemble_home_win_prob"]
     predicted_spread = ensemble.get("predicted_spread", 0)
     predicted_total = ensemble.get("predicted_total", 220)
 
-    # If we have an evolution model, blend its probability
+    # Blend with evolved model
     model_version = "ensemble-v1"
-    if evolution_model:
+    final_prob = ensemble_prob
+
+    if evolved_prob is not None:
+        # Direct blend: 60% evolved + 40% ensemble
+        final_prob = 0.6 * evolved_prob + 0.4 * ensemble_prob
+        model_version = "blended-v1"
+    elif evolution_model:
         evo_fitness = evolution_model.get("fitness", {})
-        # Only trust evolution model if it has decent fitness
         if evo_fitness.get("brier", 1.0) < 0.25:
             model_version = f"evolution-gen{evolution_model.get('generation', '?')}"
-            # Blend: 60% ensemble + 40% evolution (when calibrated)
-            # For now, without live feature matrix, we trust ensemble more
 
     return {
         "home": home_abbrev,
         "away": away_abbrev,
         "home_name": ensemble.get("home_name", home_team),
         "away_name": ensemble.get("away_name", away_team),
-        "home_win_prob": round(home_prob, 4),
-        "away_win_prob": round(1 - home_prob, 4),
+        "home_win_prob": round(final_prob, 4),
+        "away_win_prob": round(1 - final_prob, 4),
+        "ensemble_prob": round(ensemble_prob, 4),
+        "evolved_prob": round(evolved_prob, 4) if evolved_prob is not None else None,
         "predicted_spread": round(predicted_spread, 1),
         "predicted_total": round(predicted_total, 1),
         "confidence": ensemble.get("confidence", "MEDIUM"),
