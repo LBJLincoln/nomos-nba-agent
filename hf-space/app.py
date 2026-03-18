@@ -663,7 +663,7 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
 def evaluate(ind, X, y, n_splits=2, fast=True):
     """Two-tier evaluation: fast (subsample + 2-fold) or full (all data + 3-fold)."""
     selected = ind.selected_indices()
-    if len(selected) < 15 or len(selected) > 400:
+    if len(selected) < 15 or len(selected) > 150:
         ind.fitness = {"brier": 0.30, "roi": -0.10, "sharpe": -1.0, "calibration": 0.15, "composite": -1.0}
         return
 
@@ -711,10 +711,13 @@ def evaluate(ind, X, y, n_splits=2, fast=True):
     ab, ar = np.mean(briers), np.mean(rois)
     sh = np.mean(rois) / max(np.std(rois), 0.01) if len(rois) > 1 else 0.0
     ce = _ece(np.array(all_p), np.array(all_y)) if all_p else 0.15
-    # Brier-heavy fitness — Brier is king, ROI secondary, Sharpe normalized
+    # Brier-DOMINANT fitness — Brier 60%, Calibration 20%, ROI 10%, Sharpe 10%
+    # Rationale: we want the BEST PREDICTOR, not the best bettor.
+    # ROI and Sharpe can be gamed by betting few games at high confidence.
+    # Good predictions (low Brier + good calibration) naturally yield good bets.
     ind.fitness = {"brier": round(ab, 5), "roi": round(ar, 4), "sharpe": round(sh, 4),
                    "calibration": round(ce, 4),
-                   "composite": round(0.45 * (1 - ab) + 0.25 * max(0, ar) + 0.15 * max(0, min(sh, 5) / 5) + 0.15 * (1 - ce), 5)}
+                   "composite": round(0.60 * (1 - ab) + 0.20 * (1 - ce) + 0.10 * max(0, ar) + 0.10 * max(0, min(sh, 3) / 3), 5)}
 
 
 def _build(hp):
@@ -789,18 +792,18 @@ def _ece(probs, actuals, n_bins=10):
 # EVOLUTION ENGINE
 # ═══════════════════════════════════════════════════════
 
-POP_SIZE = 40            # Smaller pop = faster gens, quality from elitism
-ELITE_SIZE = 6           # Top 15% preserved (more elitism = faster convergence)
-BASE_MUT = 0.08          # Moderate exploration
-CROSSOVER_RATE = 0.85    # High recombination
-TARGET_FEATURES = 90     # Focused feature sets converge faster
-N_SPLITS = 2             # 2-fold fast screening (top candidates get 3-fold)
-GENS_PER_CYCLE = 3       # Save every 3 gens — faster feedback loop
-COOLDOWN = 5             # Minimal cooldown — maximize evolution time
-TOURNAMENT_SIZE = 5      # Balanced selection pressure
-DIVERSITY_RESTART = 15   # Restart sooner on stagnation
-FAST_EVAL_GAMES = 5000   # Subsample for fast eval (last N games)
-FULL_EVAL_TOP = 8        # Full eval only for top N after fast screening
+POP_SIZE = 60            # Moderate pop — balance diversity and speed
+ELITE_SIZE = 5           # Top ~8% preserved
+BASE_MUT = 0.04          # Low mutation — allow convergence on good regions
+CROSSOVER_RATE = 0.80    # High recombination
+TARGET_FEATURES = 80     # TIGHT feature sets — prevent overfitting (9551 games / 80 features = ~120 samples/feature)
+N_SPLITS = 3             # 3-fold walk-forward for reliable Brier estimates
+GENS_PER_CYCLE = 3       # Save every 3 gens
+COOLDOWN = 5             # Minimal cooldown
+TOURNAMENT_SIZE = 4      # Moderate selection pressure — preserve exploration
+DIVERSITY_RESTART = 20   # Give more time before nuking population
+FAST_EVAL_GAMES = 7000   # More data in fast eval — better signal
+FULL_EVAL_TOP = 10       # Full eval for top 10 — better selection of champion
 
 # ── Feature importance tracking (directed mutation) ──
 _feature_importance = None  # numpy array: how often each feature appears in top individuals
@@ -997,13 +1000,13 @@ def evolution_loop():
             else:
                 stagnation = 0
 
-            # Adaptive mutation — more aggressive when stuck
-            if stagnation >= 8:
-                mutation_rate = min(0.20, mutation_rate * 1.5)
-            elif stagnation >= 4:
-                mutation_rate = min(0.15, mutation_rate * 1.2)
+            # Adaptive mutation — gentle escalation, capped to prevent chaos
+            if stagnation >= 12:
+                mutation_rate = min(0.10, mutation_rate * 1.3)  # Hard cap at 10%
+            elif stagnation >= 6:
+                mutation_rate = min(0.08, mutation_rate * 1.15)
             elif stagnation == 0:
-                mutation_rate = max(BASE_MUT, mutation_rate * 0.85)
+                mutation_rate = max(BASE_MUT, mutation_rate * 0.90)
 
             # Update live state
             live["best_brier"] = best_ever.fitness["brier"]
@@ -1146,14 +1149,14 @@ def evolution_loop():
                     new_pop.append(fresh)
                 log(f"  ANTI-CONVERGENCE: injected 3 diverse models (all top5 were {top_models[0]})")
 
-            # Force model diversity: if >70% same model_type, force 30% to random alternatives
+            # Force model diversity: if >40% same model_type, force others to alternatives
+            # Good stacking requires diverse base models — CatBoost monoculture kills ensemble quality
             pop_models = [ind.hyperparams["model_type"] for ind in new_pop]
             model_counts = Counter(pop_models)
             dominant_type, dominant_count = model_counts.most_common(1)[0]
-            if dominant_count > 0.70 * len(new_pop):
-                n_force = int(0.30 * len(new_pop))
+            if dominant_count > 0.40 * len(new_pop):
+                n_force = int(0.25 * len(new_pop))
                 alt_types = [t for t in all_model_types if t != dominant_type]
-                # Force the worst individuals (end of list after elites) to switch
                 candidates = list(range(ELITE_SIZE, len(new_pop)))
                 random.shuffle(candidates)
                 forced = 0
@@ -1274,7 +1277,7 @@ def evolution_loop():
             params = remote_config["pending_params"]
             log(f"REMOTE CONFIG UPDATE: {params}")
             if "pop_size" in params:
-                POP_SIZE_NEW = int(params["pop_size"])
+                POP_SIZE_NEW = min(int(params["pop_size"]), 80)  # HARD CAP: too large = slow + no convergence
                 if POP_SIZE_NEW != len(population):
                     # Resize population
                     if POP_SIZE_NEW > len(population):
@@ -1286,10 +1289,11 @@ def evolution_loop():
                         log(f"Population reduced to top {POP_SIZE_NEW}")
                     live["pop_size"] = len(population)
             if "mutation_rate" in params:
-                mutation_rate = float(params["mutation_rate"])
+                mutation_rate = min(float(params["mutation_rate"]), 0.10)  # HARD CAP: never above 10%
                 log(f"Mutation rate set to {mutation_rate}")
             if "target_features" in params:
-                TARGET_FEATURES = int(params["target_features"])
+                TARGET_FEATURES = min(int(params["target_features"]), 150)  # HARD CAP: prevent feature bloat
+                log(f"Target features set to {TARGET_FEATURES}")
             if "crossover_rate" in params:
                 CROSSOVER_RATE = float(params["crossover_rate"])
             if "cooldown" in params:
