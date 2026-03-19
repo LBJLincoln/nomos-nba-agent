@@ -1247,24 +1247,40 @@ def store_predictions_supabase(output: Dict):
                 home = g.get("home", "")
                 away = g.get("away", "")
                 home_prob = g.get("home_win_prob", 0.5)
-                market_prob = g.get("market_home_prob") or g.get("implied_home_prob")
+                market_prob = g.get("market_implied")
                 edge = g.get("edge")
                 confidence = g.get("confidence", "")
-                market_h2h = g.get("h2h", {})
-                odds_home = market_h2h.get("home_odds") if isinstance(market_h2h, dict) else None
-                odds_away = market_h2h.get("away_odds") if isinstance(market_h2h, dict) else None
+                best_odds = g.get("best_odds", {})
+                odds_home = best_odds.get("decimal") if isinstance(best_odds, dict) else None
+                odds_away = None  # single best odds for now
 
-                # Upsert — skip if already predicted this game today
+                # Check if prediction already exists for this game
                 cur.execute("""
-                    INSERT INTO nba_predictions
-                        (game_date, home_team, away_team, predicted_home_prob,
-                         market_home_prob, edge, market_odds_home, market_odds_away,
-                         confidence, model_version)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT DO NOTHING
-                """, (game_date, home, away, home_prob,
-                      market_prob, edge, odds_home, odds_away,
-                      confidence, model_version))
+                    SELECT id FROM nba_predictions
+                    WHERE game_date = %s AND home_team = %s AND away_team = %s
+                """, (game_date, home, away))
+                existing = cur.fetchone()
+
+                if existing:
+                    # Update with latest prediction
+                    cur.execute("""
+                        UPDATE nba_predictions SET
+                            predicted_home_prob = %s, market_home_prob = %s,
+                            edge = %s, market_odds_home = %s, market_odds_away = %s,
+                            confidence = %s, model_version = %s
+                        WHERE id = %s
+                    """, (home_prob, market_prob, edge, odds_home, odds_away,
+                          confidence, model_version, existing[0]))
+                else:
+                    cur.execute("""
+                        INSERT INTO nba_predictions
+                            (game_date, home_team, away_team, predicted_home_prob,
+                             market_home_prob, edge, market_odds_home, market_odds_away,
+                             confidence, model_version)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, (game_date, home, away, home_prob,
+                          market_prob, edge, odds_home, odds_away,
+                          confidence, model_version))
                 stored += 1
 
             conn.commit()
