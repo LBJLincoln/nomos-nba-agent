@@ -1202,6 +1202,79 @@ def save_outputs(output: Dict):
         props_file.write_text(json.dumps(all_props, indent=2, ensure_ascii=False, default=str))
         print(f"[SAVE] Player props -> {props_file}")
 
+    # Store predictions to Supabase for evaluation tracking
+    store_predictions_supabase(output)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SUPABASE PREDICTION STORAGE
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _get_supabase_conn():
+    """Get a psycopg2 connection to Supabase. Returns None if unavailable."""
+    db_url = os.environ.get("DATABASE_URL", "")
+    if not db_url:
+        return None
+    try:
+        import psycopg2
+        conn = psycopg2.connect(db_url, options="-c search_path=public")
+        return conn
+    except Exception as e:
+        print(f"[SUPABASE] Connection failed: {e}")
+        return None
+
+
+def store_predictions_supabase(output: Dict):
+    """Store today's predictions in nba_predictions table for later evaluation."""
+    conn = _get_supabase_conn()
+    if not conn:
+        print("[SUPABASE] Skipping — no DATABASE_URL")
+        return
+
+    games = output.get("games", [])
+    if not games:
+        print("[SUPABASE] No games to store")
+        conn.close()
+        return
+
+    model_version = output.get("model_version", "unknown")
+    game_date = output.get("date", TODAY)
+    stored = 0
+
+    try:
+        with conn.cursor() as cur:
+            for g in games:
+                home = g.get("home", "")
+                away = g.get("away", "")
+                home_prob = g.get("home_win_prob", 0.5)
+                market_prob = g.get("market_home_prob") or g.get("implied_home_prob")
+                edge = g.get("edge")
+                confidence = g.get("confidence", "")
+                market_h2h = g.get("h2h", {})
+                odds_home = market_h2h.get("home_odds") if isinstance(market_h2h, dict) else None
+                odds_away = market_h2h.get("away_odds") if isinstance(market_h2h, dict) else None
+
+                # Upsert — skip if already predicted this game today
+                cur.execute("""
+                    INSERT INTO nba_predictions
+                        (game_date, home_team, away_team, predicted_home_prob,
+                         market_home_prob, edge, market_odds_home, market_odds_away,
+                         confidence, model_version)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT DO NOTHING
+                """, (game_date, home, away, home_prob,
+                      market_prob, edge, odds_home, odds_away,
+                      confidence, model_version))
+                stored += 1
+
+            conn.commit()
+        print(f"[SUPABASE] Stored {stored} predictions in nba_predictions")
+    except Exception as e:
+        print(f"[SUPABASE] Error storing predictions: {e}")
+        conn.rollback()
+    finally:
+        conn.close()
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SUMMARY TABLE
