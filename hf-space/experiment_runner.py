@@ -29,27 +29,62 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-# ── Import shared functions from app.py ──
-# These are the core evaluation primitives from the main evolution engine.
-from app import (
-    Individual,
-    evaluate,
-    _build,
-    _prune_correlated_features,
-    _log_loss_score,
-    _ece,
-    _evaluate_stacking,
-    load_all_games,
-    build_features,
-    pull_seasons,
-    log,
-    live,
-    FAST_EVAL_GAMES,
-    DATA_DIR,
-    HIST_DIR,
-    STATE_DIR,
-    RESULTS_DIR,
-)
+# ── Import shared functions from app.py (lazy — app.py must be loaded first) ──
+# When this module is imported from app.py's bottom section, app is already
+# fully loaded in sys.modules. Direct `from app import` would re-execute
+# app.py's top-level code (Gradio, data loading) causing a hang.
+# Instead, we grab references AFTER import, in init_from_app().
+
+def _default_log(msg, level="INFO"):
+    print(f"[{level}] {msg}")
+
+Individual = None
+evaluate = None
+_build = None
+_prune_correlated_features = None
+_log_loss_score = None
+_ece = None
+_evaluate_stacking = None
+load_all_games = None
+build_features = None
+pull_seasons = None
+log = _default_log
+live = {}
+FAST_EVAL_GAMES = 7000
+DATA_DIR = Path("/data") if Path("/data").exists() else Path("data")
+HIST_DIR = DATA_DIR / "historical"
+STATE_DIR = DATA_DIR / "evolution-state"
+RESULTS_DIR = DATA_DIR / "results"
+
+def init_from_app():
+    """Grab references from the already-loaded app module. Call once at startup."""
+    import sys as _sys
+    app_mod = _sys.modules.get('app') or _sys.modules.get('__main__')
+    if app_mod is None:
+        raise RuntimeError("app module not loaded")
+
+    global Individual, evaluate, _build, _prune_correlated_features
+    global _log_loss_score, _ece, _evaluate_stacking
+    global load_all_games, build_features, pull_seasons, log, live
+    global FAST_EVAL_GAMES, DATA_DIR, HIST_DIR, STATE_DIR, RESULTS_DIR
+
+    Individual = getattr(app_mod, 'Individual')
+    evaluate = getattr(app_mod, 'evaluate')
+    _build = getattr(app_mod, '_build')
+    _prune_correlated_features = getattr(app_mod, '_prune_correlated_features')
+    _log_loss_score = getattr(app_mod, '_log_loss_score')
+    _ece = getattr(app_mod, '_ece')
+    _evaluate_stacking = getattr(app_mod, '_evaluate_stacking')
+    load_all_games = getattr(app_mod, 'load_all_games')
+    build_features = getattr(app_mod, 'build_features')
+    pull_seasons = getattr(app_mod, 'pull_seasons')
+    log = getattr(app_mod, 'log')
+    live = getattr(app_mod, 'live')
+    FAST_EVAL_GAMES = getattr(app_mod, 'FAST_EVAL_GAMES', 7000)
+    DATA_DIR = getattr(app_mod, 'DATA_DIR', DATA_DIR)
+    HIST_DIR = getattr(app_mod, 'HIST_DIR', HIST_DIR)
+    STATE_DIR = getattr(app_mod, 'STATE_DIR', STATE_DIR)
+    RESULTS_DIR = getattr(app_mod, 'RESULTS_DIR', RESULTS_DIR)
 
 # ── Constants ──
 POLL_INTERVAL = 60          # Poll Supabase every 60 seconds
@@ -704,6 +739,9 @@ def experiment_loop():
     4. Never modifies S10's population or state
     """
     global _queue_depth
+
+    # Initialize references to app.py functions (must be called after app.py is loaded)
+    init_from_app()
 
     log("=" * 60)
     log("S11 EXPERIMENT RUNNER — STARTING")
