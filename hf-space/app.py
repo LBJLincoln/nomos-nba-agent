@@ -755,7 +755,7 @@ def evaluate(ind, X, y, n_splits=2, fast=True):
         briers, rois, all_p, all_y = [], [], [], []
         for ti, vi in tscv.split(X_sub):
             try:
-                m = type(model)(**model.get_params())
+                m = clone(model)
                 if hp_eval["calibration"] != "none":
                     m = CalibratedClassifierCV(m, method=hp_eval["calibration"], cv=2)
                 m.fit(X_sub[ti], y_eval[ti])
@@ -825,6 +825,24 @@ def _build(hp):
             return ExtraTreesClassifier(n_estimators=n_est, max_depth=depth,
                                         min_samples_leaf=max(int(hp["min_child_weight"]), 5),
                                         max_features="sqrt", random_state=42, n_jobs=-1)
+        elif mt == "mlp":
+            try:
+                return Pipeline([
+                    ('scaler', StandardScaler()),
+                    ('mlp', MLPClassifier(
+                        hidden_layer_sizes=(128, 64, 32),
+                        activation='relu',
+                        max_iter=500,
+                        early_stopping=True,
+                        validation_fraction=0.15,
+                        random_state=42
+                    ))
+                ])
+            except Exception:
+                # Fallback to XGBoost if MLP fails to build
+                return xgb.XGBClassifier(n_estimators=n_est, max_depth=depth,
+                                         learning_rate=lr, eval_metric="logloss",
+                                         random_state=42, n_jobs=-1, tree_method="hist")
         elif mt == "stacking":
             # Return None — stacking is handled specially in evaluate()
             return None
