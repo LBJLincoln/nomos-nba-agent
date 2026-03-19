@@ -1805,6 +1805,75 @@ async def api_recent_runs():
 
 
 # ═══════════════════════════════════════════════════════
+# EXPERIMENT SUBMISSION (works on both S10 and S11)
+# ═══════════════════════════════════════════════════════
+
+@control_api.post("/api/experiment/submit")
+async def api_experiment_submit(request: Request):
+    """Submit an experiment to the Supabase queue for S11 evaluation.
+
+    Works on both S10 and S11 — writes to Supabase, S11 picks up.
+    Body: {
+        "experiment_id": "optional-custom-id",
+        "agent_name": "eve|crew-research|crew-feature|manual",
+        "experiment_type": "feature_test|model_test|calibration_test|config_change",
+        "description": "What this experiment tests",
+        "hypothesis": "Expected outcome",
+        "params": { ... },
+        "priority": 5,
+        "baseline_brier": 0.2205
+    }
+    """
+    try:
+        body = await request.json()
+        valid_types = ["feature_test", "model_test", "calibration_test", "config_change"]
+        exp_type = body.get("experiment_type")
+        if exp_type not in valid_types:
+            return JSONResponse({"error": f"Invalid experiment_type. Valid: {valid_types}"}, status_code=400)
+        if not body.get("description"):
+            return JSONResponse({"error": "description is required"}, status_code=400)
+
+        exp_id_str = body.get("experiment_id", f"submit-{int(time.time())}")
+        db_url = os.environ.get("DATABASE_URL", "")
+        if not db_url:
+            return JSONResponse({"error": "DATABASE_URL not configured"}, status_code=503)
+
+        import psycopg2
+        conn = psycopg2.connect(db_url, connect_timeout=10, options="-c search_path=public")
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO public.nba_experiments
+            (experiment_id, agent_name, experiment_type, description, hypothesis,
+             params, priority, status, target_space, baseline_brier)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s)
+            RETURNING id
+        """, (
+            exp_id_str,
+            body.get("agent_name", "unknown"),
+            exp_type,
+            body["description"],
+            body.get("hypothesis", ""),
+            json.dumps(body.get("params", {})),
+            body.get("priority", 5),
+            body.get("target_space", "S11"),
+            body.get("baseline_brier"),
+        ))
+        db_id = cur.fetchone()[0]
+        conn.commit()
+        conn.close()
+
+        log(f"[EXPERIMENT] Queued: {exp_id_str} (type={exp_type}, agent={body.get('agent_name', 'unknown')})")
+        return JSONResponse({
+            "status": "queued",
+            "id": db_id,
+            "experiment_id": exp_id_str,
+            "message": "Experiment queued for S11. It polls every 60s.",
+        })
+    except Exception as e:
+        return JSONResponse({"error": f"Failed to queue experiment: {str(e)[:300]}"}, status_code=500)
+
+
+# ═══════════════════════════════════════════════════════
 # PREDICT API — Use evolved model for live predictions
 # ═══════════════════════════════════════════════════════
 
@@ -2004,12 +2073,20 @@ with gr.Blocks(title="NOMOS NBA QUANT — Genetic Evolution", theme=gr.themes.Mo
 # ── Mount FastAPI control API onto Gradio's app ──
 gr_app = gr.mount_gradio_app(control_api, app, path="/")
 
-# ── Launch ──
-_thread = threading.Thread(target=evolution_loop, daemon=True, name="GeneticEvolution")
-_thread.start()
-log("Genetic evolution thread launched")
+# ── Launch (EXPERIMENT_MODE switches S11 from evolution to experiment runner) ──
+if os.environ.get("EXPERIMENT_MODE"):
+    from experiment_runner import experiment_loop, register_experiment_endpoints
+    register_experiment_endpoints(control_api)
+    _thread = threading.Thread(target=experiment_loop, daemon=True, name="ExperimentRunner")
+    _thread.start()
+    log("S11 EXPERIMENT RUNNER thread launched (EXPERIMENT_MODE=true)")
+else:
+    _thread = threading.Thread(target=evolution_loop, daemon=True, name="GeneticEvolution")
+    _thread.start()
+    log("Genetic evolution thread launched")
 
 if __name__ == "__main__":
     import uvicorn
-    log("Starting with FastAPI + Gradio (remote control API enabled)")
+    mode = "EXPERIMENT RUNNER" if os.environ.get("EXPERIMENT_MODE") else "EVOLUTION"
+    log(f"Starting with FastAPI + Gradio ({mode} mode, remote control API enabled)")
     uvicorn.run(gr_app, host="0.0.0.0", port=7860)
