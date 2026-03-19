@@ -216,9 +216,21 @@ def claim_experiment(exp_id: int) -> bool:
     return result is not None and result is not True and len(result) > 0
 
 
+def _sanitize_for_json(obj):
+    """Convert numpy types to native Python for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _sanitize_for_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize_for_json(v) for v in obj]
+    if hasattr(obj, 'item'):  # numpy scalar
+        return obj.item()
+    return obj
+
+
 def complete_experiment(exp_id: int, brier: float, accuracy: float,
                         log_loss_val: float, details: dict, status: str = "completed"):
     """Write results back to Supabase."""
+    clean_details = _sanitize_for_json(details)
     _exec_sql("""
         UPDATE public.nba_experiments
         SET status = %s,
@@ -228,7 +240,8 @@ def complete_experiment(exp_id: int, brier: float, accuracy: float,
             result_details = %s,
             completed_at = NOW()
         WHERE id = %s
-    """, (status, brier, accuracy, log_loss_val, json.dumps(details), exp_id), fetch=False)
+    """, (status, float(brier), float(accuracy), float(log_loss_val),
+          json.dumps(clean_details), int(exp_id)), fetch=False)
 
 
 def fail_experiment(exp_id: int, error_msg: str):
@@ -682,13 +695,13 @@ def run_experiment(experiment: dict, X: np.ndarray, y: np.ndarray,
         results = executor(experiment, X, y, feature_names)
         elapsed = time.time() - start_time
 
-        brier = results.get("brier", 1.0)
-        accuracy = _compute_accuracy(
+        brier = float(results.get("brier", 1.0))
+        accuracy = float(_compute_accuracy(
             _make_individual(X.shape[1], experiment["params"]), X, y
-        ) if exp_type != "config_change" else results.get("accuracy", 0.0)
+        )) if exp_type != "config_change" else float(results.get("accuracy", 0.0))
 
         # Compute log_loss from brier (approximate — actual log_loss needs probabilities)
-        log_loss_val = results.get("log_loss", 0.0)
+        log_loss_val = float(results.get("log_loss", 0.0))
 
         results["elapsed_seconds"] = round(elapsed, 1)
         results["games_evaluated"] = min(X.shape[0], MAX_EVAL_GAMES)
