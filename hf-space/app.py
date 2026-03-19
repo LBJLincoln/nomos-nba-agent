@@ -6,7 +6,7 @@ RUNS 24/7 on HuggingFace Space (2 vCPU / 16GB RAM).
 
 NOT a fake LLM wrapper. REAL ML:
   - Population of 60 individuals (feature mask + hyperparams)
-  - Walk-forward backtest fitness (Brier + ROI + Sharpe + Calibration)
+  - Walk-forward backtest fitness (Brier + LogLoss + Sharpe + ECE)
   - Tournament selection, crossover, adaptive mutation
   - Continuous cycles — saves after each generation
   - Gradio dashboard showing live evolution progress
@@ -38,9 +38,13 @@ for f in [Path(".env"), Path(".env.local")]:
 
 # ML imports
 from sklearn.model_selection import TimeSeriesSplit, cross_val_predict
-from sklearn.metrics import brier_score_loss, accuracy_score
+from sklearn.metrics import brier_score_loss, accuracy_score, log_loss
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.base import clone
 import xgboost as xgb
 import lightgbm as lgbm
 
@@ -522,7 +526,7 @@ class Individual:
             "min_child_weight": random.randint(1, 15),
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
-            "model_type": random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"]),
+            "model_type": random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"]),
             "calibration": random.choice(["isotonic", "sigmoid", "none"]),
         }
         self.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
@@ -573,7 +577,7 @@ class Individual:
         if random.random() < 0.15: self.hyperparams["n_estimators"] = max(50, min(200, self.hyperparams["n_estimators"] + random.randint(-50, 50)))
         if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(8, self.hyperparams["max_depth"] + random.randint(-2, 2)))
         if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.3, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
-        if random.random() < 0.10: self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"])
+        if random.random() < 0.10: self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"])
         if random.random() < 0.05: self.hyperparams["calibration"] = random.choice(["isotonic", "sigmoid", "none"])
         self.n_features = sum(self.features)
 
@@ -652,19 +656,70 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
             # Final stacked prediction
             p = meta.predict_proba(val_preds)[:, 1]
             briers.append(brier_score_loss(y_val, p))
-            rois.append(_bet(p, y_val))
+            rois.append(_log_loss_score(p, y_val))
             all_p.extend(p); all_y.extend(y_val)
         except Exception:
-            briers.append(0.28); rois.append(-0.05)
+            briers.append(0.28); rois.append(0.0)
 
     return briers, rois, all_p, all_y
+
+
+def _prune_correlated_features(X_sub, threshold=0.95):
+    """Drop redundant features: for any pair with |corr| > threshold, drop the one with lower variance.
+
+    Args:
+        X_sub: numpy array (n_samples, n_features) — already selected features
+        threshold: correlation threshold (default 0.95)
+
+    Returns:
+        (X_pruned, keep_mask): pruned array and boolean mask of kept column indices
+    """
+    try:
+        n_cols = X_sub.shape[1]
+        if n_cols < 2:
+            return X_sub, np.ones(n_cols, dtype=bool)
+
+        # Compute pairwise Pearson correlation
+        corr = np.corrcoef(X_sub, rowvar=False)
+
+        # Handle NaN correlations (constant columns, etc.)
+        corr = np.nan_to_num(corr, nan=0.0)
+
+        # Compute variance for each column (used to decide which to drop)
+        variances = np.var(X_sub, axis=0)
+
+        # Greedy pruning: iterate upper triangle, mark lower-variance feature for removal
+        to_drop = set()
+        for i in range(n_cols):
+            if i in to_drop:
+                continue
+            for j in range(i + 1, n_cols):
+                if j in to_drop:
+                    continue
+                if abs(corr[i, j]) > threshold:
+                    # Drop the feature with lower variance
+                    if variances[i] < variances[j]:
+                        to_drop.add(i)
+                        break  # i is dropped, no need to check more pairs for i
+                    else:
+                        to_drop.add(j)
+
+        keep_mask = np.ones(n_cols, dtype=bool)
+        for idx in to_drop:
+            keep_mask[idx] = False
+
+        return X_sub[:, keep_mask], keep_mask
+    except Exception:
+        # If anything fails, skip pruning entirely
+        return X_sub, np.ones(X_sub.shape[1], dtype=bool)
 
 
 def evaluate(ind, X, y, n_splits=2, fast=True):
     """Two-tier evaluation: fast (subsample + 2-fold) or full (all data + 3-fold)."""
     selected = ind.selected_indices()
     if len(selected) < 15 or len(selected) > 200:
-        ind.fitness = {"brier": 0.30, "roi": -0.10, "sharpe": -1.0, "calibration": 0.15, "composite": -1.0}
+        ind.fitness = {"brier": 0.30, "roi": 0.0, "sharpe": 0.0, "calibration": 0.15, "composite": -1.0,
+                       "features_pruned": 0}
         return
 
     # Fast mode: subsample recent games for speed
@@ -674,6 +729,12 @@ def evaluate(ind, X, y, n_splits=2, fast=True):
         X_eval, y_eval = X, y
 
     X_sub = np.nan_to_num(X_eval[:, selected], nan=0.0, posinf=1e6, neginf=-1e6)
+
+    # ── Correlation pruning: drop redundant features (|corr| > 0.95) ──
+    n_before = X_sub.shape[1]
+    X_sub, _keep_mask = _prune_correlated_features(X_sub, threshold=0.95)
+    n_pruned = n_before - X_sub.shape[1]
+
     hp = ind.hyperparams
 
     # Cap estimators for speed (fast mode)
@@ -700,26 +761,34 @@ def evaluate(ind, X, y, n_splits=2, fast=True):
                 m.fit(X_sub[ti], y_eval[ti])
                 p = m.predict_proba(X_sub[vi])[:, 1]
                 briers.append(brier_score_loss(y_eval[vi], p))
-                rois.append(_bet(p, y_eval[vi]))
+                rois.append(_log_loss_score(p, y_eval[vi]))
                 all_p.extend(p); all_y.extend(y_eval[vi])
             except Exception:
-                briers.append(0.28); rois.append(-0.05)
+                briers.append(0.28); rois.append(0.0)
 
     if not briers:
-        ind.fitness = {"brier": 0.30, "roi": -0.10, "sharpe": -1.0, "calibration": 0.15, "composite": -1.0}
+        ind.fitness = {"brier": 0.30, "roi": 0.0, "sharpe": 0.0, "calibration": 0.15, "composite": -1.0,
+                       "features_pruned": n_pruned}
         return
-    ab, ar = np.mean(briers), np.mean(rois)
+    ab = np.mean(briers)
+    ar = np.mean(rois)  # log_loss_score: 0 = coin flip, 1 = great calibration
+    # Sharpe of calibration: consistency of log-loss scores across folds
     sh = np.mean(rois) / max(np.std(rois), 0.01) if len(rois) > 1 else 0.0
     ce = _ece(np.array(all_p), np.array(all_y)) if all_p else 0.15
-    # Brier-DOMINANT fitness — Brier 70%, Calibration 20%, ROI 5%, Sharpe 5%
-    # Rationale: ROI/Sharpe use synthetic odds (model prob, not market). Overweighting
-    # them rewards confident-but-wrong predictions. Focus on prediction accuracy.
+    # FITNESS: Brier 40% + log_loss_score 25% + Sharpe_of_calibration 20% + ECE 15%
+    # log_loss_score breaks the circular ROI problem: rewards calibration without
+    # comparing model to itself. Sharpe measures consistency across folds.
     n_features = len(selected)
     feature_penalty = 0.001 * max(0, n_features - 80)  # Soft pressure toward 80 features
-    composite = 0.70 * (1 - ab) + 0.20 * (1 - ce) + 0.05 * max(0, ar) + 0.05 * max(0, min(sh, 3) / 3) - feature_penalty
+    composite = (0.40 * (1 - ab)
+                 + 0.25 * ar  # ar is already in [0, 1] from _log_loss_score
+                 + 0.20 * max(0, min(sh, 3) / 3)
+                 + 0.15 * (1 - ce)
+                 - feature_penalty)
     ind.fitness = {"brier": round(ab, 5), "roi": round(ar, 4), "sharpe": round(sh, 4),
                    "calibration": round(ce, 4),
-                   "composite": round(composite, 5)}
+                   "composite": round(composite, 5),
+                   "features_pruned": n_pruned}
 
 
 def _build(hp):
@@ -769,7 +838,8 @@ def _build(hp):
                                           learning_rate=hp["learning_rate"], random_state=42)
 
 
-def _bet(probs, actuals, edge=0.05):
+def _simulate_betting_legacy(probs, actuals, edge=0.05):
+    """LEGACY: Circular ROI — compares model to itself (1/prob as fair odds). DEPRECATED."""
     stake, profit, n = 10, 0, 0
     for p, a in zip(probs, actuals):
         if p > 0.5 + edge:
@@ -777,6 +847,32 @@ def _bet(probs, actuals, edge=0.05):
         elif p < 0.5 - edge:
             n += 1; profit += stake * (1 / (1 - p) - 1) if a == 0 else -stake
     return profit / (n * stake) if n > 0 else 0.0
+
+
+def _log_loss_score(probs, actuals):
+    """Log-loss proxy for ROI: measures calibration quality without circular odds.
+
+    Returns a score in [0, 1] range where:
+      - 0.6931 (coin flip / no skill) maps to 0.0
+      - 0.5 (good calibration) maps to 1.0
+      - Lower log-loss = higher score = better edge potential
+    Clamps to [0, 1] range.
+    """
+    try:
+        probs = np.clip(np.asarray(probs, dtype=float), 1e-7, 1 - 1e-7)
+        actuals = np.asarray(actuals, dtype=float)
+        if len(probs) < 10:
+            return 0.0
+        ll = log_loss(actuals, probs)
+        # Linear map: 0.6931 (coin flip) → 0.0, 0.5 → 1.0
+        # score = (0.6931 - ll) / (0.6931 - 0.5)
+        COIN_FLIP = 0.6931
+        GOOD_TARGET = 0.5
+        score = (COIN_FLIP - ll) / (COIN_FLIP - GOOD_TARGET)
+        return float(np.clip(score, 0.0, 1.0))
+    except Exception:
+        # Fallback: use legacy method if log_loss fails
+        return max(0.0, _simulate_betting_legacy(probs, actuals))
 
 
 def _ece(probs, actuals, n_bins=10):
@@ -954,14 +1050,14 @@ def evolution_loop():
                 e.features = e.features[:n_feat]
             e.n_features = sum(e.features)
             # Add new model types to elite hyperparams
-            if e.hyperparams.get("model_type") not in ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"]:
-                e.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"])
+            if e.hyperparams.get("model_type") not in ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"]:
+                e.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"])
             population.append(e)
         log(f"Kept {len(population)} elites, generating {POP_SIZE - len(population)} fresh individuals")
 
     if not population or needs_reset:
         # Equal distribution of all 6 model types in initial population
-        all_model_types = ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"]
+        all_model_types = ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"]
         existing_count = len(population)
         slots_left = POP_SIZE - existing_count
         idx = 0
@@ -1068,6 +1164,7 @@ def evolution_loop():
             ge = time.time() - gen_start
             log(f"Gen {generation}: Brier={best.fitness['brier']:.4f} ROI={best.fitness['roi']:.1%} "
                 f"Sharpe={best.fitness['sharpe']:.2f} Feat={best.n_features} "
+                f"Pruned={best.fitness.get('features_pruned', 0)} "
                 f"Model={best.hyperparams['model_type']} Stag={stagnation} ({ge:.0f}s)")
 
             # ── Supabase: log generation (direct psycopg2 — bypasses pool) ──
@@ -1181,7 +1278,7 @@ def evolution_loop():
                 stagnation = 0  # Reset counter
 
             # Anti-convergence: if top 5 all same model, force diversity
-            all_model_types = ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"]
+            all_model_types = ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"]
             top_models = [population[i].hyperparams["model_type"] for i in range(min(5, len(population)))]
             if len(set(top_models)) == 1 and stagnation >= 3:
                 diverse_types = [t for t in all_model_types if t != top_models[0]]
