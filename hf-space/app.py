@@ -2070,13 +2070,17 @@ with gr.Blocks(title="NOMOS NBA QUANT — Genetic Evolution", theme=gr.themes.Mo
     timer.tick(dash_logs, outputs=logs_box)
 
 
-# ── Mount FastAPI control API onto Gradio's app ──
-gr_app = gr.mount_gradio_app(control_api, app, path="/")
-
-# ── Launch (EXPERIMENT_MODE switches S11 from evolution to experiment runner) ──
+# ── Register experiment endpoints BEFORE Gradio mount (Gradio catch-all at / swallows late routes) ──
 if os.environ.get("EXPERIMENT_MODE"):
     from experiment_runner import experiment_loop, register_experiment_endpoints
     register_experiment_endpoints(control_api)
+    log("Experiment endpoints registered on control_api")
+
+# ── Mount FastAPI control API onto Gradio's app ──
+gr_app = gr.mount_gradio_app(control_api, app, path="/")
+
+# ── Launch background threads ──
+if os.environ.get("EXPERIMENT_MODE"):
     _thread = threading.Thread(target=experiment_loop, daemon=True, name="ExperimentRunner")
     _thread.start()
     log("S11 EXPERIMENT RUNNER thread launched (EXPERIMENT_MODE=true)")
