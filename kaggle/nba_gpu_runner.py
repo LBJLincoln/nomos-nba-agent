@@ -8,7 +8,7 @@ Picks up experiments with target_space IN ('colab','gpu','kaggle','any',NULL).
 Push via Kaggle API — see trigger.sh
 """
 import subprocess, sys
-for pkg in ["psycopg2-binary", "pytorch-tabnet"]:
+for pkg in ["psycopg2-binary", "pytorch-tabnet", "scikit-learn>=1.3"]:
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg])
 
 import os, json, time, traceback, numpy as np, torch, torch.nn as nn
@@ -30,7 +30,8 @@ if torch.cuda.is_available():
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 MAX_EVAL_GAMES, WALK_FORWARD_SPLITS, BATCH_SIZE = 10000, 3, 512
 MAX_EPOCHS, PATIENCE, MAX_EXPERIMENTS, POLL_INTERVAL = 200, 15, 10, 30
-GPU_MODELS = ["mlp", "lstm", "ft_transformer", "tabnet",
+GPU_MODELS = ["mlp", "mlp_residual", "lstm", "ft_transformer", "tabnet",
+              "node", "mc_dropout_rnn", "saint", "tft",
               "xgboost_gpu", "lightgbm_gpu", "catboost_gpu"]
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
@@ -259,6 +260,136 @@ class FTTransformer(nn.Module):
         t = torch.cat([self.cls.expand(B,-1,-1), t], 1)
         return self.head(self.tf(t)[:,0,:])
 
+# ── Residual MLP (skip connections for deeper learning) ──
+class NBANetResidual(nn.Module):
+    def __init__(self, dim, hidden=(256,128,64), drop=0.3):
+        super().__init__()
+        self.input_proj = nn.Sequential(nn.Linear(dim, hidden[0]), nn.BatchNorm1d(hidden[0]), nn.GELU())
+        blocks = []
+        for i in range(len(hidden)-1):
+            blocks.append(nn.Sequential(
+                nn.Linear(hidden[i], hidden[i+1]), nn.BatchNorm1d(hidden[i+1]),
+                nn.GELU(), nn.Dropout(drop)))
+        self.blocks = nn.ModuleList(blocks)
+        self.downsamples = nn.ModuleList([
+            nn.Linear(hidden[i], hidden[i+1]) if hidden[i]!=hidden[i+1] else nn.Identity()
+            for i in range(len(hidden)-1)])
+        self.head = nn.Linear(hidden[-1], 1)
+    def forward(self, x):
+        x = self.input_proj(x)
+        for block, ds in zip(self.blocks, self.downsamples):
+            x = block(x) + ds(x)  # residual connection
+        return self.head(x)
+
+# ── Neural Oblivious Decision Ensemble (NODE) — differentiable trees ──
+class ObliviousTree(nn.Module):
+    """Single differentiable oblivious decision tree."""
+    def __init__(self, dim, depth=6, out=1):
+        super().__init__()
+        self.depth = depth
+        self.features = nn.Linear(dim, depth, bias=False)
+        self.thresholds = nn.Parameter(torch.randn(depth)*0.01)
+        self.response = nn.Parameter(torch.randn(2**depth, out)*0.01)
+    def forward(self, x):
+        h = torch.sigmoid(self.features(x) - self.thresholds)  # (B, depth)
+        # Build binary path index
+        idx = torch.zeros(x.size(0), 2**self.depth, device=x.device)
+        for i in range(2**self.depth):
+            bits = [(i >> d) & 1 for d in range(self.depth)]
+            p = torch.ones(x.size(0), device=x.device)
+            for d, b in enumerate(bits):
+                p = p * (h[:,d] if b else 1-h[:,d])
+            idx[:, i] = p
+        return (idx.unsqueeze(-1) * self.response.unsqueeze(0)).sum(1)
+
+class NODEModel(nn.Module):
+    def __init__(self, dim, n_trees=128, depth=4, n_layers=2):
+        super().__init__()
+        self.layers = nn.ModuleList()
+        curr_dim = dim
+        for _ in range(n_layers):
+            trees = nn.ModuleList([ObliviousTree(curr_dim, depth, 1) for _ in range(n_trees)])
+            self.layers.append(trees)
+            curr_dim = n_trees  # each tree outputs 1 value, concat = n_trees
+        self.head = nn.Linear(n_trees, 1)
+    def forward(self, x):
+        for trees in self.layers:
+            outs = [t(x) for t in trees]
+            x = torch.cat(outs, dim=-1)
+        return self.head(x)
+
+# ── MC Dropout RNN (2026 paper — Brier 0.199) — dropout at inference ──
+class MCDropoutRNN(nn.Module):
+    def __init__(self, dim, hid=128, nl=2, drop=0.3):
+        super().__init__()
+        self.gru = nn.GRU(dim, hid, nl, dropout=drop if nl>1 else 0, batch_first=True)
+        self.drop = nn.Dropout(drop)  # stays active at inference!
+        self.head = nn.Sequential(nn.Linear(hid,64), nn.ReLU(), nn.Dropout(drop), nn.Linear(64,1))
+    def forward(self, x):
+        o, _ = self.gru(x)
+        return self.head(self.drop(o[:,-1,:]))
+    def predict_mc(self, x, n_samples=30):
+        """MC Dropout: run N forward passes with dropout ON, average predictions."""
+        self.train()  # keep dropout active
+        preds = []
+        with torch.no_grad():
+            for _ in range(n_samples):
+                preds.append(torch.sigmoid(self(x)).cpu())
+        self.eval()
+        stacked = torch.stack(preds)
+        return stacked.mean(0).numpy().flatten(), stacked.std(0).numpy().flatten()
+
+# ── SAINT-style (Self-Attention + Intersample Attention) ──
+class SAINT(nn.Module):
+    def __init__(self, dim, d=64, nh=4, nb=2, drop=0.2):
+        super().__init__()
+        self.tok = nn.Linear(1, d)
+        self.bias = nn.Parameter(torch.zeros(dim, d))
+        self.cls = nn.Parameter(torch.randn(1,1,d)*0.02)
+        # Self-attention layers (within-sample)
+        self.self_attn = nn.ModuleList([
+            nn.TransformerEncoderLayer(d, nh, d*4, drop, activation="gelu", batch_first=True)
+            for _ in range(nb)])
+        # Intersample attention layers (across-sample) — applied on batch dim
+        self.inter_attn = nn.ModuleList([
+            nn.TransformerEncoderLayer(d, nh, d*4, drop, activation="gelu", batch_first=True)
+            for _ in range(nb)])
+        self.head = nn.Sequential(nn.LayerNorm(d), nn.Linear(d, 1))
+    def forward(self, x):
+        B, F = x.size()
+        t = self.tok(x.unsqueeze(-1)) + self.bias.unsqueeze(0)
+        t = torch.cat([self.cls.expand(B,-1,-1), t], 1)  # (B, F+1, d)
+        for sa, ia in zip(self.self_attn, self.inter_attn):
+            t = sa(t)  # self-attention within each sample
+            # Intersample: transpose so batch becomes sequence
+            cls_tokens = t[:, 0:1, :]  # (B, 1, d)
+            cls_seq = cls_tokens.squeeze(1).unsqueeze(0)  # (1, B, d)
+            cls_seq = ia(cls_seq)  # attention across samples
+            t[:, 0:1, :] = cls_seq.squeeze(0).unsqueeze(1)
+        return self.head(t[:, 0, :])
+
+# ── Temporal Fusion Transformer (simplified) ──
+class TFT(nn.Module):
+    def __init__(self, dim, d=64, nh=4, nb=2, drop=0.2):
+        super().__init__()
+        self.vsn = nn.Sequential(nn.Linear(dim, d), nn.ReLU(), nn.Linear(d, d), nn.Sigmoid())
+        self.grn = nn.Sequential(nn.Linear(d, d*2), nn.GELU(), nn.Linear(d*2, d), nn.Dropout(drop))
+        self.proj = nn.Linear(dim, d)
+        el = nn.TransformerEncoderLayer(d, nh, d*4, drop, activation="gelu", batch_first=True)
+        self.tf = nn.TransformerEncoder(el, nb)
+        self.gate = nn.Sequential(nn.Linear(d, d), nn.Sigmoid())
+        self.head = nn.Sequential(nn.LayerNorm(d), nn.Linear(d, 1))
+    def forward(self, x):
+        # Variable selection network
+        weights = self.vsn(x)
+        selected = self.proj(x) * weights
+        # GRN + self-attention
+        gated = self.grn(selected)
+        seq = gated.unsqueeze(1)  # (B, 1, d) single timestep for non-sequence
+        attended = self.tf(seq).squeeze(1)
+        out = attended * self.gate(attended) + selected  # skip + gate
+        return self.head(out)
+
 # ═══════════════════════════════════════════════
 # TRAINING
 # ═══════════════════════════════════════════════
@@ -269,7 +400,39 @@ def _seqs(X, sl=10):
         st = max(0,i-sl+1); L = i-st+1; s[i,sl-L:] = X[st:i+1]
     return s
 
-def _train_pt(model, Xtr, ytr, Xva, yva, lr=1e-3, wd=1e-4, seq=False):
+# ── Custom Loss Functions (2026 research) ──
+class FocalLoss(nn.Module):
+    """Focal Loss (Lin et al.) — down-weight easy examples, focus on hard ones."""
+    def __init__(self, gamma=2.0, alpha=0.25):
+        super().__init__(); self.gamma = gamma; self.alpha = alpha
+    def forward(self, logits, targets):
+        bce = nn.functional.binary_cross_entropy_with_logits(logits, targets, reduction='none')
+        pt = torch.exp(-bce)
+        return (self.alpha * (1-pt)**self.gamma * bce).mean()
+
+class BrierLoss(nn.Module):
+    """Direct Brier Score as loss — train to minimize Brier directly."""
+    def forward(self, logits, targets):
+        probs = torch.sigmoid(logits)
+        return ((probs - targets)**2).mean()
+
+class LabelSmoothBCE(nn.Module):
+    """BCE with label smoothing — prevents overconfident predictions."""
+    def __init__(self, alpha=0.05):
+        super().__init__(); self.alpha = alpha
+    def forward(self, logits, targets):
+        smooth = targets * (1 - self.alpha) + 0.5 * self.alpha
+        return nn.functional.binary_cross_entropy_with_logits(logits, smooth)
+
+LOSS_REGISTRY = {
+    'bce': lambda p: nn.BCEWithLogitsLoss(),
+    'focal': lambda p: FocalLoss(p.get('focal_gamma', 2.0), p.get('focal_alpha', 0.25)),
+    'brier': lambda p: BrierLoss(),
+    'label_smooth': lambda p: LabelSmoothBCE(p.get('label_smooth_alpha', 0.05)),
+}
+
+def _train_pt(model, Xtr, ytr, Xva, yva, lr=1e-3, wd=1e-4, seq=False, loss_fn=None, params=None):
+    params = params or {}
     model = model.to(DEVICE)
     xt = torch.tensor(Xtr, dtype=torch.float32).to(DEVICE)
     xv = torch.tensor(Xva, dtype=torch.float32).to(DEVICE)
@@ -278,7 +441,9 @@ def _train_pt(model, Xtr, ytr, Xva, yva, lr=1e-3, wd=1e-4, seq=False):
         torch.utils.data.TensorDataset(xt, yt), batch_size=BATCH_SIZE, shuffle=False)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=wd)
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(opt,"min",0.5,patience=5)
-    crit = nn.BCEWithLogitsLoss()
+    # Select loss function — default BCE, but supports focal, brier, label_smooth
+    loss_name = params.get('loss_fn', 'bce')
+    crit = loss_fn or LOSS_REGISTRY.get(loss_name, LOSS_REGISTRY['bce'])(params)
     best_vl, best_st, wait = float("inf"), None, 0
     yv_t = torch.tensor(yva, dtype=torch.float32).unsqueeze(1).to(DEVICE)
     for _ in range(MAX_EPOCHS):
@@ -320,7 +485,12 @@ def _fold(name, Xtr, ytr, Xva, yva, p):
         h = p.get("hidden_dims",(256,128,64))
         if isinstance(h,list): h = tuple(h)
         return _train_pt(NBANet(Xtr.shape[1],h,p.get("dropout",0.3)),
-                         Xtr,ytr,Xva,yva,p.get("lr",1e-3),p.get("weight_decay",1e-4))
+                         Xtr,ytr,Xva,yva,p.get("lr",1e-3),p.get("weight_decay",1e-4),params=p)
+    if name == "mlp_residual":
+        h = p.get("hidden_dims",(256,128,64))
+        if isinstance(h,list): h = tuple(h)
+        return _train_pt(NBANetResidual(Xtr.shape[1],h,p.get("dropout",0.3)),
+                         Xtr,ytr,Xva,yva,p.get("lr",1e-3),p.get("weight_decay",1e-4),params=p)
     if name == "lstm":
         sl = p.get("seq_len",10)
         return _train_pt(NBALSTM(Xtr.shape[1],p.get("hidden_dim",64),p.get("n_layers",2),
@@ -329,6 +499,31 @@ def _fold(name, Xtr, ytr, Xva, yva, p):
     if name == "ft_transformer":
         return _train_pt(FTTransformer(Xtr.shape[1],p.get("d_token",64),p.get("n_heads",4),
                                         p.get("n_blocks",3),p.get("dropout",0.2)),
+                         Xtr,ytr,Xva,yva,p.get("lr",5e-4),p.get("weight_decay",1e-5))
+    if name == "node":
+        return _train_pt(NODEModel(Xtr.shape[1], p.get("n_trees",128), p.get("depth",4),
+                                    p.get("n_layers",2)),
+                         Xtr,ytr,Xva,yva,p.get("lr",1e-3),p.get("weight_decay",1e-4))
+    if name == "mc_dropout_rnn":
+        sl = p.get("seq_len",10)
+        model = MCDropoutRNN(Xtr.shape[1], p.get("hidden_dim",128), p.get("n_layers",2),
+                              p.get("dropout",0.3))
+        # Train normally first
+        _train_pt(model, _seqs(Xtr,sl), ytr, _seqs(Xva,sl), yva, p.get("lr",1e-3), seq=True)
+        # MC inference: N forward passes with dropout ON → average
+        model = model.to(DEVICE)
+        xv = torch.tensor(_seqs(Xva,sl), dtype=torch.float32).to(DEVICE)
+        n_mc = p.get("mc_samples", 30)
+        preds, _ = model.predict_mc(xv, n_mc)
+        del xv; torch.cuda.empty_cache()
+        return preds
+    if name == "saint":
+        return _train_pt(SAINT(Xtr.shape[1], p.get("d_token",64), p.get("n_heads",4),
+                                p.get("n_blocks",2), p.get("dropout",0.2)),
+                         Xtr,ytr,Xva,yva,p.get("lr",5e-4),p.get("weight_decay",1e-5))
+    if name == "tft":
+        return _train_pt(TFT(Xtr.shape[1], p.get("d_model",64), p.get("n_heads",4),
+                              p.get("n_blocks",2), p.get("dropout",0.2)),
                          Xtr,ytr,Xva,yva,p.get("lr",5e-4),p.get("weight_decay",1e-5))
     if name == "tabnet":
         return _train_tabnet(Xtr,ytr,Xva,yva,p)
