@@ -3335,3 +3335,80 @@ class NBAFeatureEngine:
 
         return pd.concat([adj_factors, opp_allowed_z, interaction], axis=1)
 ### END Feature Scout addition ###
+
+
+### BEGIN Market Intel addition (2026-03-20) ###
+# Sharp Money Flow Intensity Metrics - Market Intelligence Features
+import numpy as np
+import pandas as pd
+from typing import Optional
+
+class NBAFeatureEngine:
+    # ... (existing methods) ...
+
+    @staticmethod
+    def _calculate_sharp_money_flow_intensity(
+        sharp_pct_home: float,
+        sharp_pct_away: float,
+        sharp_volume_home: float,
+        sharp_volume_away: float,
+        line_velocity: float,
+        movement_acceleration: float
+    ) -> float:
+        """
+        Calculates sharp money flow intensity metric combining volume-weighted velocity.
+
+        Args:
+            sharp_pct_home: Sharp money percentage on home team
+            sharp_pct_away: Sharp money percentage on away team
+            sharp_volume_home: Sharp money volume on home team
+            sharp_volume_away: Sharp money volume on away team
+            line_velocity: Rate of line movement (points per hour)
+            movement_acceleration: Acceleration of line movement (points per hour²)
+
+        Returns:
+            Sharp money flow intensity score (0-1 scale)
+        """
+        try:
+            # Volume-weighted sharp money differential
+            volume_weighted_diff = (sharp_pct_home - sharp_pct_away) * (sharp_volume_home + sharp_volume_away)
+
+            # Normalize by total volume
+            normalized_volume = (sharp_volume_home + sharp_volume_away) / max(sharp_volume_home, sharp_volume_away, 1)
+
+            # Combine with line movement dynamics
+            intensity = (
+                abs(volume_weighted_diff) * 
+                normalized_volume * 
+                (1 + abs(line_velocity) / 10) *  # Scale velocity (assuming typical range ~10 pts/hr)
+                (1 + abs(movement_acceleration) / 2)  # Scale acceleration (assuming typical range ~2 pts/hr²)
+            )
+
+            # Normalize to 0-1 scale
+            return min(intensity / 100, 1.0)
+        except Exception:
+            return np.nan
+
+    @staticmethod
+    def _sharp_money_flow_intensity_feature(df: pd.DataFrame) -> pd.Series:
+        """
+        Applies sharp money flow intensity calculation to DataFrame.
+
+        Args:
+            df: DataFrame containing sharp money and line movement columns
+
+        Returns:
+            Series of sharp money flow intensity scores
+        """
+        return df.apply(
+            lambda row: NBAFeatureEngine._calculate_sharp_money_flow_intensity(
+                row['sharp_money_pct_home'],
+                row['sharp_money_pct_away'],
+                row['sharp_volume_home'],
+                row['sharp_volume_away'],
+                row['line_velocity'],
+                row['movement_acceleration']
+            ),
+            axis=1
+        )
+### END Market Intel addition ###
