@@ -3325,3 +3325,46 @@ def register_pinnacle_steam_features(engine):
         'Steam × Back-to-Back: Interaction for rest-sensitive steam situations'
     ])
 ### END Market Intel addition ###
+
+
+### BEGIN Feature Scout addition (2026-03-20) ###
+# Implements Opponent-Adjusted Four Factors Momentum feature
+from numpy import percentile
+
+def opponent_adjusted_four_factors_momentum(df):
+    """
+    Compute opponent-adjusted four factors momentum features
+    """
+    # Calculate weighted wins and hot/cold streaks over last 5 games
+    df['weighted_wins_5g'] = df['win'].rolling(window=5).apply(lambda x: (x * df['opp_strength']).sum())
+    df['hot_cold_5g'] = df['win'].rolling(window=5).apply(lambda x: x.mean())
+    df['streak_len'] = df['win'].rolling(window=5).apply(lambda x: len([i for i in x if i == x.iloc[-1]]))
+
+    # Calculate opponent-adjusted four factors over last 5 games
+    df['efg_pct_5g_vs_opp_rank'] = df['efg_pct'].rolling(window=5).apply(lambda x: percentile(x, 50) / df['opp_efg_pct'].rolling(window=5).apply(lambda x: percentile(x, 50)))
+    df['tov_pct_5g_vs_opp_rank'] = df['tov_pct'].rolling(window=5).apply(lambda x: percentile(x, 50) / df['opp_tov_pct'].rolling(window=5).apply(lambda x: percentile(x, 50)))
+    df['orb_pct_5g_vs_opp_rank'] = df['orb_pct'].rolling(window=5).apply(lambda x: percentile(x, 50) / df['opp_orb_pct'].rolling(window=5).apply(lambda x: percentile(x, 50)))
+    df['frt_pct_5g_vs_opp_rank'] = df['frt_pct'].rolling(window=5).apply(lambda x: percentile(x, 50) / df['opp_frt_pct'].rolling(window=5).apply(lambda x: percentile(x, 50)))
+
+    return df[['efg_pct_5g_vs_opp_rank', 'tov_pct_5g_vs_opp_rank', 'orb_pct_5g_vs_opp_rank', 'frt_pct_5g_vs_opp_rank', 'weighted_wins_5g', 'hot_cold_5g', 'streak_len']]
+
+def register_opponent_adjusted_four_factors_momentum(engine):
+    """Add Opponent-Adjusted Four Factors Momentum features to the feature engine"""
+    engine.feature_functions.append(opponent_adjusted_four_factors_momentum)
+    engine.feature_names.extend([
+        'efg_pct_5g_vs_opp_rank', 'tov_pct_5g_vs_opp_rank', 'orb_pct_5g_vs_opp_rank', 'frt_pct_5g_vs_opp_rank', 
+        'weighted_wins_5g', 'hot_cold_5g', 'streak_len'
+    ])
+    engine.feature_categories.extend([
+        'momentum', 'momentum', 'momentum', 'momentum', 'momentum', 'momentum', 'momentum'
+    ])
+    engine.feature_descriptions.extend([
+        'Opponent-Adjusted EFG% over last 5 games',
+        'Opponent-Adjusted TOV% over last 5 games',
+        'Opponent-Adjusted ORB% over last 5 games',
+        'Opponent-Adjusted FRT% over last 5 games',
+        'Weighted wins over last 5 games',
+        'Hot/Cold streak over last 5 games',
+        'Streak length'
+    ])
+### END Feature Scout addition ###
