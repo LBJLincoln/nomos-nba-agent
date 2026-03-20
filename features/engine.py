@@ -3124,3 +3124,20 @@ if __name__ == "__main__":
 
     for cat, count in sorted(categories.items()):
         print(f"  {cat}: {count}")
+
+
+### BEGIN Market Intel addition (2026-03-20) ###
+===CODE: features/engine.py===
+import pandas as pd
+import numpy as np
+
+# Implementation of feature_test: Interaction of early sharp money, line velocity, and market's initial reaction.
+
+class NBAFeatureEngine:
+    # ... (existing methods and attributes) ...
+
+    @staticmethod
+    def _market_early_sharp_velocity_interaction(df: pd.DataFrame) -> pd.Series:
+        """
+        Calculates the interaction between
+### END Market Intel addition ###
