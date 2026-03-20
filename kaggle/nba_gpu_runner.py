@@ -1540,3 +1540,74 @@ def run_exp(exp, X, y, feature_names):
         # existing experiment code
         pass
 ### END Research Scholar addition ###
+
+
+### BEGIN Model Architect addition (2026-03-20) ###
+# XGBoost DART with extreme regularization - targeting overfitting reduction on 2058 features
+import xgboost as xgb
+from sklearn.metrics import brier_score_loss
+
+def run_xgboost_dart_exp(exp, X, y, feature_names):
+    """
+    Run XGBoost DART with extreme regularization and aggressive early stopping
+    - Booster: DART for dropout regularization
+    - Max depth: 12 for complex interactions
+    - Subsample: 0.6 to prevent overfitting
+    - High regularization: reg_alpha=1, reg_lambda=10
+    - Early stopping: 100 rounds
+    """
+    params = {
+        "model_type": "xgboost",
+        "booster": "dart",
+        "max_depth": 12,
+        "learning_rate": 0.01,
+        "n_estimators": 3000,
+        "subsample": 0.6,
+        "colsample_bytree": 0.5,
+        "colsample_btlevel": 0.5,
+        "reg_alpha": 1,
+        "reg_lambda": 10,
+        "min_child_weight": 7,
+        "gamma": 1,
+        "sample_type": "weighted",
+        "normalize_type": "tree",
+        "rate_drop": 0.1,
+        "skip_drop": 0.5,
+        "early_stopping_rounds": 100,
+        "eval_metric": "logloss"
+    }
+    
+    # Convert to DMatrix for XGBoost
+    dtrain = xgb.DMatrix(X, label=y)
+    
+    # Train model
+    model = xgb.train(
+        params,
+        dtrain,
+        num_boost_round=params["n_estimators"],
+        evals=[(dtrain, "train")],
+        early_stopping_rounds=params["early_stopping_rounds"],
+        verbose_eval=False
+    )
+    
+    # Predict probabilities
+    y_pred = model.predict(dtrain)
+    
+    # Calculate Brier score
+    brier_loss = brier_score_loss(y, y_pred)
+    print(f"XGBoost DART Brier Loss: {brier_loss:.4f}")
+    
+    return model, brier_loss
+
+# Add this to the experiment loop
+def run_exp(exp, X, y, feature_names):
+    if exp['model_type'] == 'xgboost_dart':
+        run_xgboost_dart_exp(exp, X, y, feature_names)
+    elif exp['model_type'] == 'platt_temperature_scaling_ensemble':
+        run_platt_temperature_scaling_ensemble_exp(exp, X, y, feature_names)
+    elif exp['model_type'] == 'ft_transformer':
+        run_ft_transformer_ensemble_exp(exp, X, y, feature_names)
+    else:
+        # existing experiment code
+        pass
+### END Model Architect addition ###
