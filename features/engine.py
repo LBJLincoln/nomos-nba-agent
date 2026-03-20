@@ -3493,3 +3493,65 @@ def register_steam_move_velocity_decay(engine):
     ])
 ```
 ### END Market Intel addition ###
+
+
+### BEGIN Feature Scout addition (2026-03-20) ###
+# Opponent-Adjusted Four Factors Momentum features
+import numpy as np
+from datetime import timedelta
+
+def opponent_adjusted_four_factors_momentum(df, current_time, include_acceleration=True):
+    """
+    Compute opponent-adjusted four factors with recent momentum signals.
+    Combines team quality metrics (four factors) with recent performance trends.
+    """
+    decay_lambda = np.log(2) / 4  # Half-life of 4 games for decay weighting
+    
+    # Calculate four factors vs opponent rank (lower rank = better performance vs opponent)
+    team_ff = df.groupby('team').apply(lambda x: pd.Series({
+        'efg_pct_5g_vs_opp_rank': x['efg_pct'].rank(ascending=False).mean(),
+        'tov_pct_5g_vs_opp_rank': x['tov_pct'].rank(ascending=True).mean(),
+        'orb_pct_5g_vs_opp_rank': x['orb_pct'].rank(ascending=False).mean(),
+        'frt_pct_5g_vs_opp_rank': x['frt_pct'].rank(ascending=False).mean()
+    }))
+    
+    # Calculate momentum features (weighted by recency)
+    team_momentum = df.groupby('team').apply(lambda x: pd.Series({
+        'weighted_wins_5g': (x['win'] * np.exp(-decay_lambda * x['game_id'].rank())).sum(),
+        'hot_cold_5g': (x['margin'] * np.exp(-decay_lambda * x['game_id'].rank())).sum(),
+        'margin_trend_5g': x['margin'].diff().dropna().mean() if len(x) > 1 else 0
+    }))
+    
+    # Combine features
+    four_factors_df = team_ff.join(team_momentum, how='left').reset_index()
+    
+    # Merge back with original data
+    df = df.merge(four_factors_df, how='left', on='team')
+    df.fillna(0, inplace=True)
+    
+    return df[[
+        'efg_pct_5g_vs_opp_rank', 'tov_pct_5g_vs_opp_rank', 'orb_pct_5g_vs_opp_rank',
+        'frt_pct_5g_vs_opp_rank', 'weighted_wins_5g', 'hot_cold_5g', 'margin_trend_5g'
+    ]]
+
+def register_opponent_adjusted_four_factors_momentum(engine):
+    """Add Opponent-Adjusted Four Factors Momentum features to the feature engine"""
+    engine.feature_functions.append(opponent_adjusted_four_factors_momentum)
+    engine.feature_names.extend([
+        'efg_pct_5g_vs_opp_rank', 'tov_pct_5g_vs_opp_rank', 'orb_pct_5g_vs_opp_rank',
+        'frt_pct_5g_vs_opp_rank', 'weighted_wins_5g', 'hot_cold_5g', 'margin_trend_5g'
+    ])
+    engine.feature_categories.extend([
+        'four_factors', 'four_factors', 'four_factors', 'four_factors',
+        'momentum', 'momentum', 'momentum'
+    ])
+    engine.feature_descriptions.extend([
+        'Effective FG% vs opponent rank (last 5 games)',
+        'TOV% vs opponent rank (last 5 games)',
+        'ORB% vs opponent rank (last 5 games)',
+        'FTR% vs opponent rank (last 5 games)',
+        'Weighted wins (decay-weighted, last 5 games)',
+        'Hot/cold momentum (decay-weighted margin, last 5 games)',
+        'Margin trend (mean margin change, last 5 games)'
+    ])
+### END Feature Scout addition ###
