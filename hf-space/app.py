@@ -2200,3 +2200,103 @@ def island_model_evolution(
     all_inds = [ind for pop in islands for ind in pop]
     return tools.selBest(all_inds, 1)[0]
 ### END Evolution Tuner addition ###
+
+
+### BEGIN Evolution Tuner addition (2026-03-20) ###
+# Island Model GA Implementation - 4 isolated sub-populations with migration
+from deap import tools, base, creator
+import random
+import numpy as np
+
+def island_model_evolution(pop_size, cxpb, mutpb, ngen, stats, halloffame, logbook, island_model_config):
+    """
+    Island model genetic algorithm with 4 isolated sub-populations
+    """
+    num_islands = island_model_config['num_islands']
+    island_population = island_model_config['island_population']
+    migration_interval = island_model_config['migration_interval']
+    migrants_per_exchange = island_model_config['migrants_per_exchange']
+    selection_per_island = island_model_config['selection_per_island']
+
+    # Create toolbox with island-specific selection operators
+    toolbox = base.Toolbox()
+    toolbox.register("mate", tools.cxTwoPoint)
+    toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
+    toolbox.register("evaluate", evaluate_model)  # Assume this exists
+
+    # Initialize islands with different selection strategies
+    islands = []
+    for island_idx in range(num_islands):
+        island_toolbox = base.Toolbox()
+        island_toolbox.register("mate", tools.cxTwoPoint)
+        island_toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
+        island_toolbox.register("evaluate", evaluate_model)
+
+        # Register island-specific selection
+        if selection_per_island[island_idx] == "tournament":
+            island_toolbox.register("select", tools.selTournament, tournsize=3)
+        elif selection_per_island[island_idx] == "rank":
+            island_toolbox.register("select", tools.selRank)
+        elif selection_per_island[island_idx] == "sus":
+            island_toolbox.register("select", tools.selSUS)
+        elif selection_per_island[island_idx] == "boltzmann":
+            island_toolbox.register("select", tools.selBoltzmann, temperature=1.0)
+
+        # Initialize population
+        island_pop = [create_individual() for _ in range(island_population)]
+        islands.append(island_pop)
+
+    # Evolution loop
+    for gen in range(ngen):
+        for island_idx, population in enumerate(islands):
+            # Evaluate fitness if needed
+            invalid_ind = [ind for ind in population if not ind.fitness.valid]
+            if invalid_ind:
+                fitnesses = map(toolbox.evaluate, invalid_ind)
+                for ind, fit in zip(invalid_ind, fitnesses):
+                    ind.fitness.values = (fit,)
+
+            # Select and clone for next generation
+            offspring = island_toolbox.select(population, len(population))
+            offspring = list(map(toolbox.clone, offspring))
+
+            # Apply crossover and mutation
+            for child1, child2 in zip(offspring[::2], offspring[1::::2]):
+                if random.random() < cxpb:
+                    island_toolbox.mate(child1, child2)
+                    del child1.fitness.values
+                    del child2.fitness.values
+
+            for mutant in offspring:
+                if random.random() < mutpb:
+                    island_toolbox.mutate(mutant)
+                    del mutant.fitness.values
+
+            # Apply elitism (1 best individual preserved)
+            elite = tools.selBest(population, 1)
+            offspring = tools.selBest(offspring, len(offspring) - 1) + elite
+
+            islands[island_idx] = offspring
+
+        # Migration phase
+        if (gen + 1) % migration_interval == 0:
+            # Extract best individuals from each island
+            best_per_island = [tools.selBest(pop, migrants_per_exchange) for pop in islands]
+            migrants = [ind for sublist in best_per_island for ind in sublist]
+            random.shuffle(migrants)
+            for idx, pop in enumerate(islands):
+                worst = tools.selWorst(pop, migrants_per_exchange)
+                for i in range(migrants_per_exchange):
+                    pop[pop.index(worst[i])] = migrants.pop()
+
+        # Log stats every migration interval
+        if (gen + 1) % migration_interval == 0:
+            all_inds = [ind for pop in islands for ind in pop]
+            fits = [ind.fitness.values[0] for ind in all_inds if ind.fitness.valid]
+            if fits:
+                print(f"Gen {gen+1}: Min={min(fits):.4f}, Avg={np.mean(fits):.4f}")
+
+    # Return the best individual across all islands
+    all_inds = [ind for pop in islands for ind in pop]
+    return tools.selBest(all_inds, 1)[0]
+### END Evolution Tuner addition ###
