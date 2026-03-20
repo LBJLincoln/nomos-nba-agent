@@ -761,3 +761,64 @@ for it in range(MAX_EXPERIMENTS * 3):
 print(f"\n{'='*60}\nKAGGLE SESSION COMPLETE: {completed} done, {failed} failed")
 if torch.cuda.is_available(): print(f"GPU: {torch.cuda.get_device_name(0)}")
 print(f"{'='*60}")
+
+
+### BEGIN Model Architect addition (2026-03-20) ###
+# Implements XGBoost DART model with extreme regularization and low learning rate for fine-grained probability calibration
+import xgboost as xgb
+from sklearn.metrics import brier_score_loss
+
+class XGBoostDARTModel:
+    def __init__(self, params):
+        self.params = params
+        self.model = xgb.XGBClassifier(**params)
+
+    def train(self, X, y):
+        self.model.fit(X, y)
+
+    def predict(self, X):
+        return self.model.predict_proba(X)[:, 1]
+
+    def evaluate(self, X, y):
+        y_pred = self.predict(X)
+        return brier_score_loss(y, y_pred)
+
+def run_xgboost_dart_exp(exp, X, y, feature_names):
+    """
+    Run XGBoost DART experiment
+    """
+    params = {
+        "model_type": "xgboost",
+        "booster": "dart",
+        "max_depth": 6,
+        "learning_rate": 0.005,
+        "n_estimators": 3000,
+        "subsample": 0.6,
+        "colsample_bytree": 0.5,
+        "reg_alpha": 1,
+        "reg_lambda": 10,
+        "min_child_weight": 7,
+        "gamma": 1,
+        "sample_type": "weighted",
+        "normalize_type": "tree",
+        "rate_drop": 0.1,
+        "skip_drop": 0.5,
+        "objective": "binary:logistic",
+        "eval_metric": "logloss",
+        "tree_method": "hist",
+        "random_state": 42
+    }
+    model = XGBoostDARTModel(params)
+    model.train(X, y)
+    y_pred = model.predict(X)
+    brier_loss = brier_score_loss(y, y_pred)
+    print(f"XGBoost DART Brier Loss: {brier_loss:.4f}")
+
+# Add this to the experiment loop
+def run_exp(exp, X, y, feature_names):
+    if exp['model_type'] == 'xgboost_dart':
+        run_xgboost_dart_exp(exp, X, y, feature_names)
+    else:
+        # existing experiment code
+        pass
+### END Model Architect addition ###
