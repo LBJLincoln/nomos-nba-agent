@@ -1254,3 +1254,72 @@ def run_exp(exp, X, y, feature_names, dates=None):
         pass
 ```
 ### END Calibrator addition ###
+
+
+### BEGIN Calibrator addition (2026-03-20) ###
+```python
+# Temperature Scaling + Isotonic Regression Ensemble Calibration
+from sklearn.isotonic import IsotonicRegression
+from sklearn.model_selection import KFold
+import torch
+
+def run_ensemble_calibration(exp, X, y, feature_names, dates=None):
+    """Temperature Scaling + Isotonic Regression Ensemble calibration"""
+    T = exp['params']['calibration_params']['T']
+    cv_folds = exp['params']['calibration_params']['cv_folds']
+
+    # Temperature Scaling
+    logits = torch.from_numpy(X).float()
+    scaled_logits = logits / T
+    temp_probs = torch.sigmoid(scaled_logits).numpy().flatten()
+
+    # Isotonic Regression with out-of-fold validation
+    if exp['params']['calibration_params']['out_of_fold']:
+        # Out-of-fold isotonic regression to prevent overfitting
+        kfold = KFold(n_splits=cv_folds, shuffle=True, random_state=42)
+        calibrated_probs = np.zeros_like(y, dtype=float)
+
+        for train_idx, test_idx in kfold.split(X):
+            ir = IsotonicRegression(out_of_bounds='clip')
+            ir.fit(temp_probs[train_idx], y[train_idx])
+            calibrated_probs[test_idx] = ir.predict(temp_probs[test_idx])
+    else:
+        # Standard isotonic regression
+        ir = IsotonicRegression(out_of_bounds='clip')
+        ir.fit(temp_probs, y)
+        calibrated_probs = ir.predict(temp_probs)
+
+    # Evaluation
+    brier = np.mean((calibrated_probs - y)**2)
+    accuracy = np.mean((calibrated_probs > 0.5) == y)
+
+    # Save results
+    result = {
+        'brier_score': brier,
+        'accuracy': accuracy,
+        'predictions': calibrated_probs.tolist(),
+        'model_type': 'ensemble_calibration',
+        'calibration_params': {
+            'T': T,
+            'out_of_fold': exp['params']['calibration_params']['out_of_fold'],
+            'cv_folds': cv_folds
+        }
+    }
+    save_results(exp, result)
+    print(f"✓ Ensemble Calibration complete: Brier={brier:.4f}, Acc={accuracy:.4f}")
+
+# Add to run_exp dispatch
+def run_exp(exp, X, y, feature_names, dates=None):
+    """Dispatch to appropriate model runner"""
+    model_type = exp['params']['model_type']
+    if model_type == 'ft_transformer':
+        run_ft_transformer(exp, X, y, feature_names)
+    elif model_type == 'calibrated_temperature_scaling':
+        run_calibrated_temperature_scaling(exp, X, y, feature_names, dates)
+    elif model_type == 'ensemble_calibration':
+        run_ensemble_calibration(exp, X, y, feature_names, dates)
+    else:
+        # Existing model runners...
+        pass
+```
+### END Calibrator addition ###
