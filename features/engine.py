@@ -3158,3 +3158,16 @@ class NBAFeatureEngine:
     @staticmethod
     def _calculate_time_based_diff(df: pd.DataFrame,
 ### END Market Intel addition ###
+
+
+### BEGIN Feature Scout addition (2026-03-20) ###
+===CODE: features/engine.py===
+# BEGIN feature_test: Opponent-adjusted defensive versatility (2024-07-30) ###
+# This implements new interaction features capturing how adaptable offenses
+# exploit predictable defenses.
+
+    @staticmethod
+    def _calculate_opponent_adjusted_defensive_versatility(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculates opponent-adjusted defensive versatility features.
+### END Feature Scout addition ###
