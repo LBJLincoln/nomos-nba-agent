@@ -836,3 +836,70 @@ from torch.optim import AdamW
 
 class TabNet
 ### END Model Architect addition ###
+
+
+### BEGIN Calibrator addition (2026-03-20) ###
+# Implements Platt Scaling + Temperature Scaling ensemble for calibration
+import numpy as np
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.ensemble import BaggingClassifier
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import brier_score_loss
+
+class PlattTemperatureScalingEnsemble:
+    def __init__(self, params):
+        self.params = params
+        self.platt_scaler = None
+        self.temperature_scaler = None
+        self.ensemble_method = params["ensemble_method"]
+        self.weights = params["weights"]
+
+    def fit(self, X, y):
+        platt_scaler = CalibratedClassifierCV(method='sigmoid', cv=5)
+        platt_scaler.fit(X, y)
+
+        temperature_scaler = CalibratedClassifierCV(method='isotonic', cv=5)
+        temperature_scaler.fit(X, y)
+
+        self.platt_scaler = platt_scaler
+        self.temperature_scaler = temperature_scaler
+
+    def predict_proba(self, X):
+        platt_pred = self.platt_scaler.predict_proba(X)[:, 1]
+        temperature_pred = self.temperature_scaler.predict_proba(X)[:, 1]
+
+        if self.ensemble_method == "weighted_average":
+            return self.weights[0] * platt_pred + self.weights[1] * temperature_pred
+        else:
+            raise ValueError("Invalid ensemble method")
+
+    def evaluate(self, X, y):
+        y_pred = self.predict_proba(X)
+        return brier_score_loss(y, y_pred)
+
+def run_platt_temperature_scaling_ensemble_exp(exp, X, y, feature_names):
+    """
+    Run Platt Scaling + Temperature Scaling ensemble experiment
+    """
+    params = {
+        "calibration_method": ["platt", "temperature"],
+        "platt_C": [0.1, 1, 10],
+        "temperature_T": [0.7, 1, 1.3],
+        "ensemble_method": "weighted_average",
+        "weights": [0.5, 0.5],
+        "cv_folds": 5
+    }
+    model = PlattTemperatureScalingEnsemble(params)
+    model.fit(X, y)
+    y_pred = model.predict_proba(X)
+    brier_loss = model.evaluate(X, y)
+    print(f"Platt Temperature Scaling Ensemble Brier Loss: {brier_loss:.4f}")
+
+# Add this to the experiment loop
+def run_exp(exp, X, y, feature_names):
+    if exp['model_type'] == 'platt_temperature_scaling_ensemble':
+        run_platt_temperature_scaling_ensemble_exp(exp, X, y, feature_names)
+    else:
+        # existing experiment code
+        pass
+### END Calibrator addition ###
