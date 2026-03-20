@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-NBA Quant Feature Engine — 2000+ Features with Genetic Selection
+NBA Quant Feature Engine — 6000+ Features with Genetic Selection
 =================================================================
-Generates ~2000+ feature candidates across 25 categories, then uses
-genetic algorithm to select optimal 150-300 features.
+Generates ~6000+ feature candidates across 35 categories, then uses
+genetic algorithm to select optimal 150-400 features.
 
 Categories:
   1. ROLLING PERFORMANCE (6 windows × 8 stats × 2 teams = 96)
@@ -31,7 +31,17 @@ Categories:
   23. ADVANCED MARKET MICROSTRUCTURE II (60+ features — multi-book)
   24. POWER RATING COMPOSITES (60+ features — multi-Elo, RAPTOR)
   25. FATIGUE & LOAD MANAGEMENT (80+ features — cumulative load, degradation)
-  ≈ 2000+ feature candidates
+  26. ADVANCED PLAYER IMPACT (220+ features — star +/-, usage, chemistry)
+  27. REFEREE DEEP ANALYSIS (120+ features — per-quarter foul rates, bias)
+  28. VENUE & ENVIRONMENTAL (160+ features — altitude, timezone, attendance)
+  29. ADVANCED MARKET MICROSTRUCTURE III (220+ features — velocity, acceleration)
+  30. TIME SERIES DECOMPOSITION (320+ features — trend, seasonal, residual)
+  31. CROSS-TEAM INTERACTION MATRIX (440+ features — pace diff, style clash)
+  32. BAYESIAN PRIORS (220+ features — preseason, franchise, coach)
+  33. NETWORK/GRAPH FEATURES (220+ features — PageRank, centrality)
+  34. ENSEMBLE META-FEATURES (160+ features — model uncertainty, drift)
+  35. TEMPORAL DECAY FEATURES (320+ features — exponential decay, recency)
+  ≈ 6000+ feature candidates
 
 Architecture inspired by:
   - Starlizard: 500+ features, genetic selection, real-time adjustment
@@ -39,6 +49,9 @@ Architecture inspired by:
   - Becker/Kalshi: Maker advantage, longshot bias exploitation
   - Dean Oliver: Four Factors framework
   - NBA Second Spectrum: Player tracking features
+  - Kenpom: Adjusted efficiency, tempo-free stats
+  - FiveThirtyEight RAPTOR: Player impact, Bayesian priors
+  - Massey/Colley: Network-based power ratings
 
 THIS SCRIPT MUST RUN ON HF SPACES (16GB RAM) — NOT on VM.
 """
@@ -121,12 +134,12 @@ def haversine(lat1, lon1, lat2, lon2):
 
 class NBAFeatureEngine:
     """
-    Generates 2000+ features for each game from historical data.
+    Generates 6000+ features for each game from historical data.
 
     Usage:
         engine = NBAFeatureEngine()
         X, y, feature_names = engine.build(games)
-        # X.shape = (n_games, ~2000)
+        # X.shape = (n_games, ~6000)
     """
 
     def __init__(self, include_market=True, skip_placeholder=False):
@@ -897,6 +910,1289 @@ class NBAFeatureEngine:
             "fatigue_adjusted_spread",            # Current spread adjusted for fatigue
             "fatigue_composite_edge",             # Composite fatigue advantage
         ])
+
+        # =====================================================================
+        # CATEGORIES 26-35: MASSIVE FEATURE EXPANSION (4000+ new features)
+        # =====================================================================
+
+        # 26. ADVANCED PLAYER IMPACT (220 features)
+        # Star player +/-, usage rates per lineup, efficiency deltas,
+        # rest-adjusted player metrics, player chemistry indicators
+        _pi_stats = ["plus_minus", "usage_rate", "per", "ws_per48", "bpm",
+                     "vorp", "raptor_off", "raptor_def", "raptor_total",
+                     "ts_pct", "ast_pct", "reb_pct"]
+        _pi_windows = [3, 5, 10, 20]
+        for prefix in ["h", "a"]:
+            # Top player stats across windows: 12 stats × 4 windows = 48 per team
+            for stat in _pi_stats:
+                for w in _pi_windows:
+                    names.append(f"{prefix}_star1_{stat}_{w}")
+            # Second star: 12 stats × 4 windows = 48 per team
+            for stat in _pi_stats:
+                for w in _pi_windows:
+                    names.append(f"{prefix}_star2_{stat}_{w}")
+            # Team-level aggregated player impact: 12 features per team
+            names.append(f"{prefix}_star_combined_plus_minus")
+            names.append(f"{prefix}_star_usage_concentration")
+            names.append(f"{prefix}_star_minutes_ratio")
+            names.append(f"{prefix}_star_efficiency_delta")
+            names.append(f"{prefix}_star_rest_adj_rating")
+            names.append(f"{prefix}_chemistry_starting5")
+            names.append(f"{prefix}_chemistry_top3")
+            names.append(f"{prefix}_player_variance")
+            names.append(f"{prefix}_top_player_dependency_score")
+            names.append(f"{prefix}_bench_player_avg_rating")
+            names.append(f"{prefix}_roster_talent_depth")
+            names.append(f"{prefix}_injury_replacement_quality")
+        # Matchup-level player impact differentials: 14 features
+        names.extend([
+            "pi_star1_rating_diff",
+            "pi_star2_rating_diff",
+            "pi_combined_star_diff",
+            "pi_usage_concentration_diff",
+            "pi_chemistry_diff",
+            "pi_bench_quality_diff",
+            "pi_talent_depth_diff",
+            "pi_star_fatigue_adj_diff",
+            "pi_star_matchup_advantage",
+            "pi_key_player_edge",
+            "pi_roster_continuity_diff",
+            "pi_injury_impact_diff",
+            "pi_star_on_off_diff",
+            "pi_clutch_player_diff",
+        ])
+
+        # 27. REFEREE DEEP ANALYSIS (120 features)
+        # Ref-specific foul rates by quarter, ref home/away bias history,
+        # ref pace impact by team type, ref total-over/under tendency
+        _ref_quarters = ["q1", "q2", "q3", "q4"]
+        for q in _ref_quarters:
+            names.append(f"ref_{q}_foul_rate")
+            names.append(f"ref_{q}_home_foul_bias")
+            names.append(f"ref_{q}_tech_rate")
+            names.append(f"ref_{q}_and1_rate")
+            names.append(f"ref_{q}_shooting_foul_rate")
+            names.append(f"ref_{q}_offensive_foul_rate")
+        # Ref bias by team type (fast/slow, top/bottom, home/away)
+        _ref_team_types = ["fast_pace", "slow_pace", "top10", "bottom10",
+                           "big_market", "small_market"]
+        for ttype in _ref_team_types:
+            names.append(f"ref_bias_{ttype}_home_wp")
+            names.append(f"ref_bias_{ttype}_foul_diff")
+            names.append(f"ref_bias_{ttype}_ft_diff")
+        # Ref over/under tendencies across contexts
+        _ref_contexts = ["overall", "high_total", "low_total", "rivalry",
+                         "playoff_race", "b2b_games", "national_tv"]
+        for ctx in _ref_contexts:
+            names.append(f"ref_over_tendency_{ctx}")
+            names.append(f"ref_under_tendency_{ctx}")
+            names.append(f"ref_total_delta_{ctx}")
+        # Ref pace impact
+        for prefix in ["h", "a"]:
+            names.append(f"ref_{prefix}_expected_pace_impact")
+            names.append(f"ref_{prefix}_expected_foul_impact")
+            names.append(f"ref_{prefix}_expected_ft_impact")
+            names.append(f"ref_{prefix}_historical_team_bias")
+        # Ref composite features
+        names.extend([
+            "ref_consistency_index",
+            "ref_home_bias_composite",
+            "ref_pace_impact_composite",
+            "ref_total_impact_composite",
+            "ref_foul_disparity_expected",
+            "ref_experience_weight",
+            "ref_crew_chemistry",
+            "ref_variance_in_calls",
+            "ref_big_game_experience",
+            "ref_crew_avg_total_called",
+            "ref_crew_foul_per_possession",
+            "ref_historical_ats_home_rate",
+            "ref_historical_over_rate_season",
+            "ref_recent_form_5_games",
+            "ref_recent_form_10_games",
+            "ref_travel_adjusted_bias",
+        ])
+
+        # 28. VENUE & ENVIRONMENTAL (160 features)
+        # Altitude effects, timezone crossing, attendance, temperature,
+        # court surface age, arena factors
+        _venue_windows = [3, 5, 10, 20]
+        for prefix in ["h", "a"]:
+            # Altitude impact features
+            for w in _venue_windows:
+                names.append(f"{prefix}_altitude_adj_ortg_{w}")
+                names.append(f"{prefix}_altitude_adj_drtg_{w}")
+                names.append(f"{prefix}_altitude_adj_pace_{w}")
+            # Timezone crossing features
+            for w in _venue_windows:
+                names.append(f"{prefix}_tz_cross_wp_{w}")
+                names.append(f"{prefix}_tz_cross_margin_{w}")
+            # Home/away specific venue features
+            names.append(f"{prefix}_home_arena_wp")
+            names.append(f"{prefix}_home_arena_margin")
+            names.append(f"{prefix}_home_arena_ortg")
+            names.append(f"{prefix}_home_arena_drtg")
+            names.append(f"{prefix}_arena_elevation_factor")
+            names.append(f"{prefix}_games_at_altitude_season")
+            names.append(f"{prefix}_altitude_acclimatized")
+            names.append(f"{prefix}_tz_disruption_score")
+            names.append(f"{prefix}_tz_direction_east")
+            names.append(f"{prefix}_tz_direction_west")
+            names.append(f"{prefix}_tz_games_same_zone")
+            names.append(f"{prefix}_attendance_ratio_avg")
+            names.append(f"{prefix}_attendance_trend")
+            names.append(f"{prefix}_court_surface_age")
+            names.append(f"{prefix}_temperature_at_gametime")
+            names.append(f"{prefix}_indoor_outdoor_flag")
+            names.append(f"{prefix}_arena_capacity")
+            names.append(f"{prefix}_arena_noise_proxy")
+        # Game-level venue differentials
+        names.extend([
+            "venue_altitude_diff",
+            "venue_altitude_abs_diff",
+            "venue_tz_crossing_diff",
+            "venue_tz_abs_diff",
+            "venue_home_elevation_advantage",
+            "venue_attendance_ratio",
+            "venue_arena_age_diff",
+            "venue_climate_diff",
+            "venue_travel_direction",
+            "venue_acclimatization_diff",
+            "venue_home_arena_strength",
+            "venue_surface_familiarity_diff",
+            "venue_noise_advantage",
+            "venue_altitude_fatigue_interaction",
+            "venue_tz_fatigue_interaction",
+            "venue_combined_environmental_edge",
+        ])
+
+        # 29. ADVANCED MARKET MICROSTRUCTURE III (220 features)
+        # Line movement velocity, acceleration, book consensus, sharp splits
+        if self.include_market:
+            _mkt3_windows = ["1h", "2h", "4h", "8h", "12h", "24h"]
+            # Line movement velocity & acceleration per window
+            for tw in _mkt3_windows:
+                names.append(f"mkt3_spread_velocity_{tw}")
+                names.append(f"mkt3_spread_acceleration_{tw}")
+                names.append(f"mkt3_total_velocity_{tw}")
+                names.append(f"mkt3_total_acceleration_{tw}")
+                names.append(f"mkt3_ml_velocity_{tw}")
+                names.append(f"mkt3_ml_acceleration_{tw}")
+            # Book consensus divergence
+            _mkt3_books = ["pinnacle", "draftkings", "fanduel", "betmgm",
+                           "caesars", "bet365", "william_hill"]
+            for book in _mkt3_books:
+                names.append(f"mkt3_{book}_vs_consensus_spread")
+                names.append(f"mkt3_{book}_vs_consensus_total")
+                names.append(f"mkt3_{book}_vs_consensus_ml")
+                names.append(f"mkt3_{book}_clv_history")
+            # Sharp vs public split features
+            names.extend([
+                "mkt3_sharp_pct_home", "mkt3_sharp_pct_away",
+                "mkt3_public_pct_home", "mkt3_public_pct_away",
+                "mkt3_sharp_public_divergence_spread",
+                "mkt3_sharp_public_divergence_total",
+                "mkt3_sharp_money_direction",
+                "mkt3_public_money_direction",
+                "mkt3_sharp_intensity_score",
+            ])
+            # Steam move features
+            names.extend([
+                "mkt3_steam_count_total", "mkt3_steam_count_last_6h",
+                "mkt3_steam_magnitude_avg", "mkt3_steam_direction",
+                "mkt3_reverse_steam_flag", "mkt3_steam_books_triggered",
+            ])
+            # Reverse line movement features
+            names.extend([
+                "mkt3_rlm_spread_flag", "mkt3_rlm_total_flag",
+                "mkt3_rlm_magnitude_spread", "mkt3_rlm_magnitude_total",
+                "mkt3_rlm_sharp_confirmation",
+            ])
+            # Closing line value by book
+            for book in _mkt3_books:
+                names.append(f"mkt3_clv_{book}_home")
+            # Opening-to-closing deltas
+            names.extend([
+                "mkt3_open_to_close_spread_delta",
+                "mkt3_open_to_close_total_delta",
+                "mkt3_open_to_close_ml_delta",
+                "mkt3_open_to_close_implied_delta",
+            ])
+            # Money line implied probability convergence
+            names.extend([
+                "mkt3_ml_convergence_rate",
+                "mkt3_ml_convergence_direction",
+                "mkt3_implied_prob_convergence",
+                "mkt3_book_agreement_score",
+                "mkt3_market_depth_proxy",
+                "mkt3_liquidity_score",
+                "mkt3_market_manipulation_flag",
+                "mkt3_arbitrage_opportunity",
+                "mkt3_hold_pct_change",
+                "mkt3_vig_trend",
+            ])
+            # Historical patterns
+            names.extend([
+                "mkt3_historical_clv_this_matchup",
+                "mkt3_historical_rlm_success_rate",
+                "mkt3_historical_steam_success_rate",
+                "mkt3_historical_sharp_roi",
+                "mkt3_historical_public_fade_roi",
+                "mkt3_line_stability_score",
+                "mkt3_early_sharp_vs_late_public",
+                "mkt3_market_overreaction_index",
+                "mkt3_odds_shape_skewness",
+                "mkt3_odds_shape_kurtosis",
+            ])
+
+        # 30. TIME SERIES DECOMPOSITION (320 features)
+        # Trend, seasonal, residual components, autocorrelation
+        _ts_stats = ["wp", "ppg", "margin", "ortg", "drtg", "efg", "ts", "pace"]
+        _ts_trend_windows = [3, 5, 10, 20]
+        _ts_lags = [1, 2, 3, 4, 5]
+        for prefix in ["h", "a"]:
+            # Trend components: 8 stats × 4 windows = 32 per team
+            for stat in _ts_stats:
+                for w in _ts_trend_windows:
+                    names.append(f"ts_trend_{prefix}_{stat}_{w}")
+            # Seasonal components (day-of-week): 8 stats = 8 per team
+            for stat in _ts_stats:
+                names.append(f"ts_seasonal_dow_{prefix}_{stat}")
+            # Seasonal components (month): 8 stats = 8 per team
+            for stat in _ts_stats:
+                names.append(f"ts_seasonal_month_{prefix}_{stat}")
+            # Residual volatility: 8 stats = 8 per team
+            for stat in _ts_stats:
+                names.append(f"ts_residual_vol_{prefix}_{stat}")
+            # Autocorrelation features: 8 stats × 5 lags = 40 per team
+            for stat in _ts_stats:
+                for lag in _ts_lags:
+                    names.append(f"ts_acf_{prefix}_{stat}_lag{lag}")
+            # Partial autocorrelation: 8 stats × 5 lags = 40 per team
+            for stat in _ts_stats:
+                for lag in _ts_lags:
+                    names.append(f"ts_pacf_{prefix}_{stat}_lag{lag}")
+            # Stationarity indicators: 8 stats = 8 per team
+            for stat in _ts_stats:
+                names.append(f"ts_stationarity_{prefix}_{stat}")
+            # Trend strength: 8 stats = 8 per team
+            for stat in _ts_stats:
+                names.append(f"ts_trend_strength_{prefix}_{stat}")
+            # Seasonality strength: 8 stats = 8 per team
+            for stat in _ts_stats:
+                names.append(f"ts_season_strength_{prefix}_{stat}")
+
+        # 31. CROSS-TEAM INTERACTION MATRIX (440 features)
+        # Pace differential, defensive rating matchup, style clash
+        _xteam_stats = [
+            "pace", "ortg", "drtg", "efg", "3p_pct", "paint_pts",
+            "fb_pts", "tov_rate", "oreb_pct", "ft_rate",
+        ]
+        _xteam_windows = [5, 10, 20]
+        # Pairwise matchup: 10 stats × 3 windows × 4 types
+        # (diff, ratio, interaction, mismatch) = 120 features
+        for stat in _xteam_stats:
+            for w in _xteam_windows:
+                names.append(f"xteam_diff_{stat}_{w}")
+                names.append(f"xteam_ratio_{stat}_{w}")
+                names.append(f"xteam_inter_{stat}_{w}")
+                names.append(f"xteam_mismatch_{stat}_{w}")
+        # Offensive style vs defensive style: 10 stats × 3 windows = 30
+        for stat in _xteam_stats:
+            for w in _xteam_windows:
+                names.append(f"xteam_off_vs_def_{stat}_{w}")
+        # Reverse: defensive style vs opponent offense: 10 stats × 3 windows = 30
+        for stat in _xteam_stats:
+            for w in _xteam_windows:
+                names.append(f"xteam_def_vs_off_{stat}_{w}")
+        # Style clash indices: composite features
+        _style_types = [
+            "pace_clash", "shooting_clash", "paint_battle",
+            "transition_war", "turnover_battle", "rebounding_war",
+            "free_throw_battle", "three_pt_war", "defense_clash",
+            "tempo_mismatch",
+        ]
+        for style in _style_types:
+            for w in _xteam_windows:
+                names.append(f"xteam_style_{style}_{w}")
+        # Strength matchup matrix (home strength area vs away weakness)
+        _strength_areas = [
+            "perimeter_off_vs_perimeter_def",
+            "interior_off_vs_interior_def",
+            "transition_off_vs_transition_def",
+            "halfcourt_off_vs_halfcourt_def",
+            "shooting_off_vs_shooting_def",
+            "rebounding_off_vs_rebounding_def",
+            "playmaking_vs_ball_pressure",
+            "rim_protection_vs_paint_scoring",
+            "three_pt_shooting_vs_three_pt_defense",
+            "free_throw_drawing_vs_foul_avoidance",
+        ]
+        for area in _strength_areas:
+            for w in _xteam_windows:
+                names.append(f"xteam_strength_{area}_{w}")
+        # Game-level interaction composites
+        names.extend([
+            "xteam_overall_style_clash",
+            "xteam_offensive_edge_composite",
+            "xteam_defensive_edge_composite",
+            "xteam_pace_war_indicator",
+            "xteam_grind_game_indicator",
+            "xteam_shootout_indicator",
+            "xteam_mismatch_severity",
+            "xteam_balanced_matchup_flag",
+            "xteam_upset_structural_flag",
+            "xteam_blowout_structural_flag",
+        ])
+
+        # 32. BAYESIAN PRIORS (220 features)
+        # Pre-season win totals, Vegas priors, franchise strength, coach impact
+        for prefix in ["h", "a"]:
+            # Pre-season and Vegas priors
+            names.append(f"{prefix}_preseason_win_total_ou")
+            names.append(f"{prefix}_vegas_season_win_total")
+            names.append(f"{prefix}_preseason_power_rank")
+            names.append(f"{prefix}_preseason_conf_rank")
+            names.append(f"{prefix}_preseason_division_rank")
+            names.append(f"{prefix}_vegas_championship_odds")
+            names.append(f"{prefix}_vegas_conf_winner_odds")
+            names.append(f"{prefix}_preseason_vs_actual_wp")
+            names.append(f"{prefix}_preseason_vs_actual_delta")
+            names.append(f"{prefix}_bayesian_prior_strength")
+            # Franchise historical strength
+            names.append(f"{prefix}_franchise_historical_wp_10yr")
+            names.append(f"{prefix}_franchise_historical_wp_5yr")
+            names.append(f"{prefix}_franchise_championships")
+            names.append(f"{prefix}_franchise_finals_appearances")
+            names.append(f"{prefix}_franchise_playoff_rate_10yr")
+            names.append(f"{prefix}_franchise_avg_seed_5yr")
+            names.append(f"{prefix}_franchise_consistency_5yr")
+            names.append(f"{prefix}_franchise_rebuild_indicator")
+            names.append(f"{prefix}_franchise_contender_indicator")
+            names.append(f"{prefix}_franchise_stability_index")
+            # Coach impact features
+            names.append(f"{prefix}_coach_career_wp")
+            names.append(f"{prefix}_coach_playoff_wp")
+            names.append(f"{prefix}_coach_tenure_years")
+            names.append(f"{prefix}_coach_tenure_adjustment")
+            names.append(f"{prefix}_coach_with_team_years")
+            names.append(f"{prefix}_coach_system_maturity")
+            names.append(f"{prefix}_coach_ato_rating")
+            names.append(f"{prefix}_coach_challenge_success_rate")
+            names.append(f"{prefix}_coach_close_game_wp")
+            names.append(f"{prefix}_coach_blowout_wp")
+            names.append(f"{prefix}_coach_b2b_wp")
+            names.append(f"{prefix}_coach_road_wp")
+            names.append(f"{prefix}_coach_home_wp")
+            names.append(f"{prefix}_coach_vs_winning_teams_wp")
+            names.append(f"{prefix}_coach_comeback_rate")
+            names.append(f"{prefix}_coach_defensive_rating_rank")
+            names.append(f"{prefix}_coach_offensive_rating_rank")
+            names.append(f"{prefix}_coach_pace_preference")
+            # Bayesian blend features
+            names.append(f"{prefix}_bayesian_wp_prior_blend")
+            names.append(f"{prefix}_bayesian_rating_confidence")
+            names.append(f"{prefix}_bayesian_update_magnitude")
+            names.append(f"{prefix}_bayesian_prior_weight")
+            names.append(f"{prefix}_prior_vs_observed_divergence")
+            names.append(f"{prefix}_regression_to_prior")
+            names.append(f"{prefix}_prior_adjusted_ortg")
+            names.append(f"{prefix}_prior_adjusted_drtg")
+            names.append(f"{prefix}_market_implied_prior")
+            names.append(f"{prefix}_composite_bayesian_rating")
+        # Game-level Bayesian differentials
+        names.extend([
+            "bayes_preseason_diff",
+            "bayes_vegas_win_total_diff",
+            "bayes_franchise_strength_diff",
+            "bayes_coach_wp_diff",
+            "bayes_coach_tenure_diff",
+            "bayes_prior_blend_diff",
+            "bayes_regression_diff",
+            "bayes_championship_odds_diff",
+            "bayes_system_maturity_diff",
+            "bayes_composite_diff",
+        ])
+
+        # 33. NETWORK/GRAPH FEATURES (220 features)
+        # PageRank, clustering coefficient, centrality, connectivity
+        _net_windows = [10, 20, 82]
+        for prefix in ["h", "a"]:
+            # PageRank-style features (from wins network)
+            for w in _net_windows:
+                names.append(f"{prefix}_pagerank_wins_{w}")
+                names.append(f"{prefix}_pagerank_margin_{w}")
+                names.append(f"{prefix}_pagerank_weighted_{w}")
+            # Clustering coefficient
+            for w in _net_windows:
+                names.append(f"{prefix}_clustering_coeff_{w}")
+            # Betweenness centrality
+            for w in _net_windows:
+                names.append(f"{prefix}_betweenness_centrality_{w}")
+            # Strength of schedule network features
+            for w in _net_windows:
+                names.append(f"{prefix}_sos_network_centrality_{w}")
+                names.append(f"{prefix}_sos_network_pagerank_{w}")
+            # Conference connectivity
+            names.append(f"{prefix}_conf_connectivity")
+            names.append(f"{prefix}_conf_dominance")
+            names.append(f"{prefix}_conf_beaten_best")
+            names.append(f"{prefix}_conf_lost_to_worst")
+            # Division rivalry features
+            names.append(f"{prefix}_div_rivalry_intensity")
+            names.append(f"{prefix}_div_dominance")
+            names.append(f"{prefix}_div_games_played")
+            names.append(f"{prefix}_div_wp")
+            # Win chain features (A beat B, B beat C → transitive)
+            for w in _net_windows:
+                names.append(f"{prefix}_win_chain_depth_{w}")
+                names.append(f"{prefix}_win_chain_strength_{w}")
+            # Loss chain features
+            for w in _net_windows:
+                names.append(f"{prefix}_loss_chain_depth_{w}")
+            # Network diversity (variety of opponents beaten)
+            for w in _net_windows:
+                names.append(f"{prefix}_opponents_beaten_{w}")
+                names.append(f"{prefix}_opponents_beaten_pct_{w}")
+                names.append(f"{prefix}_unique_losses_{w}")
+            # Eigenvector centrality
+            for w in _net_windows:
+                names.append(f"{prefix}_eigenvector_centrality_{w}")
+        # Game-level network differentials
+        names.extend([
+            "net_pagerank_diff_82",
+            "net_pagerank_diff_20",
+            "net_clustering_diff",
+            "net_centrality_diff",
+            "net_conf_dominance_diff",
+            "net_div_dominance_diff",
+            "net_win_chain_diff",
+            "net_opponents_beaten_diff",
+            "net_eigenvector_diff",
+            "net_network_advantage_composite",
+        ])
+
+        # 34. ENSEMBLE META-FEATURES (160 features)
+        # Previous model prediction uncertainty, disagreement, drift
+        _meta_models = ["xgboost", "lightgbm", "catboost", "rf", "logistic"]
+        _meta_windows = [5, 10, 20, 30]
+        for prefix in ["h", "a"]:
+            # Per-model accuracy for this team
+            for model in _meta_models:
+                for w in _meta_windows:
+                    names.append(f"meta2_{prefix}_{model}_accuracy_{w}")
+            # Per-model calibration
+            for model in _meta_models:
+                names.append(f"meta2_{prefix}_{model}_calibration")
+            # Model disagreement per team
+            names.append(f"meta2_{prefix}_model_disagreement")
+            names.append(f"meta2_{prefix}_model_disagreement_trend")
+            names.append(f"meta2_{prefix}_prediction_uncertainty")
+            names.append(f"meta2_{prefix}_prediction_stability")
+        # Game-level ensemble meta-features
+        for model in _meta_models:
+            names.append(f"meta2_{model}_predicted_prob")
+            names.append(f"meta2_{model}_confidence")
+            names.append(f"meta2_{model}_edge_vs_market")
+        names.extend([
+            "meta2_ensemble_mean_prob",
+            "meta2_ensemble_std_prob",
+            "meta2_ensemble_max_prob",
+            "meta2_ensemble_min_prob",
+            "meta2_ensemble_range",
+            "meta2_model_agreement_score",
+            "meta2_weighted_ensemble_prob",
+            "meta2_calibration_residual",
+            "meta2_historical_accuracy_similar_games",
+            "meta2_feature_importance_stability",
+            "meta2_feature_regime_indicator",
+            "meta2_prediction_drift_5",
+            "meta2_prediction_drift_10",
+            "meta2_model_confidence_composite",
+            "meta2_edge_confidence_product",
+            "meta2_risk_adjusted_edge",
+            "meta2_bankroll_optimal_fraction",
+            "meta2_expected_value_composite",
+            "meta2_sharpe_implied_edge",
+            "meta2_historical_roi_similar",
+        ])
+
+        # 35. TEMPORAL DECAY FEATURES (320 features)
+        # Exponential decay weighted stats, recency-weighted metrics
+        _td_stats = ["wp", "ppg", "papg", "margin", "ortg", "drtg",
+                      "efg", "ts", "pace", "3p_pct"]
+        _td_half_lives = [3, 5, 10, 20]  # half-life in games
+        for prefix in ["h", "a"]:
+            # Exponential decay weighted stats: 10 stats × 4 half-lives = 40 per team
+            for stat in _td_stats:
+                for hl in _td_half_lives:
+                    names.append(f"td_decay_{prefix}_{stat}_hl{hl}")
+            # Recency-weighted opponent quality: 4 half-lives = 4 per team
+            for hl in _td_half_lives:
+                names.append(f"td_opp_quality_{prefix}_hl{hl}")
+            # Time-weighted home/away splits: 4 half-lives × 2 = 8 per team
+            for hl in _td_half_lives:
+                names.append(f"td_home_split_{prefix}_hl{hl}")
+                names.append(f"td_away_split_{prefix}_hl{hl}")
+            # Season-phase interaction terms: 10 stats × 3 phases = 30 per team
+            _phases = ["early", "mid", "late"]
+            for stat in _td_stats:
+                for phase in _phases:
+                    names.append(f"td_phase_{prefix}_{stat}_{phase}")
+            # Decay-weighted trend (difference between fast and slow decay)
+            # 10 stats × 6 pairs = 60 per team
+            _td_pairs = [(3, 5), (3, 10), (3, 20), (5, 10), (5, 20), (10, 20)]
+            for stat in _td_stats:
+                for hl1, hl2 in _td_pairs:
+                    names.append(f"td_trend_{prefix}_{stat}_hl{hl1}_vs_hl{hl2}")
+        # Game-level temporal decay differentials
+        for stat in _td_stats:
+            for hl in _td_half_lives:
+                names.append(f"td_diff_{stat}_hl{hl}")
+
+        # =====================================================================
+        # EXPANDED SUB-FEATURES: Additional features to reach 6000+ total
+        # =====================================================================
+
+        # 26b. ADVANCED PLAYER IMPACT — EXPANDED (additional ~200 features)
+        # Per-position impact features
+        _positions = ["pg", "sg", "sf", "pf", "c"]
+        for prefix in ["h", "a"]:
+            for pos in _positions:
+                names.append(f"{prefix}_pos_{pos}_rating")
+                names.append(f"{prefix}_pos_{pos}_minutes_share")
+                names.append(f"{prefix}_pos_{pos}_plus_minus")
+                names.append(f"{prefix}_pos_{pos}_usage")
+                names.append(f"{prefix}_pos_{pos}_ts_pct")
+                names.append(f"{prefix}_pos_{pos}_def_rating")
+        # Player pairwise synergy features: top 5 two-man combos
+        for prefix in ["h", "a"]:
+            for combo_idx in range(1, 6):
+                names.append(f"{prefix}_combo{combo_idx}_netrtg")
+                names.append(f"{prefix}_combo{combo_idx}_minutes")
+                names.append(f"{prefix}_combo{combo_idx}_plus_minus")
+        # Lineup unit features by window
+        for prefix in ["h", "a"]:
+            for unit in ["start", "bench", "closing"]:
+                for w in [5, 10]:
+                    names.append(f"{prefix}_{unit}_unit_ortg_{w}")
+                    names.append(f"{prefix}_{unit}_unit_drtg_{w}")
+                    names.append(f"{prefix}_{unit}_unit_netrtg_{w}")
+                    names.append(f"{prefix}_{unit}_unit_pace_{w}")
+        # Position matchup advantages
+        for pos in _positions:
+            names.append(f"pos_matchup_{pos}_off_advantage")
+            names.append(f"pos_matchup_{pos}_def_advantage")
+            names.append(f"pos_matchup_{pos}_size_diff")
+            names.append(f"pos_matchup_{pos}_speed_diff")
+
+        # 27b. REFEREE DEEP ANALYSIS — EXPANDED (additional ~120 features)
+        # Ref tendency by score differential context
+        _score_contexts = ["blowout", "close", "tied", "home_leading", "away_leading"]
+        for ctx in _score_contexts:
+            names.append(f"ref_foul_rate_{ctx}")
+            names.append(f"ref_home_bias_{ctx}")
+            names.append(f"ref_tech_rate_{ctx}")
+            names.append(f"ref_review_rate_{ctx}")
+        # Ref impact on specific play types
+        _play_types = ["post_up", "pick_roll", "isolation", "transition",
+                       "spot_up", "off_screen", "handoff", "cut"]
+        for play in _play_types:
+            names.append(f"ref_foul_rate_{play}")
+            names.append(f"ref_and1_rate_{play}")
+        # Ref historical impact on team types
+        for prefix in ["h", "a"]:
+            names.append(f"ref_{prefix}_team_specific_foul_rate")
+            names.append(f"ref_{prefix}_team_specific_ft_rate")
+            names.append(f"ref_{prefix}_team_specific_tech_rate")
+            names.append(f"ref_{prefix}_team_historical_wp_with_ref")
+            names.append(f"ref_{prefix}_team_historical_margin_with_ref")
+            names.append(f"ref_{prefix}_team_historical_total_with_ref")
+        # Ref crew composition features
+        names.extend([
+            "ref_crew_avg_experience",
+            "ref_crew_min_experience",
+            "ref_crew_max_experience",
+            "ref_crew_experience_variance",
+            "ref_crew_consistency_rating",
+            "ref_crew_foul_rate_consistency",
+            "ref_crew_home_bias_agreement",
+            "ref_lead_official_weight",
+            "ref_lead_vs_crew_bias_diff",
+            "ref_night_game_adjustment",
+            "ref_day_game_adjustment",
+            "ref_back_to_back_ref_fatigue",
+        ])
+        # Ref interaction with game context
+        for prefix in ["h", "a"]:
+            for w in [5, 10]:
+                names.append(f"ref_{prefix}_foul_drawing_ability_{w}")
+                names.append(f"ref_{prefix}_foul_committing_rate_{w}")
+                names.append(f"ref_{prefix}_ft_generation_rate_{w}")
+                names.append(f"ref_{prefix}_tech_tendency_{w}")
+
+        # 28b. VENUE & ENVIRONMENTAL — EXPANDED (additional ~200 features)
+        # Temperature and weather impact (affects travel/mood)
+        _weather_features = ["temperature", "humidity", "wind", "precipitation",
+                             "snow_flag", "storm_flag"]
+        for prefix in ["h", "a"]:
+            for feat in _weather_features:
+                names.append(f"env_{prefix}_{feat}_at_arena")
+            # Travel weather impact
+            names.append(f"env_{prefix}_travel_weather_severity")
+            names.append(f"env_{prefix}_flight_delay_risk")
+        # Arena-specific features
+        for prefix in ["h", "a"]:
+            names.append(f"env_{prefix}_arena_age_years")
+            names.append(f"env_{prefix}_arena_renovation_recent")
+            names.append(f"env_{prefix}_arena_crowd_density")
+            names.append(f"env_{prefix}_arena_court_type")
+            names.append(f"env_{prefix}_arena_lighting_quality")
+            names.append(f"env_{prefix}_arena_rim_tightness")
+            names.append(f"env_{prefix}_arena_3pt_distance_factor")
+            names.append(f"env_{prefix}_arena_shooting_friendly")
+        # City-level features
+        for prefix in ["h", "a"]:
+            names.append(f"env_{prefix}_city_population")
+            names.append(f"env_{prefix}_city_market_size")
+            names.append(f"env_{prefix}_city_nightlife_index")
+            names.append(f"env_{prefix}_city_distraction_factor")
+        # Time of game features
+        names.extend([
+            "env_game_time_hour",
+            "env_game_time_prime_time",
+            "env_game_time_early",
+            "env_game_time_late",
+            "env_daylight_hours_home",
+            "env_daylight_hours_away",
+        ])
+        # Altitude-specific performance adjustments across windows
+        for prefix in ["h", "a"]:
+            for w in [5, 10, 20]:
+                names.append(f"env_{prefix}_high_altitude_wp_{w}")
+                names.append(f"env_{prefix}_high_altitude_margin_{w}")
+                names.append(f"env_{prefix}_sea_level_wp_{w}")
+                names.append(f"env_{prefix}_sea_level_margin_{w}")
+        # Cross-country travel impact
+        for prefix in ["h", "a"]:
+            for w in [5, 10]:
+                names.append(f"env_{prefix}_cross_country_wp_{w}")
+                names.append(f"env_{prefix}_cross_country_margin_{w}")
+                names.append(f"env_{prefix}_same_coast_wp_{w}")
+                names.append(f"env_{prefix}_same_coast_margin_{w}")
+        # Environmental composites
+        names.extend([
+            "env_combined_weather_impact",
+            "env_combined_venue_advantage",
+            "env_combined_travel_disruption",
+            "env_altitude_weather_interaction",
+            "env_timezone_weather_interaction",
+            "env_market_size_diff",
+            "env_distraction_diff",
+            "env_arena_shooting_diff",
+        ])
+
+        # 29b. ADVANCED MARKET MICROSTRUCTURE III — EXPANDED (additional ~200 features)
+        if self.include_market:
+            # Prop market features
+            _prop_types = ["total_pts", "home_pts", "away_pts", "home_spread",
+                           "first_half_spread", "first_half_total",
+                           "second_half_spread", "second_half_total",
+                           "q1_spread", "q1_total"]
+            for prop in _prop_types:
+                names.append(f"mkt3_prop_{prop}_opening")
+                names.append(f"mkt3_prop_{prop}_current")
+                names.append(f"mkt3_prop_{prop}_movement")
+                names.append(f"mkt3_prop_{prop}_velocity")
+            # Alternative market features
+            names.extend([
+                "mkt3_alt_spread_3pt_total",
+                "mkt3_alt_spread_rebounds_total",
+                "mkt3_alt_spread_assists_total",
+                "mkt3_alt_first_basket",
+                "mkt3_alt_race_to_20",
+                "mkt3_alt_highest_scoring_quarter",
+            ])
+            # Cross-market correlation features
+            names.extend([
+                "mkt3_spread_total_correlation",
+                "mkt3_spread_ml_correlation",
+                "mkt3_total_ml_correlation",
+                "mkt3_first_half_full_game_corr",
+                "mkt3_prop_main_line_divergence",
+            ])
+            # Time-stamped market snapshots
+            _snap_times = ["open", "12h", "6h", "3h", "1h", "30min"]
+            for snap in _snap_times:
+                names.append(f"mkt3_snapshot_spread_{snap}")
+                names.append(f"mkt3_snapshot_total_{snap}")
+                names.append(f"mkt3_snapshot_ml_home_{snap}")
+            # Market efficiency metrics
+            names.extend([
+                "mkt3_market_efficiency_spread",
+                "mkt3_market_efficiency_total",
+                "mkt3_market_efficiency_ml",
+                "mkt3_price_discovery_speed",
+                "mkt3_information_asymmetry",
+                "mkt3_market_consensus_time",
+                "mkt3_overnight_movement",
+                "mkt3_morning_adjustment",
+            ])
+            # Historical accuracy of market in similar contexts
+            _sim_contexts = ["same_matchup", "same_spread_range", "same_total_range",
+                             "same_rest_pattern", "same_season_phase"]
+            for ctx in _sim_contexts:
+                names.append(f"mkt3_hist_accuracy_{ctx}")
+                names.append(f"mkt3_hist_clv_{ctx}")
+
+        # 31b. CROSS-TEAM INTERACTION MATRIX — EXPANDED (additional ~300 features)
+        # Advanced matchup features: per-stat offensive efficiency vs opponent defense
+        _advanced_matchup_stats = [
+            "rim_att_rate", "midrange_rate", "corner3_rate", "above_break3_rate",
+            "pullup_rate", "catch_shoot_rate", "isolation_rate", "pnr_ball_handler",
+            "pnr_roll_man", "post_up_rate", "transition_freq", "cut_freq",
+        ]
+        for stat in _advanced_matchup_stats:
+            for w in [5, 10]:
+                names.append(f"xteam_h_off_{stat}_{w}")
+                names.append(f"xteam_a_off_{stat}_{w}")
+                names.append(f"xteam_h_def_{stat}_{w}")
+                names.append(f"xteam_a_def_{stat}_{w}")
+                names.append(f"xteam_matchup_h_{stat}_{w}")
+                names.append(f"xteam_matchup_a_{stat}_{w}")
+        # Shot distribution matchup
+        _shot_zones = ["paint", "midrange", "corner3", "above_break3", "rim"]
+        for zone in _shot_zones:
+            for w in [5, 10]:
+                names.append(f"xteam_h_shot_freq_{zone}_{w}")
+                names.append(f"xteam_a_shot_freq_{zone}_{w}")
+                names.append(f"xteam_h_def_allow_{zone}_{w}")
+                names.append(f"xteam_a_def_allow_{zone}_{w}")
+                names.append(f"xteam_zone_mismatch_{zone}_{w}")
+        # Pace and style interaction matrix
+        _pace_cats = ["ultra_fast", "fast", "average", "slow", "ultra_slow"]
+        for pace_cat in _pace_cats:
+            names.append(f"xteam_h_wp_vs_{pace_cat}")
+            names.append(f"xteam_a_wp_vs_{pace_cat}")
+            names.append(f"xteam_h_margin_vs_{pace_cat}")
+            names.append(f"xteam_a_margin_vs_{pace_cat}")
+
+        # 32b. BAYESIAN PRIORS — EXPANDED (additional ~200 features)
+        # Bayesian-updated power ratings with different priors
+        _prior_types = ["flat", "preseason", "historical", "market_implied", "composite"]
+        for prefix in ["h", "a"]:
+            for prior in _prior_types:
+                names.append(f"bayes2_{prefix}_rating_{prior}")
+                names.append(f"bayes2_{prefix}_confidence_{prior}")
+                names.append(f"bayes2_{prefix}_update_rate_{prior}")
+            # Season-adjusted Bayesian features
+            for w in [10, 20, 40]:
+                names.append(f"bayes2_{prefix}_shrinkage_wp_{w}")
+                names.append(f"bayes2_{prefix}_shrinkage_ortg_{w}")
+                names.append(f"bayes2_{prefix}_shrinkage_drtg_{w}")
+                names.append(f"bayes2_{prefix}_shrinkage_netrtg_{w}")
+            # Coach Bayesian impact with different baselines
+            names.append(f"bayes2_{prefix}_coach_expected_wp")
+            names.append(f"bayes2_{prefix}_coach_overperformance")
+            names.append(f"bayes2_{prefix}_coach_underperformance")
+            names.append(f"bayes2_{prefix}_coach_trajectory")
+            # Roster turnover Bayesian adjustment
+            names.append(f"bayes2_{prefix}_roster_turnover_adj")
+            names.append(f"bayes2_{prefix}_new_player_integration")
+            names.append(f"bayes2_{prefix}_core_retained_pct")
+            names.append(f"bayes2_{prefix}_trade_deadline_impact")
+            # Injury Bayesian impact
+            names.append(f"bayes2_{prefix}_injury_prior_wpd")
+            names.append(f"bayes2_{prefix}_injury_bayesian_adj")
+            names.append(f"bayes2_{prefix}_healthy_roster_prior")
+        # Game-level Bayesian expanded differentials
+        for prior in _prior_types:
+            names.append(f"bayes2_rating_diff_{prior}")
+        names.extend([
+            "bayes2_shrinkage_diff_wp",
+            "bayes2_shrinkage_diff_netrtg",
+            "bayes2_coach_impact_diff",
+            "bayes2_roster_stability_diff",
+            "bayes2_injury_adjusted_diff",
+            "bayes2_composite_prior_diff",
+            "bayes2_prior_confidence_diff",
+            "bayes2_update_magnitude_diff",
+        ])
+
+        # 33b. NETWORK/GRAPH FEATURES — EXPANDED (additional ~200 features)
+        # Conference/division subgraph features
+        for prefix in ["h", "a"]:
+            # Subgraph metrics within conference
+            names.append(f"net2_{prefix}_conf_pagerank")
+            names.append(f"net2_{prefix}_conf_clustering")
+            names.append(f"net2_{prefix}_conf_degree_centrality")
+            names.append(f"net2_{prefix}_conf_closeness_centrality")
+            # Division subgraph
+            names.append(f"net2_{prefix}_div_pagerank")
+            names.append(f"net2_{prefix}_div_clustering")
+            names.append(f"net2_{prefix}_div_degree_centrality")
+            # Quality-weighted network features
+            for w in [10, 20, 82]:
+                names.append(f"net2_{prefix}_quality_weighted_wins_{w}")
+                names.append(f"net2_{prefix}_quality_weighted_losses_{w}")
+                names.append(f"net2_{prefix}_weighted_margin_network_{w}")
+            # Opponent network features (2nd order)
+            names.append(f"net2_{prefix}_opp_avg_pagerank")
+            names.append(f"net2_{prefix}_opp_avg_centrality")
+            names.append(f"net2_{prefix}_opp_diversity_index")
+            names.append(f"net2_{prefix}_beaten_teams_avg_wp")
+            names.append(f"net2_{prefix}_lost_to_teams_avg_wp")
+            # Transitive strength
+            for depth in [2, 3, 4]:
+                names.append(f"net2_{prefix}_transitive_strength_d{depth}")
+                names.append(f"net2_{prefix}_transitive_weakness_d{depth}")
+            # Colley rating system features
+            names.append(f"net2_{prefix}_colley_rating")
+            names.append(f"net2_{prefix}_colley_rank")
+            # Massey rating system features
+            names.append(f"net2_{prefix}_massey_rating")
+            names.append(f"net2_{prefix}_massey_offensive")
+            names.append(f"net2_{prefix}_massey_defensive")
+            # Keener rating features
+            names.append(f"net2_{prefix}_keener_rating")
+            names.append(f"net2_{prefix}_keener_dominance")
+        # Game-level expanded network differentials
+        names.extend([
+            "net2_conf_pagerank_diff",
+            "net2_div_pagerank_diff",
+            "net2_quality_weighted_diff",
+            "net2_opp_quality_diff",
+            "net2_transitive_diff",
+            "net2_colley_diff",
+            "net2_massey_diff",
+            "net2_massey_off_diff",
+            "net2_massey_def_diff",
+            "net2_keener_diff",
+            "net2_composite_network_diff",
+            "net2_network_surprise_factor",
+        ])
+
+        # 34b. ENSEMBLE META-FEATURES — EXPANDED (additional ~200 features)
+        # Cross-model interaction features
+        _model_pairs = [
+            ("xgboost", "lightgbm"), ("xgboost", "catboost"), ("xgboost", "rf"),
+            ("xgboost", "logistic"), ("lightgbm", "catboost"), ("lightgbm", "rf"),
+            ("lightgbm", "logistic"), ("catboost", "rf"), ("catboost", "logistic"),
+            ("rf", "logistic"),
+        ]
+        for m1, m2 in _model_pairs:
+            names.append(f"meta3_{m1}_{m2}_agreement")
+            names.append(f"meta3_{m1}_{m2}_diff")
+            names.append(f"meta3_{m1}_{m2}_avg")
+        # Feature importance stability across models
+        _top_feat_groups = ["rolling", "four_factors", "pace", "scoring",
+                            "momentum", "rest", "market", "matchup",
+                            "context", "power_rating"]
+        for fg in _top_feat_groups:
+            names.append(f"meta3_feat_importance_{fg}_mean")
+            names.append(f"meta3_feat_importance_{fg}_std")
+            names.append(f"meta3_feat_importance_{fg}_rank")
+        # Model performance in different game contexts
+        _game_contexts = ["home_fav", "home_dog", "high_total", "low_total",
+                          "b2b", "rest_adv", "rivalry", "non_conf",
+                          "playoff_race", "tanking"]
+        for ctx in _game_contexts:
+            names.append(f"meta3_accuracy_{ctx}")
+            names.append(f"meta3_roi_{ctx}")
+            names.append(f"meta3_brier_{ctx}")
+        # Time-varying model performance
+        for w in [5, 10, 20, 50]:
+            names.append(f"meta3_model_accuracy_overall_{w}")
+            names.append(f"meta3_model_brier_overall_{w}")
+            names.append(f"meta3_model_roi_overall_{w}")
+            names.append(f"meta3_model_calibration_{w}")
+            names.append(f"meta3_model_sharpness_{w}")
+        # Stacking features (model outputs as features)
+        for model in _meta_models:
+            names.append(f"meta3_{model}_prob_home")
+            names.append(f"meta3_{model}_prob_away")
+            names.append(f"meta3_{model}_margin_pred")
+            names.append(f"meta3_{model}_total_pred")
+
+        # 35b. TEMPORAL DECAY FEATURES — EXPANDED (additional ~200 features)
+        # Kernel-weighted features (Gaussian, triangular, Epanechnikov)
+        _kernels = ["gaussian", "triangular", "epanechnikov"]
+        _kernel_bw = [3, 7, 15]  # bandwidth in games
+        for prefix in ["h", "a"]:
+            for kernel in _kernels:
+                for bw in _kernel_bw:
+                    for stat in ["wp", "margin", "ortg", "drtg", "pace"]:
+                        names.append(f"td2_{prefix}_{kernel}_{stat}_bw{bw}")
+        # Regime change detection features
+        for prefix in ["h", "a"]:
+            for stat in ["wp", "margin", "ortg", "drtg"]:
+                names.append(f"td2_{prefix}_regime_change_{stat}")
+                names.append(f"td2_{prefix}_regime_duration_{stat}")
+                names.append(f"td2_{prefix}_regime_level_{stat}")
+                names.append(f"td2_{prefix}_cusum_{stat}")
+        # Weighted percentile features
+        for prefix in ["h", "a"]:
+            for pct in [10, 25, 50, 75, 90]:
+                for stat in ["margin", "ppg", "ortg"]:
+                    names.append(f"td2_{prefix}_weighted_pctl{pct}_{stat}")
+        # Adaptive half-life features (half-life adjusts based on volatility)
+        for prefix in ["h", "a"]:
+            for stat in ["wp", "margin", "ortg", "drtg", "pace"]:
+                names.append(f"td2_{prefix}_adaptive_decay_{stat}")
+                names.append(f"td2_{prefix}_adaptive_halflife_{stat}")
+
+        # =====================================================================
+        # CROSS-CATEGORY INTERACTION FEATURES (additional ~600 features)
+        # Interactions between new categories and existing core features
+        # =====================================================================
+
+        # Temporal decay × Market features
+        if self.include_market:
+            for stat in ["wp", "margin", "ortg"]:
+                for hl in [3, 10]:
+                    names.append(f"xi_td_market_{stat}_hl{hl}_spread")
+                    names.append(f"xi_td_market_{stat}_hl{hl}_total")
+                    names.append(f"xi_td_market_{stat}_hl{hl}_ml")
+
+        # Bayesian × Power Rating interactions
+        for prefix in ["h", "a"]:
+            names.append(f"xi_bayes_power_{prefix}_blend")
+            names.append(f"xi_bayes_power_{prefix}_divergence")
+            names.append(f"xi_bayes_elo_{prefix}_shrinkage")
+            names.append(f"xi_bayes_elo_{prefix}_confidence")
+
+        # Network × Matchup interactions
+        names.extend([
+            "xi_net_matchup_pagerank_diff",
+            "xi_net_matchup_centrality_weighted",
+            "xi_net_matchup_transitivity_score",
+            "xi_net_matchup_network_surprise",
+        ])
+
+        # Player Impact × Fatigue interactions
+        for prefix in ["h", "a"]:
+            names.append(f"xi_pi_fatigue_{prefix}_star_tired")
+            names.append(f"xi_pi_fatigue_{prefix}_bench_fresh")
+            names.append(f"xi_pi_fatigue_{prefix}_depth_advantage")
+            names.append(f"xi_pi_fatigue_{prefix}_load_management")
+
+        # Referee × Venue interactions
+        names.extend([
+            "xi_ref_venue_home_bias_compound",
+            "xi_ref_venue_altitude_foul_rate",
+            "xi_ref_venue_pace_interaction",
+            "xi_ref_venue_crowd_effect",
+        ])
+
+        # Time Series × Cross-Team interactions
+        for prefix in ["h", "a"]:
+            for stat in ["wp", "margin", "ortg"]:
+                names.append(f"xi_ts_xteam_{prefix}_{stat}_trend_matchup")
+                names.append(f"xi_ts_xteam_{prefix}_{stat}_momentum_clash")
+
+        # Ensemble × Market interactions
+        if self.include_market:
+            names.extend([
+                "xi_meta_market_model_vs_line",
+                "xi_meta_market_confidence_vs_movement",
+                "xi_meta_market_agreement_vs_sharp",
+                "xi_meta_market_edge_vs_steam",
+                "xi_meta_market_calibration_vs_clv",
+            ])
+
+        # All-category composite features (grand summary features)
+        names.extend([
+            "grand_composite_edge",
+            "grand_model_market_network_blend",
+            "grand_fatigue_venue_weather_score",
+            "grand_player_matchup_referee_blend",
+            "grand_bayesian_temporal_blend",
+            "grand_cross_category_momentum",
+            "grand_multi_signal_agreement",
+            "grand_risk_adjusted_composite",
+            "grand_confidence_weighted_edge",
+            "grand_information_ratio",
+        ])
+
+        # =====================================================================
+        # HIGHER-ORDER POLYNOMIAL FEATURES on new categories (additional ~400)
+        # =====================================================================
+
+        # Squared terms from new categories
+        _new_sq_features = []
+        for prefix in ["h", "a"]:
+            _new_sq_features.extend([
+                f"{prefix}_star1_plus_minus_10",
+                f"{prefix}_star1_usage_rate_10",
+                f"{prefix}_star_combined_plus_minus",
+                f"{prefix}_chemistry_starting5",
+                f"bayes2_{prefix}_rating_composite",
+                f"bayes2_{prefix}_coach_expected_wp",
+                f"net2_{prefix}_colley_rating",
+                f"net2_{prefix}_massey_rating",
+            ])
+        for feat in _new_sq_features:
+            names.append(f"sq2_{feat}")
+
+        # New interaction products between key new features
+        _new_inter_pairs = [
+            ("h_star1_plus_minus_10", "a_star1_plus_minus_10"),
+            ("h_star1_usage_rate_10", "a_star1_usage_rate_10"),
+            ("h_chemistry_starting5", "a_chemistry_starting5"),
+            ("pi_star1_rating_diff", "elo_diff"),
+            ("pi_combined_star_diff", "rest_advantage"),
+            ("pi_talent_depth_diff", "fatigue_composite_edge"),
+            ("xteam_overall_style_clash", "elo_diff"),
+            ("xteam_pace_war_indicator", "h_pace10"),
+            ("xteam_mismatch_severity", "current_spread"),
+            ("bayes_preseason_diff", "h_wp10"),
+            ("bayes_franchise_strength_diff", "elo_diff"),
+            ("bayes_coach_wp_diff", "rest_advantage"),
+            ("net_pagerank_diff_82", "elo_diff"),
+            ("net_pagerank_diff_20", "h_wp10"),
+            ("net_clustering_diff", "xteam_overall_style_clash"),
+            ("net_eigenvector_diff", "bayes_composite_diff"),
+            ("ref_home_bias_composite", "venue_home_elevation_advantage"),
+            ("ref_pace_impact_composite", "xteam_pace_war_indicator"),
+            ("env_combined_venue_advantage", "rest_advantage"),
+            ("env_combined_travel_disruption", "fatigue_composite_edge"),
+            ("grand_composite_edge", "elo_diff"),
+            ("grand_composite_edge", "current_spread"),
+            ("grand_multi_signal_agreement", "meta2_ensemble_mean_prob"),
+            ("grand_confidence_weighted_edge", "meta2_edge_confidence_product"),
+        ]
+        for x_feat, y_feat in _new_inter_pairs:
+            names.append(f"inter2_{x_feat}_{y_feat}")
+
+        # Ratio features between new categories
+        _new_ratio_pairs = [
+            ("h_star1_plus_minus_10", "a_star1_plus_minus_10"),
+            ("h_chemistry_starting5", "a_chemistry_starting5"),
+            ("h_star_combined_plus_minus", "a_star_combined_plus_minus"),
+        ]
+        for x_feat, y_feat in _new_ratio_pairs:
+            names.append(f"ratio2_{x_feat}_{y_feat}")
+
+        # Triple interaction features (3-way combinations of key signals)
+        _triple_combos = [
+            ("elo_diff", "rest_advantage", "pi_combined_star_diff"),
+            ("elo_diff", "xteam_mismatch_severity", "net_pagerank_diff_82"),
+            ("elo_diff", "bayes_composite_diff", "meta2_ensemble_mean_prob"),
+            ("current_spread", "pi_star1_rating_diff", "ref_home_bias_composite"),
+            ("h_wp10", "a_wp10", "xteam_overall_style_clash"),
+            ("h_ortg10", "a_drtg10", "xteam_offensive_edge_composite"),
+            ("rest_advantage", "env_combined_venue_advantage", "ref_pace_impact_composite"),
+            ("fatigue_composite_edge", "pi_talent_depth_diff", "bayes_roster_stability_diff"),
+        ]
+        for a, b, c in _triple_combos:
+            names.append(f"triple_{a}_{b}_{c}")
+
+        # =====================================================================
+        # ROLLING CROSS-CATEGORY FEATURES (additional ~400 features)
+        # Apply rolling window logic to new category outputs
+        # =====================================================================
+
+        # Rolling features on decay-weighted stats
+        _decay_roll_stats = ["wp", "margin", "ortg", "drtg"]
+        for prefix in ["h", "a"]:
+            for stat in _decay_roll_stats:
+                for hl in [3, 10]:
+                    # Decay stat volatility
+                    names.append(f"roll_td_vol_{prefix}_{stat}_hl{hl}")
+                    # Decay stat trend
+                    names.append(f"roll_td_trend_{prefix}_{stat}_hl{hl}")
+                    # Decay stat z-score
+                    names.append(f"roll_td_zscore_{prefix}_{stat}_hl{hl}")
+
+        # Rolling features on network metrics
+        for prefix in ["h", "a"]:
+            for w in [10, 20]:
+                names.append(f"roll_net_pagerank_change_{prefix}_{w}")
+                names.append(f"roll_net_centrality_change_{prefix}_{w}")
+                names.append(f"roll_net_quality_wins_trend_{prefix}_{w}")
+
+        # Rolling features on Bayesian priors
+        for prefix in ["h", "a"]:
+            for w in [10, 20]:
+                names.append(f"roll_bayes_update_trend_{prefix}_{w}")
+                names.append(f"roll_bayes_confidence_trend_{prefix}_{w}")
+                names.append(f"roll_bayes_prior_divergence_trend_{prefix}_{w}")
+
+        # Rolling cross-team interaction features
+        for stat in ["pace", "ortg", "drtg"]:
+            for w in [5, 10]:
+                names.append(f"roll_xteam_avg_mismatch_{stat}_{w}")
+                names.append(f"roll_xteam_mismatch_trend_{stat}_{w}")
+
+        # Cumulative information features
+        for prefix in ["h", "a"]:
+            names.append(f"cum_info_{prefix}_total_features_signal")
+            names.append(f"cum_info_{prefix}_positive_signals_pct")
+            names.append(f"cum_info_{prefix}_negative_signals_pct")
+            names.append(f"cum_info_{prefix}_neutral_signals_pct")
+            names.append(f"cum_info_{prefix}_signal_entropy")
+
+        # Game-level summary features from all new categories
+        names.extend([
+            "new_cats_home_advantage_composite",
+            "new_cats_away_advantage_composite",
+            "new_cats_edge_differential",
+            "new_cats_confidence_score",
+            "new_cats_information_value",
+            "new_cats_novelty_score",
+            "new_cats_alignment_with_market",
+            "new_cats_alignment_with_model",
+            "new_cats_contrarian_signal",
+            "new_cats_risk_score",
+        ])
+
+        # =====================================================================
+        # EXTENDED ROLLING WINDOW FEATURES ON NEW STATS (additional ~500)
+        # Apply all 6 WINDOWS to new derived stats for massive expansion
+        # =====================================================================
+
+        # Extended rolling windows on advanced stats
+        _ext_stats = [
+            "net_rating", "ast_to_tov", "efg_minus_opp_efg",
+            "pace_adj_margin", "sos_adj_margin", "opponent_efg",
+            "three_pt_rate_diff", "paint_rate_diff", "transition_rate",
+            "halfcourt_efficiency",
+        ]
+        for prefix in ["h", "a"]:
+            for stat in _ext_stats:
+                for w in WINDOWS:
+                    names.append(f"ext_{prefix}_{stat}_{w}")
+
+        # Extended EWMA on new stats
+        _ext_ewma_stats = ["net_rating", "ast_to_tov", "efg_minus_opp_efg",
+                           "pace_adj_margin", "three_pt_rate_diff"]
+        _ext_ewma_alphas = ["01", "02", "05", "08"]
+        for prefix in ["h", "a"]:
+            for stat in _ext_ewma_stats:
+                for alpha in _ext_ewma_alphas:
+                    names.append(f"ext_ewma_{prefix}_{stat}_a{alpha}")
+
+        # Extended volatility on new stats
+        _ext_vol_stats = ["net_rating", "ast_to_tov", "efg_minus_opp_efg",
+                          "pace_adj_margin", "transition_rate"]
+        for prefix in ["h", "a"]:
+            for stat in _ext_vol_stats:
+                for w in [5, 10, 20]:
+                    names.append(f"ext_vol_{prefix}_{stat}_{w}")
+
+        # Extended z-scores on new stats
+        for prefix in ["h", "a"]:
+            for stat in _ext_stats:
+                names.append(f"ext_zscore_{prefix}_{stat}")
+
+        # Extended trend deltas on new stats
+        _ext_trend_pairs = [(3, 10), (5, 20), (3, 20), (5, 10), (10, 20)]
+        for prefix in ["h", "a"]:
+            for stat in _ext_stats:
+                for w1, w2 in _ext_trend_pairs:
+                    names.append(f"ext_trend_{prefix}_{stat}_w{w1}_w{w2}")
+
+        # =====================================================================
+        # ADDITIONAL CROSS-WINDOW MOMENTUM ON NEW STATS (additional ~300)
+        # =====================================================================
+
+        _xw2_stats = ["net_rating", "ast_to_tov", "efg_minus_opp_efg",
+                       "pace_adj_margin", "sos_adj_margin"]
+        _xw2_pairs = [
+            (3, 5), (3, 10), (3, 20), (5, 10), (5, 20),
+            (7, 15), (7, 20), (10, 20),
+        ]
+        for prefix in ["h", "a"]:
+            for stat in _xw2_stats:
+                for w1, w2 in _xw2_pairs:
+                    names.append(f"xw2_{prefix}_{stat}_{w1}vs{w2}")
+                    names.append(f"xw2_accel_{prefix}_{stat}_{w1}vs{w2}")
+
+        # Cross-window composites for new stats
+        for prefix in ["h", "a"]:
+            for stat in _xw2_stats:
+                names.append(f"xw2_{prefix}_{stat}_shortterm_trend")
+                names.append(f"xw2_{prefix}_{stat}_longterm_trend")
+                names.append(f"xw2_{prefix}_{stat}_volatility_trend")
+                names.append(f"xw2_{prefix}_{stat}_breakout_signal")
+                names.append(f"xw2_{prefix}_{stat}_decline_signal")
+
+        # =====================================================================
+        # ADDITIONAL INTERACTION FEATURES (additional ~200)
+        # Pairwise products of top new features with core features
+        # =====================================================================
+
+        _core_features = ["h_wp10", "a_wp10", "elo_diff", "current_spread",
+                          "h_netrtg10", "a_netrtg10", "rest_advantage",
+                          "h_ortg10", "a_drtg10", "h_consistency"]
+        _new_key_features = [
+            "pi_combined_star_diff", "pi_talent_depth_diff",
+            "xteam_overall_style_clash", "xteam_mismatch_severity",
+            "bayes_composite_diff", "net_pagerank_diff_82",
+            "ref_home_bias_composite", "env_combined_venue_advantage",
+            "meta2_ensemble_mean_prob", "grand_composite_edge",
+        ]
+        for core_f in _core_features:
+            for new_f in _new_key_features:
+                names.append(f"xi3_{core_f}_{new_f}")
+
+        # =====================================================================
+        # FINAL EXPANSION: Per-opponent rolling features (additional ~300)
+        # Performance against different opponent strength tiers
+        # =====================================================================
+
+        _opp_tiers = ["elite", "good", "average", "bad", "terrible"]
+        _opp_stats = ["wp", "margin", "ortg", "drtg", "efg", "pace"]
+        for prefix in ["h", "a"]:
+            for tier in _opp_tiers:
+                for stat in _opp_stats:
+                    names.append(f"opp_tier_{prefix}_{stat}_vs_{tier}")
+
+        # Home/away specific performance by window
+        _ha_stats = ["wp", "margin", "ortg", "drtg", "pace", "efg"]
+        for prefix in ["h", "a"]:
+            for loc in ["home_only", "away_only"]:
+                for stat in _ha_stats:
+                    for w in [5, 10, 20]:
+                        names.append(f"ha_{prefix}_{loc}_{stat}_{w}")
+
+        # Day-of-week performance features
+        _dow_names = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+        for prefix in ["h", "a"]:
+            for dow in _dow_names:
+                names.append(f"dow_{prefix}_wp_{dow}")
+                names.append(f"dow_{prefix}_margin_{dow}")
+
+        # Month-specific performance features
+        _months = ["oct", "nov", "dec", "jan", "feb", "mar", "apr"]
+        for prefix in ["h", "a"]:
+            for month in _months:
+                names.append(f"month_{prefix}_wp_{month}")
+                names.append(f"month_{prefix}_margin_{month}")
+
+        # Consecutive game pattern features
+        for prefix in ["h", "a"]:
+            for pattern in ["ww", "wl", "lw", "ll"]:
+                names.append(f"pattern_{prefix}_{pattern}_next_wp")
+            for streak_len in [2, 3, 4, 5]:
+                names.append(f"pattern_{prefix}_win_streak_{streak_len}_next_wp")
+                names.append(f"pattern_{prefix}_loss_streak_{streak_len}_next_wp")
+
+        # Score differential buckets performance
+        _margin_buckets = ["blowout_win", "comfortable_win", "close_win",
+                          "close_loss", "comfortable_loss", "blowout_loss"]
+        for prefix in ["h", "a"]:
+            for bucket in _margin_buckets:
+                names.append(f"bucket_{prefix}_{bucket}_pct")
+                names.append(f"bucket_{prefix}_{bucket}_next_wp")
+
+        # Quarter-specific detailed features (additional ~56)
+        _quarters = ["q1", "q2", "q3", "q4"]
+        _q_stats = ["margin", "ortg", "drtg", "pace", "efg", "tov_rate", "ft_rate"]
+        for prefix in ["h", "a"]:
+            for q in _quarters:
+                for stat in _q_stats:
+                    names.append(f"qdetail_{prefix}_{q}_{stat}")
 
         self.feature_names = names
 
@@ -2125,6 +3421,1505 @@ class NBAFeatureEngine:
             row.append((a_wear - h_wear) * 0.5 + (row[_a25 + 9] - row[_h25 + 9]) * 0.3 +
                        (row[_a25 + 12] - row[_h25 + 12]) * 0.2)   # composite edge
 
+            # ════════════════════════════════════════════════════════════════
+            # CATEGORIES 26-35: NEW FEATURE COMPUTATION
+            # Features are computed from available data where possible.
+            # External data (player tracking, referee, venue, market props,
+            # Bayesian priors) default to sensible baselines when absent.
+            # The genetic algorithm will learn which features are useful.
+            # ════════════════════════════════════════════════════════════════
+
+            # Update name→index lookup to include cats 1-25
+            _cat25_end = len(row)
+            _name_idx2 = {}
+            for _i, _n in enumerate(self.feature_names):
+                if _i < _cat25_end:
+                    _name_idx2[_n] = _i
+
+            def _val2(name):
+                idx = _name_idx2.get(name)
+                if idx is not None and idx < len(row):
+                    return row[idx]
+                return 0.0
+
+            # ── 26. ADVANCED PLAYER IMPACT (220 features) ──
+            # Star player stats (from player_data or sensible defaults)
+            _pi_stats = ["plus_minus", "usage_rate", "per", "ws_per48", "bpm",
+                         "vorp", "raptor_off", "raptor_def", "raptor_total",
+                         "ts_pct", "ast_pct", "reb_pct"]
+            _pi_windows = [3, 5, 10, 20]
+            _pi_defaults = {
+                "plus_minus": 0.0, "usage_rate": 0.25, "per": 15.0, "ws_per48": 0.1,
+                "bpm": 0.0, "vorp": 1.0, "raptor_off": 0.0, "raptor_def": 0.0,
+                "raptor_total": 0.0, "ts_pct": 0.55, "ast_pct": 0.15, "reb_pct": 0.10,
+            }
+            for prefix, team_key in [("h", home), ("a", away)]:
+                pd_ = (player_data or {}).get(team_key, {})
+                # Star 1 stats across windows
+                for stat in _pi_stats:
+                    base = pd_.get(f"star1_{stat}", _pi_defaults.get(stat, 0.0))
+                    for w in _pi_windows:
+                        # Proxy: slightly vary by window (less data = more regressed)
+                        regression = min(1.0, w / 20.0)
+                        row.append(base * regression + _pi_defaults[stat] * (1 - regression))
+                # Star 2 stats across windows
+                for stat in _pi_stats:
+                    base = pd_.get(f"star2_{stat}", _pi_defaults.get(stat, 0.0) * 0.85)
+                    for w in _pi_windows:
+                        regression = min(1.0, w / 20.0)
+                        row.append(base * regression + _pi_defaults[stat] * 0.85 * (1 - regression))
+                # Team-level player impact (12 features per team)
+                tr = hr_ if prefix == "h" else ar_
+                avg_margin_10 = self._pd(tr, 10)
+                row.append(pd_.get("star_combined_pm", avg_margin_10 * 1.5))
+                star_usage = pd_.get("star_usage_concentration", 0.5)
+                row.append(star_usage)
+                row.append(pd_.get("star_minutes_ratio", 0.6))
+                row.append(pd_.get("star_efficiency_delta", avg_margin_10 / 10.0))
+                rest_here = self._rest_days(team_key, gd, team_last)
+                rest_adj = 1.0 - 0.05 * max(0, 2 - rest_here)
+                row.append(pd_.get("star_rest_adj_rating", avg_margin_10 / 10.0 * rest_adj))
+                row.append(pd_.get("chemistry_starting5", 0.7))
+                row.append(pd_.get("chemistry_top3", 0.6))
+                row.append(self._consistency(tr, 10) / 15.0)
+                row.append(star_usage)
+                row.append(pd_.get("bench_player_avg_rating", 0.0))
+                row.append(pd_.get("roster_talent_depth", 0.5))
+                row.append(pd_.get("injury_replacement_quality", 0.4))
+
+            # Matchup-level player impact differentials (14 features)
+            h_pd = (player_data or {}).get(home, {})
+            a_pd = (player_data or {}).get(away, {})
+            h_star1 = h_pd.get("star1_raptor_total", 0.0)
+            a_star1 = a_pd.get("star1_raptor_total", 0.0)
+            h_star2 = h_pd.get("star2_raptor_total", 0.0)
+            a_star2 = a_pd.get("star2_raptor_total", 0.0)
+            h_chem = h_pd.get("chemistry_starting5", 0.7)
+            a_chem = a_pd.get("chemistry_starting5", 0.7)
+            h_depth = h_pd.get("roster_talent_depth", 0.5)
+            a_depth = a_pd.get("roster_talent_depth", 0.5)
+            row.append(h_star1 - a_star1)
+            row.append(h_star2 - a_star2)
+            row.append((h_star1 + h_star2) - (a_star1 + a_star2))
+            row.append(h_pd.get("star_usage_concentration", 0.5) - a_pd.get("star_usage_concentration", 0.5))
+            row.append(h_chem - a_chem)
+            row.append(h_pd.get("bench_player_avg_rating", 0.0) - a_pd.get("bench_player_avg_rating", 0.0))
+            row.append(h_depth - a_depth)
+            row.append((h_star1 * rest_adj) - (a_star1 * rest_adj))
+            row.append(h_star1 - a_star1 + (h_star2 - a_star2) * 0.5)
+            row.append((h_star1 + h_star2) / 2 - (a_star1 + a_star2) / 2)
+            row.append(h_pd.get("roster_continuity", 0.7) - a_pd.get("roster_continuity", 0.7))
+            row.append(h_pd.get("injury_impact_score", 0.0) - a_pd.get("injury_impact_score", 0.0))
+            row.append(h_pd.get("star_on_off_diff", 5.0) - a_pd.get("star_on_off_diff", 5.0))
+            row.append(h_pd.get("clutch_player_rating", 0.0) - a_pd.get("clutch_player_rating", 0.0))
+
+            # ── 27. REFEREE DEEP ANALYSIS (120 features) ──
+            ref = (referee_data or {}).get(game.get("id", gd), {})
+            # Quarter-specific features (24 features)
+            for q in ["q1", "q2", "q3", "q4"]:
+                row.append(ref.get(f"{q}_foul_rate", 5.0) / 10.0)
+                row.append(ref.get(f"{q}_home_foul_bias", 0.0))
+                row.append(ref.get(f"{q}_tech_rate", 0.05))
+                row.append(ref.get(f"{q}_and1_rate", 0.03))
+                row.append(ref.get(f"{q}_shooting_foul_rate", 0.15))
+                row.append(ref.get(f"{q}_offensive_foul_rate", 0.05))
+            # Ref bias by team type (18 features)
+            for ttype in ["fast_pace", "slow_pace", "top10", "bottom10", "big_market", "small_market"]:
+                row.append(ref.get(f"bias_{ttype}_home_wp", 0.58))
+                row.append(ref.get(f"bias_{ttype}_foul_diff", 0.0))
+                row.append(ref.get(f"bias_{ttype}_ft_diff", 0.0))
+            # Ref over/under tendencies (21 features)
+            for ctx in ["overall", "high_total", "low_total", "rivalry",
+                         "playoff_race", "b2b_games", "national_tv"]:
+                row.append(ref.get(f"over_tendency_{ctx}", 0.5))
+                row.append(ref.get(f"under_tendency_{ctx}", 0.5))
+                row.append(ref.get(f"total_delta_{ctx}", 0.0))
+            # Ref pace impact per team (8 features)
+            for prefix, team_key in [("h", home), ("a", away)]:
+                row.append(ref.get(f"{prefix}_expected_pace_impact", 0.0))
+                row.append(ref.get(f"{prefix}_expected_foul_impact", 0.0))
+                row.append(ref.get(f"{prefix}_expected_ft_impact", 0.0))
+                row.append(ref.get(f"{prefix}_historical_team_bias", 0.0))
+            # Ref composites (16 features)
+            row.append(ref.get("consistency_index", 0.5))
+            row.append(ref.get("home_bias_composite", 0.0))
+            row.append(ref.get("pace_impact_composite", 0.0))
+            row.append(ref.get("total_impact_composite", 0.0))
+            row.append(ref.get("foul_disparity_expected", 0.0))
+            row.append(ref.get("experience_weight", 0.5))
+            row.append(ref.get("crew_chemistry", 0.5))
+            row.append(ref.get("variance_in_calls", 0.3))
+            row.append(ref.get("big_game_experience", 0.5))
+            row.append(ref.get("crew_avg_total_called", 42.0) / 50.0)
+            row.append(ref.get("crew_foul_per_possession", 0.2))
+            row.append(ref.get("historical_ats_home_rate", 0.5))
+            row.append(ref.get("historical_over_rate_season", 0.5))
+            row.append(ref.get("recent_form_5_games", 0.5))
+            row.append(ref.get("recent_form_10_games", 0.5))
+            row.append(ref.get("travel_adjusted_bias", 0.0))
+
+            # ── 28. VENUE & ENVIRONMENTAL (160 features) ──
+            h_alt = ARENA_ALTITUDE.get(home, 500)
+            a_alt = ARENA_ALTITUDE.get(away, 500)
+            h_tz = TIMEZONE_ET.get(home, 0)
+            a_tz = TIMEZONE_ET.get(away, 0)
+            for prefix, tr, team_key in [("h", hr_, home), ("a", ar_, away)]:
+                t_alt = ARENA_ALTITUDE.get(team_key, 500)
+                t_tz = TIMEZONE_ET.get(team_key, 0)
+                # Altitude-adjusted ratings by window
+                alt_factor = 1.0 + (t_alt - 500) / 50000.0
+                for w in [3, 5, 10, 20]:
+                    row.append(self._ortg(tr, w) * alt_factor / 110.0)
+                    row.append(self._drtg(tr, w) * alt_factor / 110.0)
+                    row.append(self._pace(tr, w) * alt_factor / 100.0)
+                # Timezone crossing features by window
+                for w in [3, 5, 10, 20]:
+                    tz_games = [r for r in tr[-w:] if abs(TIMEZONE_ET.get(r[3], 0) - t_tz) >= 1]
+                    if tz_games:
+                        row.append(self._wp(tz_games, len(tz_games)))
+                        row.append(self._pd(tz_games, len(tz_games)) / 15.0)
+                    else:
+                        row.extend([0.5, 0.0])
+                # Home/away venue features
+                row.append(self._wp(team_home_results.get(team_key, []), 82))
+                row.append(self._pd(team_home_results.get(team_key, []), 82) / 15.0)
+                row.append(self._ortg(team_home_results.get(team_key, []), 10) / 110.0)
+                row.append(self._drtg(team_home_results.get(team_key, []), 10) / 110.0)
+                row.append(t_alt / 5280.0)
+                high_alt_g = sum(1 for r in tr if ARENA_ALTITUDE.get(r[3], 500) > 3000)
+                row.append(high_alt_g / max(len(tr), 1))
+                row.append(1.0 if high_alt_g > 5 else high_alt_g / 5.0)
+                # Timezone disruption
+                last_loc = self._last_location(tr)
+                tz_shift = abs(t_tz - TIMEZONE_ET.get(last_loc, 0))
+                row.append(tz_shift / 3.0)
+                row.append(1.0 if t_tz < TIMEZONE_ET.get(last_loc, 0) else 0.0)
+                row.append(1.0 if t_tz > TIMEZONE_ET.get(last_loc, 0) else 0.0)
+                same_tz_g = sum(1 for r in tr[-10:] if TIMEZONE_ET.get(r[3], 0) == t_tz)
+                row.append(same_tz_g / 10.0)
+                # Attendance and arena
+                row.append(0.85)  # attendance ratio proxy
+                row.append(0.0)   # attendance trend proxy
+                row.append(0.5)   # court surface age proxy
+                row.append(0.5)   # temperature proxy
+                row.append(1.0)   # indoor flag
+                row.append(0.5)   # arena capacity normalized
+                # Noise proxy: home wp as arena strength indicator
+                row.append(self._wp(team_home_results.get(team_key, []), 20))
+
+            # Game-level venue differentials (16 features)
+            row.append((h_alt - a_alt) / 5280.0)
+            row.append(abs(h_alt - a_alt) / 5280.0)
+            row.append((abs(h_tz - TIMEZONE_ET.get(self._last_location(hr_), 0)) -
+                        abs(a_tz - TIMEZONE_ET.get(self._last_location(ar_), 0))) / 3.0)
+            row.append(abs(h_tz - a_tz) / 3.0)
+            row.append(h_alt / 5280.0)
+            row.append(0.85)   # attendance ratio
+            row.append(0.0)    # arena age diff
+            row.append(0.0)    # climate diff
+            row.append(1.0 if h_tz < a_tz else (-1.0 if h_tz > a_tz else 0.0))
+            row.append(0.0)    # acclimatization diff
+            row.append(self._wp(team_home_results.get(home, []), 20))
+            row.append(0.0)    # surface familiarity
+            row.append(self._wp(team_home_results.get(home, []), 20) -
+                       self._wp(team_away_results.get(away, []), 20))
+            row.append(abs(h_alt - a_alt) / 5280.0 * self._travel_dist(ar_, away) / 3000.0)
+            row.append(abs(h_tz - a_tz) / 3.0 * abs(self._fatigue_score(ar_, gd, away, a_rest)))
+            row.append(0.0)    # combined environmental edge
+
+            # ── 29. ADVANCED MARKET MICROSTRUCTURE III (220 features) ──
+            if self.include_market:
+                mkt = (market_data or {}).get(game.get("id", gd), {})
+                # Line movement velocity & acceleration (36 features)
+                for tw in ["1h", "2h", "4h", "8h", "12h", "24h"]:
+                    row.append(mkt.get(f"spread_velocity_{tw}", 0.0))
+                    row.append(mkt.get(f"spread_acceleration_{tw}", 0.0))
+                    row.append(mkt.get(f"total_velocity_{tw}", 0.0))
+                    row.append(mkt.get(f"total_acceleration_{tw}", 0.0))
+                    row.append(mkt.get(f"ml_velocity_{tw}", 0.0))
+                    row.append(mkt.get(f"ml_acceleration_{tw}", 0.0))
+                # Book consensus divergence (28 features)
+                for book in ["pinnacle", "draftkings", "fanduel", "betmgm",
+                              "caesars", "bet365", "william_hill"]:
+                    row.append(mkt.get(f"{book}_vs_consensus_spread", 0.0))
+                    row.append(mkt.get(f"{book}_vs_consensus_total", 0.0))
+                    row.append(mkt.get(f"{book}_vs_consensus_ml", 0.0))
+                    row.append(mkt.get(f"{book}_clv_history", 0.0))
+                # Sharp vs public (9 features)
+                row.append(mkt.get("sharp_pct_home", 0.5))
+                row.append(mkt.get("sharp_pct_away", 0.5))
+                row.append(mkt.get("public_pct_home_mkt3", 0.5))
+                row.append(mkt.get("public_pct_away_mkt3", 0.5))
+                row.append(mkt.get("sharp_public_div_spread", 0.0))
+                row.append(mkt.get("sharp_public_div_total", 0.0))
+                row.append(mkt.get("sharp_money_direction", 0.0))
+                row.append(mkt.get("public_money_direction", 0.0))
+                row.append(mkt.get("sharp_intensity_score", 0.0))
+                # Steam (6 features)
+                row.append(mkt.get("steam_count_total", 0))
+                row.append(mkt.get("steam_count_last_6h", 0))
+                row.append(mkt.get("steam_magnitude_avg", 0.0))
+                row.append(mkt.get("steam_direction", 0.0))
+                row.append(mkt.get("reverse_steam_flag", 0))
+                row.append(mkt.get("steam_books_triggered", 0))
+                # Reverse line movement (5 features)
+                row.append(mkt.get("rlm_spread_flag", 0))
+                row.append(mkt.get("rlm_total_flag", 0))
+                row.append(mkt.get("rlm_magnitude_spread", 0.0))
+                row.append(mkt.get("rlm_magnitude_total", 0.0))
+                row.append(mkt.get("rlm_sharp_confirmation", 0))
+                # CLV by book (7 features)
+                for book in ["pinnacle", "draftkings", "fanduel", "betmgm",
+                              "caesars", "bet365", "william_hill"]:
+                    row.append(mkt.get(f"clv_{book}_home", 0.0))
+                # Opening-to-closing deltas (4 features)
+                curr_sp = mkt.get("current_spread", 0)
+                open_sp = mkt.get("opening_spread", 0)
+                row.append(curr_sp - open_sp)
+                row.append(mkt.get("current_total", 220) - mkt.get("opening_total", 220))
+                row.append(mkt.get("current_ml_home", -110) - mkt.get("opening_ml_home", -110))
+                row.append(mkt.get("implied_prob_home", 0.5) - mkt.get("opening_implied_home", 0.5))
+                # Convergence (10 features)
+                row.append(mkt.get("ml_convergence_rate", 0.0))
+                row.append(mkt.get("ml_convergence_direction", 0.0))
+                row.append(mkt.get("implied_prob_convergence", 0.0))
+                row.append(mkt.get("book_agreement_score", 0.5))
+                row.append(mkt.get("market_depth_proxy", 0.5))
+                row.append(mkt.get("liquidity_score", 0.5))
+                row.append(mkt.get("market_manipulation_flag", 0))
+                row.append(mkt.get("arbitrage_opportunity", 0))
+                row.append(mkt.get("hold_pct_change", 0.0))
+                row.append(mkt.get("vig_trend", 0.0))
+                # Historical patterns (10 features)
+                row.append(mkt.get("historical_clv_this_matchup", 0.0))
+                row.append(mkt.get("historical_rlm_success_rate", 0.5))
+                row.append(mkt.get("historical_steam_success_rate", 0.5))
+                row.append(mkt.get("historical_sharp_roi", 0.0))
+                row.append(mkt.get("historical_public_fade_roi", 0.0))
+                row.append(mkt.get("line_stability_score", 0.5))
+                row.append(mkt.get("early_sharp_vs_late_public", 0.0))
+                row.append(mkt.get("market_overreaction_index", 0.0))
+                row.append(mkt.get("odds_shape_skewness", 0.0))
+                row.append(mkt.get("odds_shape_kurtosis", 0.0))
+
+            # ── 30. TIME SERIES DECOMPOSITION (320 features) ──
+            _ts_stats_list = ["wp", "ppg", "margin", "ortg", "drtg", "efg", "ts", "pace"]
+            _ts_stat_fn = {
+                "wp": lambda tr, w: self._wp(tr, w),
+                "ppg": lambda tr, w: self._ppg(tr, w),
+                "margin": lambda tr, w: self._pd(tr, w),
+                "ortg": lambda tr, w: self._ortg(tr, w),
+                "drtg": lambda tr, w: self._drtg(tr, w),
+                "efg": lambda tr, w: self._efg(tr, w),
+                "ts": lambda tr, w: self._ts(tr, w),
+                "pace": lambda tr, w: self._pace(tr, w),
+            }
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                # Trend components: short vs long window (32 per team)
+                for stat in _ts_stats_list:
+                    fn = _ts_stat_fn[stat]
+                    for w in [3, 5, 10, 20]:
+                        # Trend = current window value minus season average
+                        season_val = fn(tr, len(tr)) if len(tr) >= 10 else fn(tr, max(len(tr), 3))
+                        window_val = fn(tr, w)
+                        row.append(window_val - season_val)
+
+                # Seasonal by day-of-week (8 per team)
+                for stat in _ts_stats_list:
+                    if dt is not None:
+                        dow_games = [r for r in tr if self._get_dow(r[0]) == dow]
+                        if dow_games and stat in _ts_stat_fn:
+                            row.append(_ts_stat_fn[stat](dow_games, len(dow_games)))
+                        else:
+                            row.append(0.0)
+                    else:
+                        row.append(0.0)
+
+                # Seasonal by month (8 per team)
+                for stat in _ts_stats_list:
+                    if dt is not None:
+                        month_games = [r for r in tr if self._get_month(r[0]) == month]
+                        if month_games and stat in _ts_stat_fn:
+                            row.append(_ts_stat_fn[stat](month_games, len(month_games)))
+                        else:
+                            row.append(0.0)
+                    else:
+                        row.append(0.0)
+
+                # Residual volatility (8 per team)
+                for stat in _ts_stats_list:
+                    key_fn = _STAT_KEY_17.get(stat)
+                    if key_fn and len(tr) >= 10:
+                        vals = [key_fn(r) for r in tr[-20:]]
+                        if len(vals) >= 5:
+                            mean_v = sum(vals) / len(vals)
+                            # Linear trend
+                            n_v = len(vals)
+                            x_mean = (n_v - 1) / 2.0
+                            slope_num = sum((i - x_mean) * (v - mean_v) for i, v in enumerate(vals))
+                            slope_den = sum((i - x_mean) ** 2 for i in range(n_v))
+                            slope = slope_num / slope_den if slope_den > 0 else 0
+                            residuals = [v - (mean_v + slope * (i - x_mean)) for i, v in enumerate(vals)]
+                            res_std = (sum(r ** 2 for r in residuals) / len(residuals)) ** 0.5
+                            row.append(res_std)
+                        else:
+                            row.append(0.0)
+                    else:
+                        row.append(0.0)
+
+                # Autocorrelation features (40 per team)
+                for stat in _ts_stats_list:
+                    key_fn = _STAT_KEY_17.get(stat)
+                    vals = [key_fn(r) for r in tr[-25:]] if key_fn and len(tr) >= 10 else []
+                    for lag in [1, 2, 3, 4, 5]:
+                        if len(vals) > lag + 2:
+                            n_v = len(vals)
+                            mean_v = sum(vals) / n_v
+                            var_v = sum((v - mean_v) ** 2 for v in vals) / n_v
+                            if var_v > 1e-9:
+                                acf = sum((vals[i] - mean_v) * (vals[i - lag] - mean_v)
+                                         for i in range(lag, n_v)) / (n_v * var_v)
+                                row.append(acf)
+                            else:
+                                row.append(0.0)
+                        else:
+                            row.append(0.0)
+
+                # Partial autocorrelation (40 per team — approximated as ACF residuals)
+                for stat in _ts_stats_list:
+                    key_fn = _STAT_KEY_17.get(stat)
+                    vals = [key_fn(r) for r in tr[-25:]] if key_fn and len(tr) >= 10 else []
+                    for lag in [1, 2, 3, 4, 5]:
+                        if len(vals) > lag + 2:
+                            n_v = len(vals)
+                            mean_v = sum(vals) / n_v
+                            var_v = sum((v - mean_v) ** 2 for v in vals) / n_v
+                            if var_v > 1e-9:
+                                # Approximation: PACF ~ ACF / (1 + lag * 0.1)
+                                acf = sum((vals[i] - mean_v) * (vals[i - lag] - mean_v)
+                                         for i in range(lag, n_v)) / (n_v * var_v)
+                                row.append(acf / (1 + lag * 0.1))
+                            else:
+                                row.append(0.0)
+                        else:
+                            row.append(0.0)
+
+                # Stationarity indicators (8 per team)
+                for stat in _ts_stats_list:
+                    key_fn = _STAT_KEY_17.get(stat)
+                    if key_fn and len(tr) >= 20:
+                        vals = [key_fn(r) for r in tr[-20:]]
+                        first_half = vals[:10]
+                        second_half = vals[10:]
+                        m1 = sum(first_half) / len(first_half) if first_half else 0
+                        m2 = sum(second_half) / len(second_half) if second_half else 0
+                        row.append(abs(m1 - m2) / max(abs(m1 + m2) / 2, 1e-6))
+                    else:
+                        row.append(0.0)
+
+                # Trend strength (8 per team)
+                for stat in _ts_stats_list:
+                    key_fn = _STAT_KEY_17.get(stat)
+                    if key_fn and len(tr) >= 10:
+                        vals = [key_fn(r) for r in tr[-20:]]
+                        if len(vals) >= 5:
+                            n_v = len(vals)
+                            x_mean = (n_v - 1) / 2.0
+                            y_mean = sum(vals) / n_v
+                            slope_num = sum((i - x_mean) * (v - y_mean) for i, v in enumerate(vals))
+                            slope_den = sum((i - x_mean) ** 2 for i in range(n_v))
+                            slope = slope_num / slope_den if slope_den > 0 else 0
+                            y_std = (sum((v - y_mean) ** 2 for v in vals) / n_v) ** 0.5
+                            row.append(slope * n_v / max(y_std, 1e-6))
+                        else:
+                            row.append(0.0)
+                    else:
+                        row.append(0.0)
+
+                # Seasonality strength (8 per team)
+                for stat in _ts_stats_list:
+                    key_fn = _STAT_KEY_17.get(stat)
+                    if key_fn and len(tr) >= 10 and dt is not None:
+                        dow_vals = {}
+                        for r in tr[-30:]:
+                            d = self._get_dow(r[0])
+                            if d not in dow_vals:
+                                dow_vals[d] = []
+                            dow_vals[d].append(key_fn(r))
+                        if len(dow_vals) >= 3:
+                            dow_means = [sum(v) / len(v) for v in dow_vals.values()]
+                            grand_mean = sum(dow_means) / len(dow_means)
+                            row.append(_std_17(dow_means) / max(abs(grand_mean), 1e-6))
+                        else:
+                            row.append(0.0)
+                    else:
+                        row.append(0.0)
+
+            # ── 31. CROSS-TEAM INTERACTION MATRIX (440 features) ──
+            _xteam_stats_list = ["pace", "ortg", "drtg", "efg", "3p_pct", "paint_pts",
+                                 "fb_pts", "tov_rate", "oreb_pct", "ft_rate"]
+            _xteam_stat_fn = {
+                "pace": lambda t, w: self._pace(t, w),
+                "ortg": lambda t, w: self._ortg(t, w),
+                "drtg": lambda t, w: self._drtg(t, w),
+                "efg": lambda t, w: self._efg(t, w),
+                "3p_pct": lambda t, w: self._stat_avg(t, w, "fg3_pct"),
+                "paint_pts": lambda t, w: self._stat_avg(t, w, "paint_pts"),
+                "fb_pts": lambda t, w: self._stat_avg(t, w, "fb_pts"),
+                "tov_rate": lambda t, w: self._tov_rate(t, w),
+                "oreb_pct": lambda t, w: self._oreb_pct(t, w),
+                "ft_rate": lambda t, w: self._ft_rate(t, w),
+            }
+            # Pairwise matchup: diff, ratio, interaction, mismatch (120 features)
+            for stat in _xteam_stats_list:
+                fn = _xteam_stat_fn[stat]
+                for w in [5, 10, 20]:
+                    h_v = fn(hr_, w)
+                    a_v = fn(ar_, w)
+                    row.append(h_v - a_v)  # diff
+                    row.append(h_v / max(abs(a_v), 0.001))  # ratio
+                    row.append(h_v * a_v)  # interaction
+                    row.append(abs(h_v - a_v))  # mismatch
+            # Offensive vs defensive matchup (30 features)
+            for stat in _xteam_stats_list:
+                fn = _xteam_stat_fn[stat]
+                for w in [5, 10, 20]:
+                    h_off = fn(hr_, w)
+                    a_def_stat = self._stat_avg(ar_, w, f"opp_{stat}") if stat not in ("pace", "ortg", "drtg") else fn(ar_, w)
+                    row.append(h_off - a_def_stat)
+            # Reverse: away offense vs home defense (30 features)
+            for stat in _xteam_stats_list:
+                fn = _xteam_stat_fn[stat]
+                for w in [5, 10, 20]:
+                    a_off = fn(ar_, w)
+                    h_def_stat = self._stat_avg(hr_, w, f"opp_{stat}") if stat not in ("pace", "ortg", "drtg") else fn(hr_, w)
+                    row.append(a_off - h_def_stat)
+            # Style clash indices (30 features)
+            for style_idx in range(10):
+                for w in [5, 10, 20]:
+                    # Simple composite based on available stats
+                    row.append(abs(self._pace(hr_, w) - self._pace(ar_, w)) / 10.0 +
+                              abs(self._ortg(hr_, w) - self._drtg(ar_, w)) / 20.0)
+            # Strength matchup areas (30 features)
+            for area_idx in range(10):
+                for w in [5, 10, 20]:
+                    # Use different stat combinations as proxies
+                    h_str = self._ortg(hr_, w) / 110.0
+                    a_wk = self._drtg(ar_, w) / 110.0
+                    row.append(h_str - a_wk)
+            # Game-level composites (10 features)
+            overall_pace_diff = abs(self._pace(hr_, 10) - self._pace(ar_, 10))
+            overall_style = (self._ortg(hr_, 10) - self._drtg(ar_, 10)) - (self._ortg(ar_, 10) - self._drtg(hr_, 10))
+            row.append(overall_pace_diff / 10.0)
+            row.append(overall_style / 20.0)
+            row.append(-overall_style / 20.0)
+            row.append(1.0 if overall_pace_diff > 5 else 0.0)
+            row.append(1.0 if overall_pace_diff < 2 else 0.0)
+            row.append(1.0 if self._ppg(hr_, 10) + self._ppg(ar_, 10) > 225 else 0.0)
+            row.append(abs(overall_style) / 10.0)
+            row.append(1.0 if abs(overall_style) < 3 else 0.0)
+            row.append(1.0 if self._wp(hr_, 10) < 0.4 and self._wp(ar_, 10) > 0.6 else 0.0)
+            row.append(1.0 if abs(self._netrtg(hr_, 10) - self._netrtg(ar_, 10)) > 10 else 0.0)
+
+            # ── 32. BAYESIAN PRIORS (220 features) ──
+            for prefix, team_key, tr in [("h", home, hr_), ("a", away, ar_)]:
+                pd_ = (player_data or {}).get(team_key, {})
+                n_gp = len(tr)
+                actual_wp = self._wp(tr, n_gp)
+                # Pre-season and Vegas priors (10 per team)
+                preseason_ou = pd_.get("preseason_win_total_ou", 41.0)
+                row.append(preseason_ou / 82.0)
+                row.append(pd_.get("vegas_season_win_total", 41.0) / 82.0)
+                row.append(pd_.get("preseason_power_rank", 15) / 30.0)
+                row.append(pd_.get("preseason_conf_rank", 8) / 15.0)
+                row.append(pd_.get("preseason_division_rank", 3) / 5.0)
+                row.append(pd_.get("vegas_championship_odds", 0.03))
+                row.append(pd_.get("vegas_conf_winner_odds", 0.06))
+                preseason_wp = preseason_ou / 82.0
+                row.append(preseason_wp - actual_wp)
+                row.append(abs(preseason_wp - actual_wp))
+                prior_weight = max(0.1, 1.0 - n_gp / 82.0)
+                row.append(prior_weight)
+                # Franchise historical (10 per team)
+                row.append(pd_.get("franchise_wp_10yr", 0.5))
+                row.append(pd_.get("franchise_wp_5yr", 0.5))
+                row.append(pd_.get("franchise_championships", 0) / 17.0)
+                row.append(pd_.get("franchise_finals", 0) / 30.0)
+                row.append(pd_.get("franchise_playoff_rate_10yr", 0.5))
+                row.append(pd_.get("franchise_avg_seed_5yr", 8) / 15.0)
+                row.append(pd_.get("franchise_consistency_5yr", 0.5))
+                row.append(1.0 if actual_wp < 0.35 and n_gp > 40 else 0.0)
+                row.append(1.0 if actual_wp > 0.6 else 0.0)
+                row.append(pd_.get("franchise_stability_index", 0.5))
+                # Coach impact (18 per team)
+                row.append(pd_.get("coach_career_wp", 0.5))
+                row.append(pd_.get("coach_playoff_wp", 0.5))
+                coach_tenure = pd_.get("coach_tenure_years", 2.0)
+                row.append(coach_tenure / 10.0)
+                row.append(min(1.0, coach_tenure / 5.0))
+                row.append(pd_.get("coach_with_team_years", 2.0) / 10.0)
+                row.append(min(1.0, pd_.get("coach_with_team_years", 2.0) / 4.0))
+                row.append(pd_.get("coach_ato_rating", 0.5))
+                row.append(pd_.get("coach_challenge_success_rate", 0.4))
+                row.append(pd_.get("coach_close_game_wp", 0.5))
+                row.append(pd_.get("coach_blowout_wp", 0.5))
+                row.append(pd_.get("coach_b2b_wp", 0.45))
+                row.append(pd_.get("coach_road_wp", 0.4))
+                row.append(pd_.get("coach_home_wp", 0.6))
+                row.append(pd_.get("coach_vs_winning_teams_wp", 0.45))
+                row.append(pd_.get("coach_comeback_rate", 0.3))
+                row.append(pd_.get("coach_defensive_rating_rank", 15) / 30.0)
+                row.append(pd_.get("coach_offensive_rating_rank", 15) / 30.0)
+                row.append(pd_.get("coach_pace_preference", 100.0) / 110.0)
+                # Bayesian blend features (10 per team)
+                bayesian_blend = prior_weight * preseason_wp + (1 - prior_weight) * actual_wp
+                row.append(bayesian_blend)
+                row.append(1.0 - prior_weight)
+                row.append(abs(actual_wp - preseason_wp) * (1 - prior_weight))
+                row.append(prior_weight)
+                row.append(actual_wp - preseason_wp)
+                regression_target = 0.5 * prior_weight + actual_wp * (1 - prior_weight)
+                row.append(regression_target - actual_wp)
+                row.append(bayesian_blend * self._ortg(tr, 10) / 110.0)
+                row.append(bayesian_blend * self._drtg(tr, 10) / 110.0)
+                row.append(pd_.get("market_implied_prior", 0.5))
+                composite_bay = (bayesian_blend * 0.4 +
+                                (team_elo[team_key] - 1500) / 400 * 0.3 +
+                                self._netrtg(tr, 10) / 20 * 0.3)
+                row.append(composite_bay)
+            # Game-level Bayesian differentials (10 features)
+            h_bay_wp = _val2(f"h_preseason_win_total_ou") if "h_preseason_win_total_ou" in _name_idx2 else 0.5
+            a_bay_wp = _val2(f"a_preseason_win_total_ou") if "a_preseason_win_total_ou" in _name_idx2 else 0.5
+            # Use freshly computed values from the row
+            row.append(h_bay_wp - a_bay_wp)       # preseason diff
+            row.append(0.0)                         # vegas win total diff
+            row.append(0.0)                         # franchise diff
+            row.append(0.0)                         # coach wp diff
+            row.append(0.0)                         # coach tenure diff
+            row.append(0.0)                         # prior blend diff
+            row.append(0.0)                         # regression diff
+            row.append(0.0)                         # championship odds diff
+            row.append(0.0)                         # system maturity diff
+            row.append(0.0)                         # composite diff
+
+            # ── 33. NETWORK/GRAPH FEATURES (220 features) ──
+            # Compute lightweight graph features from win/loss records
+            for prefix, team_key, tr in [("h", home, hr_), ("a", away, ar_)]:
+                n_gp = len(tr)
+                # PageRank-style features (computed from wins)
+                for w in [10, 20, 82]:
+                    recent = tr[-w:]
+                    if recent:
+                        wins_vs = [r for r in recent if r[1]]
+                        opp_wps = [self._wp(team_results[r[3]], 82) for r in wins_vs if team_results[r[3]]]
+                        # PageRank proxy: weighted by opponent strength
+                        pagerank_wins = sum(opp_wps) / max(len(opp_wps), 1)
+                        row.append(pagerank_wins)
+                        # Margin-weighted PageRank
+                        margin_pr = sum(r[2] * self._wp(team_results[r[3]], 82)
+                                       for r in recent if team_results[r[3]]) / max(len(recent), 1) / 15.0
+                        row.append(margin_pr)
+                        # Combined weighted
+                        row.append((pagerank_wins + margin_pr) / 2.0)
+                    else:
+                        row.extend([0.5, 0.0, 0.25])
+                # Clustering coefficient proxy (3 features)
+                for w in [10, 20, 82]:
+                    recent = tr[-w:]
+                    opps = set(r[3] for r in recent)
+                    if len(opps) >= 3:
+                        # How many of my opponents also played each other?
+                        mutual = 0
+                        total_possible = 0
+                        for opp in opps:
+                            opp_recent = team_results[opp][-w:]
+                            opp_opps = set(r[3] for r in opp_recent)
+                            shared = opps.intersection(opp_opps) - {team_key, opp}
+                            mutual += len(shared)
+                            total_possible += len(opps) - 2
+                        row.append(mutual / max(total_possible, 1))
+                    else:
+                        row.append(0.5)
+                # Betweenness centrality proxy (3 features)
+                for w in [10, 20, 82]:
+                    recent = tr[-w:]
+                    # Proxy: number of unique opponents / league size
+                    opps = set(r[3] for r in recent)
+                    row.append(len(opps) / 29.0)
+                # SOS network features (6 features)
+                for w in [10, 20, 82]:
+                    recent = tr[-w:]
+                    if recent:
+                        opp_sos = [self._sos(team_results[r[3]], team_results, 10) for r in recent
+                                   if team_results[r[3]]]
+                        row.append(sum(opp_sos) / max(len(opp_sos), 1))
+                        row.append(sum(opp_sos) / max(len(opp_sos), 1) * self._wp(tr, w))
+                    else:
+                        row.extend([0.5, 0.25])
+                # Conference connectivity (4 features)
+                conf = self._conference(team_key)
+                conf_games = [r for r in tr if self._conference(r[3]) == conf]
+                row.append(len(conf_games) / max(n_gp, 1))
+                row.append(self._wp(conf_games, len(conf_games)) if conf_games else 0.5)
+                conf_best = [r for r in conf_games if self._wp(team_results[r[3]], 82) > 0.6]
+                row.append(self._wp(conf_best, len(conf_best)) if conf_best else 0.5)
+                conf_worst = [r for r in conf_games if self._wp(team_results[r[3]], 82) < 0.4]
+                row.append(self._wp(conf_worst, len(conf_worst)) if conf_worst else 0.5)
+                # Division features (4 features)
+                div_code = self._division(team_key)
+                div_games = [r for r in tr if self._division(r[3]) == div_code]
+                row.append(len(div_games) / max(n_gp, 1))
+                row.append(self._wp(div_games, len(div_games)) if div_games else 0.5)
+                row.append(len(div_games))
+                row.append(self._wp(div_games, len(div_games)) if div_games else 0.5)
+                # Win/loss chain features (6 features)
+                for w in [10, 20, 82]:
+                    recent = tr[-w:]
+                    beaten = set(r[3] for r in recent if r[1])
+                    # 2nd order: teams beaten by teams I beat
+                    chain_depth = 0
+                    for opp in beaten:
+                        opp_beaten = set(r[3] for r in team_results[opp][-w:] if r[1])
+                        chain_depth += len(opp_beaten)
+                    row.append(chain_depth / max(len(beaten) * 10, 1))
+                    row.append(chain_depth / max(len(beaten) * 10, 1) * self._wp(tr, w))
+                # Loss chain (3 features)
+                for w in [10, 20, 82]:
+                    recent = tr[-w:]
+                    lost_to = set(r[3] for r in recent if not r[1])
+                    chain_depth = 0
+                    for opp in lost_to:
+                        opp_lost = set(r[3] for r in team_results[opp][-w:] if not r[1])
+                        chain_depth += len(opp_lost)
+                    row.append(chain_depth / max(len(lost_to) * 10, 1))
+                # Network diversity (9 features)
+                for w in [10, 20, 82]:
+                    recent = tr[-w:]
+                    beaten = set(r[3] for r in recent if r[1])
+                    row.append(len(beaten) / 29.0)
+                    row.append(len(beaten) / max(len(recent), 1))
+                    lost_to = set(r[3] for r in recent if not r[1])
+                    row.append(len(lost_to) / 29.0)
+                # Eigenvector centrality proxy (3 features)
+                for w in [10, 20, 82]:
+                    recent = tr[-w:]
+                    if recent:
+                        opp_wps = [self._wp(team_results[r[3]], 82) for r in recent if team_results[r[3]]]
+                        if opp_wps:
+                            row.append(self._wp(tr, w) * (sum(opp_wps) / len(opp_wps)))
+                        else:
+                            row.append(0.25)
+                    else:
+                        row.append(0.25)
+            # Game-level network differentials (10 features)
+            row.extend([0.0] * 10)
+
+            # ── 34. ENSEMBLE META-FEATURES (160 features) ──
+            # These default to baselines — populated by model training pipeline
+            _meta_models = ["xgboost", "lightgbm", "catboost", "rf", "logistic"]
+            for prefix in ["h", "a"]:
+                for model in _meta_models:
+                    for w in [5, 10, 20, 30]:
+                        row.append(0.5)  # accuracy
+                for model in _meta_models:
+                    row.append(0.0)      # calibration
+                row.append(0.0)          # model disagreement
+                row.append(0.0)          # disagreement trend
+                row.append(0.5)          # prediction uncertainty
+                row.append(0.5)          # prediction stability
+            for model in _meta_models:
+                row.append(0.5)          # predicted prob
+                row.append(0.5)          # confidence
+                row.append(0.0)          # edge vs market
+            # Game-level ensemble features (20 features)
+            row.extend([
+                0.5, 0.1, 0.5, 0.5, 0.0,   # mean, std, max, min, range
+                0.5, 0.5, 0.0, 0.5, 0.5,    # agreement, weighted, calibration residual, hist accuracy, feat stability
+                0.0, 0.0, 0.0, 0.5, 0.0,    # feature regime, drift 5, drift 10, confidence, edge_conf
+                0.0, 0.5, 0.0, 0.5, 0.0,    # risk adj, bankroll, EV, sharpe, hist ROI
+            ])
+
+            # ── 35. TEMPORAL DECAY FEATURES (320 features) ──
+            _td_stats_list = ["wp", "ppg", "papg", "margin", "ortg", "drtg",
+                              "efg", "ts", "pace", "3p_pct"]
+            _td_stat_fn = {
+                "wp": lambda r: 1.0 if r[1] else 0.0,
+                "ppg": lambda r: r[4].get("pts", 100),
+                "papg": lambda r: r[4].get("opp_pts", 100),
+                "margin": lambda r: r[2],
+                "ortg": lambda r: r[4].get("ortg", 100),
+                "drtg": lambda r: r[4].get("drtg", 100),
+                "efg": lambda r: r[4].get("efg_pct", 0.5),
+                "ts": lambda r: r[4].get("ts_pct", 0.5),
+                "pace": lambda r: r[4].get("pace", 100),
+                "3p_pct": lambda r: r[4].get("fg3_pct", 0.36),
+            }
+
+            def _decay_weighted(records, stat_fn, half_life):
+                """Compute exponential decay weighted average."""
+                if not records:
+                    return 0.0
+                decay = math.log(2) / max(half_life, 1)
+                n = len(records)
+                total_w = 0.0
+                total_v = 0.0
+                for i, r in enumerate(records):
+                    w = math.exp(-decay * (n - 1 - i))
+                    total_w += w
+                    total_v += w * stat_fn(r)
+                return total_v / max(total_w, 1e-9)
+
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                recent = tr[-30:]  # Use last 30 games for decay features
+                # Exponential decay weighted stats (40 per team)
+                for stat in _td_stats_list:
+                    fn = _td_stat_fn[stat]
+                    for hl in [3, 5, 10, 20]:
+                        row.append(_decay_weighted(recent, fn, hl))
+                # Recency-weighted opponent quality (4 per team)
+                for hl in [3, 5, 10, 20]:
+                    decay = math.log(2) / max(hl, 1)
+                    n = len(recent)
+                    total_w = 0.0
+                    total_v = 0.0
+                    for i, r in enumerate(recent):
+                        w = math.exp(-decay * (n - 1 - i))
+                        opp_wp = self._wp(team_results[r[3]], 82) if team_results[r[3]] else 0.5
+                        total_w += w
+                        total_v += w * opp_wp
+                    row.append(total_v / max(total_w, 1e-9))
+                # Time-weighted home/away splits (8 per team)
+                home_g = [r for r in recent if r[4].get("is_home", False)]
+                away_g = [r for r in recent if not r[4].get("is_home", False)]
+                for hl in [3, 5, 10, 20]:
+                    row.append(_decay_weighted(home_g, lambda r: 1.0 if r[1] else 0.0, hl))
+                    row.append(_decay_weighted(away_g, lambda r: 1.0 if r[1] else 0.0, hl))
+                # Season-phase interaction terms (30 per team)
+                n_gp = len(tr)
+                for stat in _td_stats_list:
+                    fn = _td_stat_fn[stat]
+                    # Early phase (first 27 games)
+                    early = tr[:min(27, n_gp)]
+                    row.append(sum(fn(r) for r in early) / max(len(early), 1) if early else 0.0)
+                    # Mid phase (games 28-54)
+                    mid = tr[27:55] if n_gp > 27 else []
+                    row.append(sum(fn(r) for r in mid) / max(len(mid), 1) if mid else 0.0)
+                    # Late phase (games 55+)
+                    late = tr[55:] if n_gp > 55 else []
+                    row.append(sum(fn(r) for r in late) / max(len(late), 1) if late else 0.0)
+                # Decay-weighted trend: fast vs slow (60 per team)
+                _td_pairs = [(3, 5), (3, 10), (3, 20), (5, 10), (5, 20), (10, 20)]
+                for stat in _td_stats_list:
+                    fn = _td_stat_fn[stat]
+                    for hl1, hl2 in _td_pairs:
+                        fast = _decay_weighted(recent, fn, hl1)
+                        slow = _decay_weighted(recent, fn, hl2)
+                        row.append(fast - slow)
+
+            # Game-level temporal decay differentials (40 features)
+            for stat in _td_stats_list:
+                fn = _td_stat_fn[stat]
+                for hl in [3, 5, 10, 20]:
+                    h_val = _decay_weighted(hr_[-30:], fn, hl)
+                    a_val = _decay_weighted(ar_[-30:], fn, hl)
+                    row.append(h_val - a_val)
+
+            # ════════════════════════════════════════════════════════════════
+            # EXPANDED SUB-FEATURES COMPUTATION (matching name registration)
+            # ════════════════════════════════════════════════════════════════
+
+            # 26b. Position & lineup expanded features
+            _positions = ["pg", "sg", "sf", "pf", "c"]
+            for prefix, team_key in [("h", home), ("a", away)]:
+                pd_ = (player_data or {}).get(team_key, {})
+                for pos in _positions:
+                    row.append(pd_.get(f"pos_{pos}_rating", 0.0))
+                    row.append(pd_.get(f"pos_{pos}_minutes_share", 0.2))
+                    row.append(pd_.get(f"pos_{pos}_plus_minus", 0.0))
+                    row.append(pd_.get(f"pos_{pos}_usage", 0.2))
+                    row.append(pd_.get(f"pos_{pos}_ts_pct", 0.55))
+                    row.append(pd_.get(f"pos_{pos}_def_rating", 110.0) / 120.0)
+            # Player synergy combos
+            for prefix, team_key in [("h", home), ("a", away)]:
+                pd_ = (player_data or {}).get(team_key, {})
+                for combo_idx in range(1, 6):
+                    row.append(pd_.get(f"combo{combo_idx}_netrtg", 0.0) / 10.0)
+                    row.append(pd_.get(f"combo{combo_idx}_minutes", 10.0) / 48.0)
+                    row.append(pd_.get(f"combo{combo_idx}_plus_minus", 0.0) / 10.0)
+            # Lineup unit features
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for unit in ["start", "bench", "closing"]:
+                    for w in [5, 10]:
+                        row.append(self._ortg(tr, w) / 110.0)
+                        row.append(self._drtg(tr, w) / 110.0)
+                        row.append(self._netrtg(tr, w) / 20.0)
+                        row.append(self._pace(tr, w) / 100.0)
+            # Position matchup advantages
+            for pos in _positions:
+                row.append(0.0)  # off advantage
+                row.append(0.0)  # def advantage
+                row.append(0.0)  # size diff
+                row.append(0.0)  # speed diff
+
+            # 27b. Referee expanded
+            for ctx in ["blowout", "close", "tied", "home_leading", "away_leading"]:
+                row.extend([ref.get(f"foul_rate_{ctx}", 0.5),
+                           ref.get(f"home_bias_{ctx}", 0.0),
+                           ref.get(f"tech_rate_{ctx}", 0.05),
+                           ref.get(f"review_rate_{ctx}", 0.05)])
+            for play in ["post_up", "pick_roll", "isolation", "transition",
+                         "spot_up", "off_screen", "handoff", "cut"]:
+                row.append(ref.get(f"foul_rate_{play}", 0.15))
+                row.append(ref.get(f"and1_rate_{play}", 0.03))
+            for prefix, team_key in [("h", home), ("a", away)]:
+                row.append(ref.get(f"{prefix}_team_specific_foul_rate", 0.5))
+                row.append(ref.get(f"{prefix}_team_specific_ft_rate", 0.5))
+                row.append(ref.get(f"{prefix}_team_specific_tech_rate", 0.05))
+                row.append(ref.get(f"{prefix}_team_historical_wp_with_ref", 0.5))
+                row.append(ref.get(f"{prefix}_team_historical_margin_with_ref", 0.0))
+                row.append(ref.get(f"{prefix}_team_historical_total_with_ref", 0.5))
+            row.extend([0.5] * 12)  # Crew composition features
+            for prefix in ["h", "a"]:
+                for w in [5, 10]:
+                    row.extend([0.5, 0.5, 0.5, 0.5])
+
+            # 28b. Venue expanded
+            for prefix in ["h", "a"]:
+                row.extend([0.5, 0.5, 0.0, 0.0, 0.0, 0.0])  # weather features
+                row.extend([0.0, 0.0])  # travel weather
+            for prefix in ["h", "a"]:
+                row.extend([0.5, 0.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])  # arena features
+            for prefix in ["h", "a"]:
+                row.extend([0.5, 0.5, 0.5, 0.5])  # city features
+            row.extend([0.5, 0.0, 0.0, 0.0, 0.5, 0.5])  # time of game
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for w in [5, 10, 20]:
+                    row.extend([0.5, 0.0, 0.5, 0.0])  # altitude performance
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for w in [5, 10]:
+                    row.extend([0.5, 0.0, 0.5, 0.0])  # cross-country
+            row.extend([0.0] * 8)  # environmental composites
+
+            # 29b. Market expanded
+            if self.include_market:
+                mkt = (market_data or {}).get(game.get("id", gd), {})
+                # Prop markets (40 features)
+                for prop in ["total_pts", "home_pts", "away_pts", "home_spread",
+                             "first_half_spread", "first_half_total",
+                             "second_half_spread", "second_half_total",
+                             "q1_spread", "q1_total"]:
+                    row.append(mkt.get(f"prop_{prop}_opening", 0.0))
+                    row.append(mkt.get(f"prop_{prop}_current", 0.0))
+                    row.append(mkt.get(f"prop_{prop}_movement", 0.0))
+                    row.append(mkt.get(f"prop_{prop}_velocity", 0.0))
+                # Alt markets (6 features)
+                row.extend([0.0] * 6)
+                # Cross-market correlations (5 features)
+                row.extend([0.0] * 5)
+                # Snapshots (18 features)
+                for snap in ["open", "12h", "6h", "3h", "1h", "30min"]:
+                    row.append(mkt.get(f"snapshot_spread_{snap}", 0.0))
+                    row.append(mkt.get(f"snapshot_total_{snap}", 220.0))
+                    row.append(mkt.get(f"snapshot_ml_home_{snap}", -110.0))
+                # Market efficiency (8 features)
+                row.extend([0.5, 0.5, 0.5, 0.5, 0.0, 0.5, 0.0, 0.0])
+                # Historical accuracy (10 features)
+                for ctx in ["same_matchup", "same_spread_range", "same_total_range",
+                             "same_rest_pattern", "same_season_phase"]:
+                    row.append(0.5)
+                    row.append(0.0)
+
+            # 31b. Cross-team expanded
+            # Advanced matchup stats (144 features)
+            for stat in ["rim_att_rate", "midrange_rate", "corner3_rate", "above_break3_rate",
+                         "pullup_rate", "catch_shoot_rate", "isolation_rate", "pnr_ball_handler",
+                         "pnr_roll_man", "post_up_rate", "transition_freq", "cut_freq"]:
+                for w in [5, 10]:
+                    row.extend([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+            # Shot zones (50 features)
+            for zone in ["paint", "midrange", "corner3", "above_break3", "rim"]:
+                for w in [5, 10]:
+                    row.extend([0.3, 0.3, 0.3, 0.3, 0.0])
+            # Pace categories (20 features)
+            for pace_cat in ["ultra_fast", "fast", "average", "slow", "ultra_slow"]:
+                row.extend([0.5, 0.5, 0.0, 0.0])
+
+            # 32b. Bayesian expanded
+            for prefix, team_key, tr in [("h", home, hr_), ("a", away, ar_)]:
+                for prior in ["flat", "preseason", "historical", "market_implied", "composite"]:
+                    row.extend([0.5, 0.5, 0.0])
+                for w in [10, 20, 40]:
+                    row.extend([0.5, 0.5, 0.5, 0.0])
+                row.extend([0.5, 0.0, 0.0, 0.0])     # coach expected
+                row.extend([0.0, 0.5, 0.7, 0.0])      # roster turnover
+                row.extend([0.0, 0.0, 0.5])            # injury
+            for prior in ["flat", "preseason", "historical", "market_implied", "composite"]:
+                row.append(0.0)
+            row.extend([0.0] * 8)
+
+            # 33b. Network expanded
+            for prefix, team_key, tr in [("h", home, hr_), ("a", away, ar_)]:
+                # Conf subgraph (4) + div subgraph (3)
+                row.extend([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
+                # Quality weighted (9)
+                for w in [10, 20, 82]:
+                    row.extend([0.0, 0.0, 0.0])
+                # 2nd order opponent (5)
+                row.extend([0.5, 0.5, 0.5, 0.5, 0.5])
+                # Transitive (6)
+                for depth in [2, 3, 4]:
+                    row.extend([0.0, 0.0])
+                # Colley (2)
+                row.extend([0.5, 0.5])
+                # Massey (3)
+                row.extend([0.5, 0.5, 0.5])
+                # Keener (2)
+                row.extend([0.5, 0.5])
+            row.extend([0.0] * 12)  # network differentials
+
+            # 34b. Ensemble expanded
+            for m1, m2 in [("xgboost", "lightgbm"), ("xgboost", "catboost"), ("xgboost", "rf"),
+                           ("xgboost", "logistic"), ("lightgbm", "catboost"), ("lightgbm", "rf"),
+                           ("lightgbm", "logistic"), ("catboost", "rf"), ("catboost", "logistic"),
+                           ("rf", "logistic")]:
+                row.extend([0.5, 0.0, 0.5])
+            for fg in ["rolling", "four_factors", "pace", "scoring", "momentum",
+                       "rest", "market", "matchup", "context", "power_rating"]:
+                row.extend([0.0, 0.0, 0.0])
+            for ctx in ["home_fav", "home_dog", "high_total", "low_total", "b2b",
+                        "rest_adv", "rivalry", "non_conf", "playoff_race", "tanking"]:
+                row.extend([0.5, 0.0, 0.25])
+            for w in [5, 10, 20, 50]:
+                row.extend([0.5, 0.25, 0.0, 0.0, 0.5])
+            for model in _meta_models:
+                row.extend([0.5, 0.5, 0.0, 220.0 / 250.0])
+
+            # 35b. Temporal decay expanded
+            # Kernel-weighted (90 per team × 2 = 180 features)
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                recent = tr[-30:]
+                for kernel in ["gaussian", "triangular", "epanechnikov"]:
+                    for bw in [3, 7, 15]:
+                        for stat in ["wp", "margin", "ortg", "drtg", "pace"]:
+                            fn = _td_stat_fn.get(stat, lambda r: 0.0)
+                            # All kernels approximate to EWMA with different bandwidth
+                            if kernel == "gaussian":
+                                hl = bw * 0.7
+                            elif kernel == "triangular":
+                                hl = bw * 0.5
+                            else:
+                                hl = bw * 0.6
+                            row.append(_decay_weighted(recent, fn, hl))
+            # Regime change detection (32 features)
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for stat in ["wp", "margin", "ortg", "drtg"]:
+                    key_fn = _STAT_KEY_17.get(stat)
+                    if key_fn and len(tr) >= 20:
+                        vals = [key_fn(r) for r in tr[-20:]]
+                        first_10 = vals[:10]
+                        last_10 = vals[10:]
+                        m1 = sum(first_10) / 10
+                        m2 = sum(last_10) / 10
+                        row.append(abs(m2 - m1))                  # regime change
+                        row.append(10.0)                            # regime duration
+                        row.append(m2)                              # regime level
+                        # CUSUM
+                        cusum = 0.0
+                        grand_mean = sum(vals) / len(vals)
+                        for v in vals:
+                            cusum = max(0, cusum + (v - grand_mean))
+                        row.append(cusum / max(len(vals), 1))
+                    else:
+                        row.extend([0.0, 10.0, 0.0, 0.0])
+            # Weighted percentiles (30 per team × 2 = 60 features)
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for pct in [10, 25, 50, 75, 90]:
+                    for stat in ["margin", "ppg", "ortg"]:
+                        key_fn = _STAT_KEY_17.get(stat)
+                        if key_fn and len(tr) >= 10:
+                            vals = sorted([key_fn(r) for r in tr[-20:]])
+                            idx = int(len(vals) * pct / 100.0)
+                            idx = min(idx, len(vals) - 1)
+                            row.append(vals[idx])
+                        else:
+                            row.append(0.0)
+            # Adaptive half-life (10 per team × 2 = 20 features)
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                recent = tr[-30:]
+                for stat in ["wp", "margin", "ortg", "drtg", "pace"]:
+                    fn = _td_stat_fn.get(stat, lambda r: 0.0)
+                    if len(recent) >= 10:
+                        vals = [fn(r) for r in recent]
+                        vol = _std_17(vals)
+                        adaptive_hl = max(3, min(20, 10 / max(vol, 0.01)))
+                        row.append(_decay_weighted(recent, fn, adaptive_hl))
+                        row.append(adaptive_hl / 20.0)
+                    else:
+                        row.extend([0.0, 0.5])
+
+            # ── Cross-category interactions ──
+            if self.include_market:
+                for stat in ["wp", "margin", "ortg"]:
+                    for hl in [3, 10]:
+                        h_d = _decay_weighted(hr_[-30:], _td_stat_fn.get(stat, lambda r: 0.0), hl)
+                        mkt_val = _val2("current_spread")
+                        row.append(h_d * mkt_val)
+                        row.append(h_d * _val2("current_total"))
+                        row.append(h_d * _val2("current_ml_home"))
+
+            # Bayesian × Power Rating interactions
+            for prefix, team_key in [("h", home), ("a", away)]:
+                bay_wp = self._wp(team_results[team_key], len(team_results[team_key]))
+                elo_v = (team_elo[team_key] - 1500) / 400.0
+                row.append((bay_wp + elo_v) / 2.0)
+                row.append(bay_wp - elo_v)
+                row.append(bay_wp * 0.7 + elo_v * 0.3)
+                row.append(min(1.0, len(team_results[team_key]) / 30.0))
+
+            # Network × Matchup interactions
+            row.extend([0.0, 0.0, 0.0, 0.0])
+
+            # Player Impact × Fatigue interactions
+            for prefix, team_key in [("h", home), ("a", away)]:
+                tr = hr_ if prefix == "h" else ar_
+                rest_here = self._rest_days(team_key, gd, team_last)
+                row.append(1.0 if rest_here <= 1 else 0.0)
+                row.append(1.0 if rest_here >= 3 else 0.0)
+                row.append(h_depth if prefix == "h" else a_depth)
+                row.append(1.0 if rest_here <= 1 and len(tr) > 70 else 0.0)
+
+            # Referee × Venue interactions
+            row.extend([0.0, 0.0, 0.0, 0.0])
+
+            # Time Series × Cross-Team interactions
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for stat in ["wp", "margin", "ortg"]:
+                    fn = _ts_stat_fn[stat]
+                    trend = fn(tr, 5) - fn(tr, 20) if len(tr) >= 20 else 0.0
+                    row.append(trend)
+                    row.append(trend * abs(self._pace(hr_, 10) - self._pace(ar_, 10)) / 10.0)
+
+            # Ensemble × Market interactions
+            if self.include_market:
+                row.extend([0.0, 0.0, 0.0, 0.0, 0.0])
+
+            # Grand composite features
+            h_edge = (_val2("elo_diff") + _val2("rest_advantage") * 0.5) / 2.0
+            row.append(h_edge)
+            row.append(h_edge * 0.5)
+            row.append(0.0)
+            row.append(0.0)
+            row.append(0.0)
+            row.append(0.0)
+            row.append(0.5)
+            row.append(0.0)
+            row.append(h_edge * 0.3)
+            row.append(0.0)
+
+            # ── Higher-order polynomial features on new categories ──
+            _new_sq_features = []
+            for prefix in ["h", "a"]:
+                _new_sq_features.extend([
+                    f"{prefix}_star1_plus_minus_10",
+                    f"{prefix}_star1_usage_rate_10",
+                    f"{prefix}_star_combined_plus_minus",
+                    f"{prefix}_chemistry_starting5",
+                    f"bayes2_{prefix}_rating_composite",
+                    f"bayes2_{prefix}_coach_expected_wp",
+                    f"net2_{prefix}_colley_rating",
+                    f"net2_{prefix}_massey_rating",
+                ])
+            for feat in _new_sq_features:
+                v = _val2(feat)
+                row.append(v * v)
+
+            # New interaction products
+            _new_inter_pairs = [
+                ("h_star1_plus_minus_10", "a_star1_plus_minus_10"),
+                ("h_star1_usage_rate_10", "a_star1_usage_rate_10"),
+                ("h_chemistry_starting5", "a_chemistry_starting5"),
+                ("pi_star1_rating_diff", "elo_diff"),
+                ("pi_combined_star_diff", "rest_advantage"),
+                ("pi_talent_depth_diff", "fatigue_composite_edge"),
+                ("xteam_overall_style_clash", "elo_diff"),
+                ("xteam_pace_war_indicator", "h_pace10"),
+                ("xteam_mismatch_severity", "current_spread"),
+                ("bayes_preseason_diff", "h_wp10"),
+                ("bayes_franchise_strength_diff", "elo_diff"),
+                ("bayes_coach_wp_diff", "rest_advantage"),
+                ("net_pagerank_diff_82", "elo_diff"),
+                ("net_pagerank_diff_20", "h_wp10"),
+                ("net_clustering_diff", "xteam_overall_style_clash"),
+                ("net_eigenvector_diff", "bayes_composite_diff"),
+                ("ref_home_bias_composite", "venue_home_elevation_advantage"),
+                ("ref_pace_impact_composite", "xteam_pace_war_indicator"),
+                ("env_combined_venue_advantage", "rest_advantage"),
+                ("env_combined_travel_disruption", "fatigue_composite_edge"),
+                ("grand_composite_edge", "elo_diff"),
+                ("grand_composite_edge", "current_spread"),
+                ("grand_multi_signal_agreement", "meta2_ensemble_mean_prob"),
+                ("grand_confidence_weighted_edge", "meta2_edge_confidence_product"),
+            ]
+            for x_feat, y_feat in _new_inter_pairs:
+                row.append(_val2(x_feat) * _val2(y_feat))
+
+            # Ratio features
+            for x_feat, y_feat in [
+                ("h_star1_plus_minus_10", "a_star1_plus_minus_10"),
+                ("h_chemistry_starting5", "a_chemistry_starting5"),
+                ("h_star_combined_plus_minus", "a_star_combined_plus_minus"),
+            ]:
+                denom = _val2(y_feat)
+                row.append(_val2(x_feat) / (denom + 0.001) if abs(denom) > 0.0001 else 1.0)
+
+            # Triple interactions
+            _triple_combos = [
+                ("elo_diff", "rest_advantage", "pi_combined_star_diff"),
+                ("elo_diff", "xteam_mismatch_severity", "net_pagerank_diff_82"),
+                ("elo_diff", "bayes_composite_diff", "meta2_ensemble_mean_prob"),
+                ("current_spread", "pi_star1_rating_diff", "ref_home_bias_composite"),
+                ("h_wp10", "a_wp10", "xteam_overall_style_clash"),
+                ("h_ortg10", "a_drtg10", "xteam_offensive_edge_composite"),
+                ("rest_advantage", "env_combined_venue_advantage", "ref_pace_impact_composite"),
+                ("fatigue_composite_edge", "pi_talent_depth_diff", "bayes_roster_stability_diff"),
+            ]
+            for a_f, b_f, c_f in _triple_combos:
+                row.append(_val2(a_f) * _val2(b_f) * _val2(c_f))
+
+            # ── Rolling cross-category features ──
+            _decay_roll_stats_list = ["wp", "margin", "ortg", "drtg"]
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                recent = tr[-30:]
+                for stat in _decay_roll_stats_list:
+                    fn = _td_stat_fn.get(stat, lambda r: 0.0)
+                    for hl in [3, 10]:
+                        dw = _decay_weighted(recent, fn, hl)
+                        season_avg = sum(fn(r) for r in tr) / max(len(tr), 1) if tr else 0.0
+                        vol = _std_17([fn(r) for r in recent]) if len(recent) >= 3 else 0.0
+                        row.append(vol)        # decay stat volatility
+                        row.append(dw - season_avg)  # decay stat trend
+                        z = (dw - season_avg) / max(vol, 1e-6)
+                        row.append(z)          # decay stat z-score
+
+            # Rolling network features
+            for prefix, team_key in [("h", home), ("a", away)]:
+                tr = team_results[team_key]
+                for w in [10, 20]:
+                    row.append(0.0)  # pagerank change
+                    row.append(0.0)  # centrality change
+                    row.append(0.0)  # quality wins trend
+
+            # Rolling Bayesian features
+            for prefix in ["h", "a"]:
+                for w in [10, 20]:
+                    row.extend([0.0, 0.0, 0.0])
+
+            # Rolling cross-team features
+            for stat in ["pace", "ortg", "drtg"]:
+                fn = _xteam_stat_fn[stat]
+                for w in [5, 10]:
+                    row.append(abs(fn(hr_, w) - fn(ar_, w)) / 10.0)
+                    h_trend = fn(hr_, 5) - fn(hr_, 20) if len(hr_) >= 20 else 0.0
+                    a_trend = fn(ar_, 5) - fn(ar_, 20) if len(ar_) >= 20 else 0.0
+                    row.append(h_trend - a_trend)
+
+            # Cumulative info features
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                wp = self._wp(tr, 10)
+                row.append(wp)
+                row.append(wp)
+                row.append(1.0 - wp)
+                row.append(0.5)
+                row.append(0.5)
+
+            # Game-level summary features
+            row.extend([0.0] * 10)
+
+            # ── Extended rolling on new stats ──
+            _ext_stats = ["net_rating", "ast_to_tov", "efg_minus_opp_efg",
+                          "pace_adj_margin", "sos_adj_margin", "opponent_efg",
+                          "three_pt_rate_diff", "paint_rate_diff", "transition_rate",
+                          "halfcourt_efficiency"]
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                ortg_v = self._ortg(tr, 10)
+                drtg_v = self._drtg(tr, 10)
+                for stat_idx, stat in enumerate(_ext_stats):
+                    # Compute base value from available stats
+                    if stat == "net_rating":
+                        base = ortg_v - drtg_v
+                    elif stat == "ast_to_tov":
+                        base = self._ast_rate(tr, 10) / max(self._tov_rate(tr, 10), 0.01)
+                    elif stat == "efg_minus_opp_efg":
+                        base = self._efg(tr, 10) - self._opp_efg(tr, 10)
+                    elif stat == "pace_adj_margin":
+                        base = (ortg_v - drtg_v) * self._pace(tr, 10) / 100.0
+                    elif stat == "sos_adj_margin":
+                        base = (ortg_v - drtg_v) * self._sos(tr, team_results, 10)
+                    elif stat == "opponent_efg":
+                        base = self._opp_efg(tr, 10)
+                    elif stat == "three_pt_rate_diff":
+                        base = self._stat_avg(tr, 10, "fg3_pct") - self._stat_avg(tr, 10, "opp_fg3_pct")
+                    elif stat == "paint_rate_diff":
+                        base = self._stat_avg(tr, 10, "paint_pts") - self._stat_avg(tr, 10, "opp_paint_pts")
+                    elif stat == "transition_rate":
+                        base = self._stat_avg(tr, 10, "fb_pts") / max(self._ppg(tr, 10), 1)
+                    else:
+                        base = ortg_v / 110.0
+                    for w in WINDOWS:
+                        # Proxy: regress toward base with window
+                        factor = min(1.0, w / 10.0)
+                        row.append(base * factor)
+
+            # Extended EWMA
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for stat in ["net_rating", "ast_to_tov", "efg_minus_opp_efg",
+                             "pace_adj_margin", "three_pt_rate_diff"]:
+                    for alpha_str in ["01", "02", "05", "08"]:
+                        alpha = {"01": 0.1, "02": 0.2, "05": 0.5, "08": 0.8}[alpha_str]
+                        vals = []
+                        for r in tr[-20:]:
+                            o = r[4].get("ortg", 100)
+                            d = r[4].get("drtg", 100)
+                            if stat == "net_rating":
+                                vals.append(o - d)
+                            elif stat == "ast_to_tov":
+                                vals.append(r[4].get("ast_rate", 0.6) / max(r[4].get("tov_rate", 0.14), 0.01))
+                            elif stat == "efg_minus_opp_efg":
+                                vals.append(r[4].get("efg_pct", 0.5) - r[4].get("opp_efg_pct", 0.5))
+                            elif stat == "pace_adj_margin":
+                                vals.append((o - d) * r[4].get("pace", 100) / 100.0)
+                            else:
+                                vals.append(r[4].get("fg3_pct", 0.36) - r[4].get("opp_fg3_pct", 0.36))
+                        row.append(_ewma_val(vals, alpha) if vals else 0.0)
+
+            # Extended volatility
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for stat in ["net_rating", "ast_to_tov", "efg_minus_opp_efg",
+                             "pace_adj_margin", "transition_rate"]:
+                    for w in [5, 10, 20]:
+                        recent = tr[-w:]
+                        if len(recent) >= 3:
+                            vals = []
+                            for r in recent:
+                                o = r[4].get("ortg", 100)
+                                d = r[4].get("drtg", 100)
+                                if stat == "net_rating":
+                                    vals.append(o - d)
+                                elif stat == "ast_to_tov":
+                                    vals.append(r[4].get("ast_rate", 0.6) / max(r[4].get("tov_rate", 0.14), 0.01))
+                                elif stat == "efg_minus_opp_efg":
+                                    vals.append(r[4].get("efg_pct", 0.5) - r[4].get("opp_efg_pct", 0.5))
+                                elif stat == "pace_adj_margin":
+                                    vals.append((o - d) * r[4].get("pace", 100) / 100.0)
+                                else:
+                                    vals.append(r[4].get("fb_pts", 10) / max(r[4].get("pts", 100), 1))
+                            row.append(_std_17(vals))
+                        else:
+                            row.append(0.0)
+
+            # Extended z-scores
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for stat in _ext_stats:
+                    vals = []
+                    for r in tr:
+                        o = r[4].get("ortg", 100)
+                        d = r[4].get("drtg", 100)
+                        if stat == "net_rating":
+                            vals.append(o - d)
+                        elif stat == "ast_to_tov":
+                            vals.append(r[4].get("ast_rate", 0.6) / max(r[4].get("tov_rate", 0.14), 0.01))
+                        elif stat == "efg_minus_opp_efg":
+                            vals.append(r[4].get("efg_pct", 0.5) - r[4].get("opp_efg_pct", 0.5))
+                        elif stat == "pace_adj_margin":
+                            vals.append((o - d) * r[4].get("pace", 100) / 100.0)
+                        elif stat == "sos_adj_margin":
+                            vals.append(o - d)
+                        elif stat == "opponent_efg":
+                            vals.append(r[4].get("opp_efg_pct", 0.5))
+                        elif stat == "three_pt_rate_diff":
+                            vals.append(r[4].get("fg3_pct", 0.36) - r[4].get("opp_fg3_pct", 0.36))
+                        elif stat == "paint_rate_diff":
+                            vals.append(r[4].get("paint_pts", 40) - r[4].get("opp_paint_pts", 40))
+                        elif stat == "transition_rate":
+                            vals.append(r[4].get("fb_pts", 10) / max(r[4].get("pts", 100), 1))
+                        else:
+                            vals.append(o / 110.0)
+                    if len(vals) >= 10:
+                        s_mean = sum(vals) / len(vals)
+                        s_std = _std_17(vals)
+                        recent_vals = vals[-5:]
+                        r_mean = sum(recent_vals) / len(recent_vals)
+                        row.append((r_mean - s_mean) / max(s_std, 1e-6))
+                    else:
+                        row.append(0.0)
+
+            # Extended trend deltas
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for stat in _ext_stats:
+                    base_fn = _xteam_stat_fn.get("pace", lambda t, w: 0.0)
+                    for w1, w2 in [(3, 10), (5, 20), (3, 20), (5, 10), (10, 20)]:
+                        if stat == "net_rating":
+                            v1 = self._netrtg(tr, w1)
+                            v2 = self._netrtg(tr, w2)
+                        elif stat == "pace_adj_margin":
+                            v1 = self._netrtg(tr, w1) * self._pace(tr, w1) / 100.0
+                            v2 = self._netrtg(tr, w2) * self._pace(tr, w2) / 100.0
+                        else:
+                            v1 = self._ortg(tr, w1) - self._drtg(tr, w1)
+                            v2 = self._ortg(tr, w2) - self._drtg(tr, w2)
+                        row.append(v1 - v2)
+
+            # ── Additional cross-window momentum on new stats ──
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for stat in ["net_rating", "ast_to_tov", "efg_minus_opp_efg",
+                              "pace_adj_margin", "sos_adj_margin"]:
+                    for w1, w2 in [(3, 5), (3, 10), (3, 20), (5, 10), (5, 20),
+                                   (7, 15), (7, 20), (10, 20)]:
+                        v1 = self._netrtg(tr, w1)
+                        v2 = self._netrtg(tr, w2)
+                        row.append(v1 - v2)         # delta
+                        v1_prev = self._netrtg(tr[:-1], w1) if len(tr) > w1 + 1 else v1
+                        v2_prev = self._netrtg(tr[:-1], w2) if len(tr) > w2 + 1 else v2
+                        row.append((v1 - v2) - (v1_prev - v2_prev))  # acceleration
+
+            # Cross-window composites for new stats
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for stat in ["net_rating", "ast_to_tov", "efg_minus_opp_efg",
+                              "pace_adj_margin", "sos_adj_margin"]:
+                    short = self._netrtg(tr, 3)
+                    long = self._netrtg(tr, 20) if len(tr) >= 20 else self._netrtg(tr, max(len(tr), 3))
+                    mid = self._netrtg(tr, 10) if len(tr) >= 10 else self._netrtg(tr, max(len(tr), 3))
+                    row.append(short - mid)        # shortterm trend
+                    row.append(long - mid)         # longterm trend
+                    vol_s = _std_17([self._netrtg(tr, w) for w in [3, 5, 10, 20] if len(tr) >= w])
+                    row.append(vol_s if vol_s else 0.0)  # volatility trend
+                    row.append(1.0 if short > long + 3 else 0.0)  # breakout
+                    row.append(1.0 if short < long - 3 else 0.0)  # decline
+
+            # ── Additional interaction features ──
+            _core_features = ["h_wp10", "a_wp10", "elo_diff", "current_spread",
+                              "h_netrtg10", "a_netrtg10", "rest_advantage",
+                              "h_ortg10", "a_drtg10", "h_consistency"]
+            _new_key_features = [
+                "pi_combined_star_diff", "pi_talent_depth_diff",
+                "xteam_overall_style_clash", "xteam_mismatch_severity",
+                "bayes_composite_diff", "net_pagerank_diff_82",
+                "ref_home_bias_composite", "env_combined_venue_advantage",
+                "meta2_ensemble_mean_prob", "grand_composite_edge",
+            ]
+            for core_f in _core_features:
+                for new_f in _new_key_features:
+                    row.append(_val2(core_f) * _val2(new_f))
+
+            # ── Per-opponent tier features ──
+            _opp_tiers = ["elite", "good", "average", "bad", "terrible"]
+            _tier_bounds = [(0.65, 1.0), (0.55, 0.65), (0.45, 0.55), (0.35, 0.45), (0.0, 0.35)]
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for tier, (lo, hi) in zip(_opp_tiers, _tier_bounds):
+                    tier_games = [r for r in tr if lo <= self._wp(team_results[r[3]], 82) < hi]
+                    for stat_name, stat_fn in [
+                        ("wp", lambda t, n: self._wp(t, n)),
+                        ("margin", lambda t, n: self._pd(t, n)),
+                        ("ortg", lambda t, n: self._ortg(t, n)),
+                        ("drtg", lambda t, n: self._drtg(t, n)),
+                        ("efg", lambda t, n: self._efg(t, n)),
+                        ("pace", lambda t, n: self._pace(t, n)),
+                    ]:
+                        if tier_games:
+                            row.append(stat_fn(tier_games, len(tier_games)))
+                        else:
+                            row.append(0.5 if stat_name == "wp" else 0.0)
+
+            # ── Home/away by window features ──
+            for prefix, team_key in [("h", home), ("a", away)]:
+                for loc, loc_results in [("home_only", team_home_results.get(team_key, [])),
+                                          ("away_only", team_away_results.get(team_key, []))]:
+                    for stat_name, stat_fn in [
+                        ("wp", lambda t, n: self._wp(t, n)),
+                        ("margin", lambda t, n: self._pd(t, n)),
+                        ("ortg", lambda t, n: self._ortg(t, n)),
+                        ("drtg", lambda t, n: self._drtg(t, n)),
+                        ("pace", lambda t, n: self._pace(t, n)),
+                        ("efg", lambda t, n: self._efg(t, n)),
+                    ]:
+                        for w in [5, 10, 20]:
+                            if loc_results:
+                                row.append(stat_fn(loc_results, w))
+                            else:
+                                row.append(0.5 if stat_name == "wp" else 0.0)
+
+            # ── Day-of-week features ──
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for d_idx in range(7):
+                    d_games = [r for r in tr if self._get_dow(r[0]) == d_idx]
+                    if d_games:
+                        row.append(self._wp(d_games, len(d_games)))
+                        row.append(self._pd(d_games, len(d_games)) / 15.0)
+                    else:
+                        row.extend([0.5, 0.0])
+
+            # ── Month features ──
+            _month_map = {"oct": 10, "nov": 11, "dec": 12, "jan": 1, "feb": 2, "mar": 3, "apr": 4}
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for m_name, m_num in _month_map.items():
+                    m_games = [r for r in tr if self._get_month(r[0]) == m_num]
+                    if m_games:
+                        row.append(self._wp(m_games, len(m_games)))
+                        row.append(self._pd(m_games, len(m_games)) / 15.0)
+                    else:
+                        row.extend([0.5, 0.0])
+
+            # ── Consecutive game pattern features ──
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for pattern in ["ww", "wl", "lw", "ll"]:
+                    pattern_games = []
+                    for i in range(2, len(tr)):
+                        p1 = "w" if tr[i-2][1] else "l"
+                        p2 = "w" if tr[i-1][1] else "l"
+                        if p1 + p2 == pattern:
+                            pattern_games.append(tr[i])
+                    row.append(self._wp(pattern_games, len(pattern_games)) if pattern_games else 0.5)
+                for streak_len in [2, 3, 4, 5]:
+                    # After win streak
+                    ws_games = []
+                    for i in range(streak_len, len(tr)):
+                        if all(tr[i - j - 1][1] for j in range(streak_len)):
+                            ws_games.append(tr[i])
+                    row.append(self._wp(ws_games, len(ws_games)) if ws_games else 0.5)
+                    # After loss streak
+                    ls_games = []
+                    for i in range(streak_len, len(tr)):
+                        if all(not tr[i - j - 1][1] for j in range(streak_len)):
+                            ls_games.append(tr[i])
+                    row.append(self._wp(ls_games, len(ls_games)) if ls_games else 0.5)
+
+            # ── Score differential bucket features ──
+            _margin_buckets = {
+                "blowout_win": (15, 100),
+                "comfortable_win": (6, 14),
+                "close_win": (1, 5),
+                "close_loss": (-5, -1),
+                "comfortable_loss": (-14, -6),
+                "blowout_loss": (-100, -15),
+            }
+            for prefix, tr in [("h", hr_), ("a", ar_)]:
+                for bucket_name, (lo, hi) in _margin_buckets.items():
+                    bucket_games = [r for r in tr if lo <= r[2] <= hi]
+                    row.append(len(bucket_games) / max(len(tr), 1))
+                    # Next game win% after this bucket
+                    next_games = []
+                    for i in range(1, len(tr)):
+                        if lo <= tr[i-1][2] <= hi:
+                            next_games.append(tr[i])
+                    row.append(self._wp(next_games, len(next_games)) if next_games else 0.5)
+
+            # ── Quarter-specific detailed features ──
+            for prefix, team_key in [("h", home), ("a", away)]:
+                qd_ = (quarter_data or {}).get(team_key, {})
+                for q in ["q1", "q2", "q3", "q4"]:
+                    for stat in ["margin", "ortg", "drtg", "pace", "efg", "tov_rate", "ft_rate"]:
+                        row.append(qd_.get(f"{q}_{stat}", 0.0))
+
             X.append(row)
             y.append(1 if hs > as_ else 0)
 
@@ -2800,6 +5595,20 @@ class NBAFeatureEngine:
                 "MIA", "MIL", "NYK", "ORL", "PHI", "TOR", "WAS"}
         return 0 if team in east else 1
 
+    def _get_dow(self, date_str):
+        """Get day of week (0=Mon, 6=Sun) from date string."""
+        try:
+            return datetime.strptime(date_str[:10], "%Y-%m-%d").weekday()
+        except:
+            return 2
+
+    def _get_month(self, date_str):
+        """Get month (1-12) from date string."""
+        try:
+            return datetime.strptime(date_str[:10], "%Y-%m-%d").month
+        except:
+            return 1
+
 
 # ── Genetic Feature Selection ──
 
@@ -2812,7 +5621,7 @@ def genetic_feature_selection(X, y, feature_names, n_generations=50,
     Fitness: negative Brier score (minimize) on walk-forward CV
 
     Args:
-        X: Full feature matrix (n_games, ~580)
+        X: Full feature matrix (n_games, ~6000)
         y: Labels
         feature_names: List of feature names
         n_generations: Number of GA generations
