@@ -3125,3 +3125,85 @@ if __name__ == "__main__":
     for cat, count in sorted(categories.items()):
         print(f"  {cat}: {count}")
 
+
+
+### BEGIN Market Intel addition (2026-03-20) ###
+# Steam Move Detection with Velocity-Volume Interaction
+# Flags games where line moves >1.5 points within 2 hours coinciding with sharp dollar volume spike >75th percentile
+# Creates interaction with team rest status to identify informed trading exploiting situational edges
+
+import numpy as np
+from scipy.stats import percentileofscore
+
+def steam_move_detection(df):
+    """
+    Detect steam moves with velocity-volume interaction and rest status context.
+    
+    Features created:
+    - steam_move_flag: Binary flag for steam move (velocity > 1.5 pts/2h + sharp volume > 75th pct)
+    - line_velocity_2h: Line movement velocity over 2 hours (points/hour)
+    - sharp_dollar_volume_pct: Sharp dollar volume percentile vs seasonal distribution
+    - rest_days_home: Home team rest days before game
+    - rest_days_away: Away team rest days before game
+    - steam_rest_interaction: Interaction term (steam_move_flag * abs(rest_days_home - rest_days_away))
+    - velocity_volume_score: Combined score (velocity * log(volume) * rest_differential)
+    """
+    # Calculate line velocity over 2-hour windows
+    df['line_velocity_2h'] = df.groupby('game_id')['line_close'].transform(
+        lambda x: x.diff().abs().rolling(window=2).mean() * 12  # 12 intervals per hour
+    )
+    
+    # Calculate sharp dollar volume percentile (seasonal)
+    df['sharp_dollar_volume_pct'] = df.groupby('season')['sharp_dollar_volume'].transform(
+        lambda x: x.apply(lambda v: percentileofscore(x, v))
+    )
+    
+    # Rest days before game
+    df['rest_days_home'] = df['home_rest_days']
+    df['rest_days_away'] = df['away_rest_days']
+    
+    # Steam move flag: velocity > 1.5 + volume > 75th percentile
+    df['steam_move_flag'] = (
+        (df['line_velocity_2h'] > 1.5) & 
+        (df['sharp_dollar_volume_pct'] > 75)
+    ).astype(int)
+    
+    # Rest differential
+    df['rest_differential'] = (df['rest_days_home'] - df['rest_days_away']).abs()
+    
+    # Steam-rest interaction
+    df['steam_rest_interaction'] = df['steam_move_flag'] * df['rest_differential']
+    
+    # Velocity-volume score with rest context
+    df['velocity_volume_score'] = df['line_velocity_2h'] * \
+                                   np.log1p(df['sharp_dollar_volume']) * \
+                                   df['rest_differential']
+    
+    return df[['steam_move_flag', 'line_velocity_2h', 'sharp_dollar_volume_pct',
+               'rest_days_home', 'rest_days_away', 'steam_rest_interaction',
+               'velocity_volume_score']]
+
+# Register feature in NBAFeatureEngine
+def register_steam_move_features(engine):
+    """Add steam move features to the feature engine"""
+    engine.feature_functions.append(steam_move_detection)
+    engine.feature_names.extend([
+        'steam_move_flag', 'line_velocity_2h', 'sharp_dollar_volume_pct',
+        'rest_days_home', 'rest_days_away', 'steam_rest_interaction',
+        'velocity_volume_score'
+    ])
+    engine.feature_categories.extend([
+        'market_microstructure', 'market_microstructure', 'market_microstructure',
+        'rest_schedule', 'rest_schedule', 'market_microstructure',
+        'market_microstructure'
+    ])
+    engine.feature_descriptions.extend([
+        'Steam move binary flag (velocity > 1.5 + volume > 75th pct)',
+        'Line movement velocity over 2 hours (pts/hour)',
+        'Sharp dollar volume percentile vs seasonal distribution',
+        'Home team rest days before game',
+        'Away team rest days before game',
+        'Steam move * rest differential interaction',
+        'Velocity * log(volume) * rest differential score'
+    ])
+### END Market Intel addition ###
