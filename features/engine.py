@@ -3412,3 +3412,63 @@ class NBAFeatureEngine:
             axis=1
         )
 ### END Market Intel addition ###
+
+
+### BEGIN Feature Scout addition (2026-03-20) ###
+```python
+# Opponent-adjusted market efficiency features
+import numpy as np
+import pandas as pd
+from typing import Optional
+
+class NBAFeatureEngine:
+    @staticmethod
+    def _opponent_adjusted_market_efficiency_features(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Computes opponent-adjusted market efficiency metrics for NBA games.
+
+        Args:
+            df: DataFrame containing team performance and market data
+
+        Returns:
+            DataFrame with opponent-adjusted market efficiency features
+        """
+        try:
+            # Calculate actual vs implied spread for each team
+            df['actual_vs_implied_spread_10g'] = df['actual_win_pct_10g'] - df['polymarket_implied_prob_10g']
+            df['opp_actual_vs_implied_spread_10g'] = df['opp_actual_win_pct_10g'] - df['opp_polymarket_implied_prob_10g']
+
+            # Market efficiency difference (spread between teams)
+            df['market_efficiency_diff'] = df['actual_vs_implied_spread_10g'] - df['opp_actual_vs_implied_spread_10g']
+
+            # Market efficiency ratio
+            df['market_efficiency_ratio'] = df.apply(
+                lambda row: row['actual_vs_implied_spread_10g'] / row['opp_actual_vs_implied_spread_10g']
+                if row['opp_actual_vs_implied_spread_10g'] != 0 else np.nan,
+                axis=1
+            )
+
+            # Efficiency trend comparison (5-game vs 10-game)
+            df['efficiency_trend_5g_vs_opp'] = df['efficiency_trend_5g'] - df['opp_efficiency_trend_5g']
+
+            return df[['market_efficiency_diff', 'market_efficiency_ratio', 'efficiency_trend_5g_vs_opp']]
+        except Exception:
+            return pd.DataFrame(columns=['market_efficiency_diff', 'market_efficiency_ratio', 'efficiency_trend_5g_vs_opp'])
+
+    @staticmethod
+    def _market_mispricing_spread_feature(df: pd.DataFrame) -> pd.Series:
+        """
+        Calculates the market mispricing spread between teams.
+
+        Args:
+            df: DataFrame containing opponent-adjusted market efficiency features
+
+        Returns:
+            Series of market mispricing spread scores
+        """
+        try:
+            return df['market_efficiency_diff'].abs()
+        except Exception:
+            return pd.Series([np.nan] * len(df))
+```
+### END Feature Scout addition ###
