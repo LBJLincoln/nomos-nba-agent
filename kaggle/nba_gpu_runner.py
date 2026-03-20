@@ -850,3 +850,118 @@ import warnings
 
 # Suppress specific
 ### END Calibrator addition ###
+
+
+### BEGIN Research Scholar addition (2026-03-20) ###
+# Implements FT-Transformer with feature tokenization + self-attention (Gorishniy 2021→2025)
+# Tabular transformer with learned feature embeddings for NBA data
+
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
+
+class FeatureTokenizer(nn.Module):
+    """Learned feature embeddings for tabular data"""
+    def __init__(self, n_features, dim):
+        super().__init__()
+        self.embeddings = nn.Embedding(n_features, dim)
+        nn.init.xavier_uniform_(self.embeddings.weight)
+    
+    def forward(self, x):
+        # x: (batch, features) → (batch, features, dim)
+        return self.embeddings(x.long())
+
+class FT_Transformer(nn.Module):
+    """Full transformer with feature tokenization"""
+    def __init__(self, n_features, n_layers=6, n_heads=8, dim=128, dropout=0.2):
+        super().__init__()
+        self.tokenizer = FeatureTokenizer(n_features, dim)
+        self.transformer = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(
+                d_model=dim,
+                nhead=n_heads,
+                dim_feedforward=dim*4,
+                dropout=dropout,
+                batch_first=True
+            ),
+            num_layers=n_layers
+        )
+        self.fc = nn.Linear(dim, 1)
+        self.sigmoid = nn.Sigmoid()
+    
+    def forward(self, x):
+        # Tokenize features
+        x_emb = self.tokenizer(x)
+        # Transformer encoding
+        x_enc = self.transformer(x_emb)
+        # Pool over feature dimension
+        x_pool = x_enc.mean(dim=1)
+        # Classification
+        x_out = self.fc(x_pool)
+        return self.sigmoid(x_out).squeeze()
+
+def run_ft_transformer(exp, X, y, feature_names):
+    """Run FT-Transformer experiment"""
+    params = exp['params']
+    model = FT_Transformer(
+        n_features=X.shape[1],
+        n_layers=params.get('n_layers', 6),
+        n_heads=params.get('n_heads', 8),
+        dim=params.get('dim', 128),
+        dropout=params.get('dropout', 0.2)
+    )
+    
+    # Convert to torch tensors
+    X_tensor = torch.tensor(X, dtype=torch.float32)
+    y_tensor = torch.tensor(y, dtype=torch.float32).view(-1, 1)
+    
+    # Create dataset and dataloader
+    dataset = TensorDataset(X_tensor, y_tensor)
+    dataloader = DataLoader(dataset, batch_size=params.get('batch_size', 32), shuffle=True)
+    
+    # Training
+    optimizer = torch.optim.Adam(model.parameters(), lr=params.get('lr', 0.001))
+    criterion = nn.BCELoss()
+    epochs = params.get('epochs', 100)
+    
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0
+        for xb, yb in dataloader:
+            optimizer.zero_grad()
+            preds = model(xb.long())
+            loss = criterion(preds, yb)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+        
+        if epoch % 10 == 0:
+            print(f"Epoch {epoch}/{epochs}, Loss: {total_loss/len(dataloader):.4f}")
+    
+    # Evaluation
+    model.eval()
+    with torch.no_grad():
+        preds = model(X_tensor.long()).numpy()
+        brier = np.mean((preds - y)**2)
+        accuracy = np.mean((preds > 0.5) == y)
+    
+    # Save results
+    result = {
+        'brier_score': brier,
+        'accuracy': accuracy,
+        'predictions': preds.tolist(),
+        'model_type': 'ft_transformer'
+    }
+    save_results(exp, result)
+    print(f"✓ FT-Transformer complete: Brier={brier:.4f}, Acc={accuracy:.4f}")
+
+# Add to run_exp dispatch
+def run_exp(exp, X, y, feature_names):
+    """Dispatch to appropriate model runner"""
+    model_type = exp['params']['model_type']
+    if model_type == 'ft_transformer':
+        run_ft_transformer(exp, X, y, feature_names)
+    else:
+        # Existing model runners...
+        pass
+### END Research Scholar addition ###
