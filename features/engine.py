@@ -3171,3 +3171,63 @@ class NBAFeatureEngine:
         """
         Calculates opponent-adjusted defensive versatility features.
 ### END Feature Scout addition ###
+
+
+### BEGIN Market Intel addition (2026-03-20) ###
+# Feature Test: CLV_decay_weighted_by_recency (2026-03-20)
+# Exponential decay weighting of closing line value where recent games have 2x weight,
+# capturing whether a team's market mispricing is accelerating or mean-reverting.
+
+import numpy as np
+
+class NBAFeatureEngine:
+    # ... (existing methods and attributes) ...
+
+    @staticmethod
+    def _calculate_clv_decay_weighted_recency(df: pd.DataFrame, lambda_param: float = 0.2) -> pd.Series:
+        """
+        Calculates exponentially weighted CLV with recency bias.
+        Recent games have 2x weight compared to games 5 days ago.
+
+        Args:
+            df: DataFrame containing 'team_clv' and 'game_date' columns
+            lambda_param: Decay parameter (higher = faster decay)
+
+        Returns:
+            Series of weighted CLV values
+        """
+        if df.empty:
+            return pd.Series(dtype=float)
+
+        # Calculate days since each game (relative to most recent)
+        df = df.copy()
+        df['days_ago'] = (df['game_date'].max() - df['game_date']).dt.days
+
+        # Apply exponential decay weighting
+        weights = np.exp(-lambda_param * df['days_ago'])
+        weighted_clv = (df['team_clv'] * weights).sum()
+        weight_sum = weights.sum()
+
+        return pd.Series([weighted_clv / weight_sum] if weight_sum > 0 else [np.nan], index=df.index[:1])
+
+    @staticmethod
+    def _clv_decay_weighted_recency_feature(df: pd.DataFrame, lambda_grid: list = [0.1, 0.2, 0.3, 0.5]) -> pd.DataFrame:
+        """
+        Generates multiple CLV decay features with different lambda parameters.
+
+        Args:
+            df: Input DataFrame with team-level data
+            lambda_grid: List of lambda parameters to test
+
+        Returns:
+            DataFrame with CLV decay features for each lambda
+        """
+        features = {}
+        for lambda_val in lambda_grid:
+            feature_name = f"clv_decay_weighted_recency_lambda{lambda_val:.1f}"
+            features[feature_name] = df.groupby('team_id').apply(
+                lambda x: NBAFeatureEngine._calculate_clv_decay_weighted_recency(x, lambda_val)
+            ).reset_index(level=0, drop=True)
+
+        return pd.DataFrame(features)
+### END Market Intel addition ###
