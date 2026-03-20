@@ -903,3 +903,207 @@ def run_exp(exp, X, y, feature_names):
         # existing experiment code
         pass
 ### END Calibrator addition ###
+
+
+### BEGIN Model Architect addition (2026-03-20) ###
+### BEGIN Model Architect addition (2026-03-20) ###
+# Implements XGBoost with extreme depth (16) and aggressive regularization
+# Hypothesis: Very deep trees with strong regularization can capture complex interactions without overfitting
+import xgboost as xgb
+from sklearn.metrics import brier_score_loss
+
+
+class XGBoostExtremeDepthModel:
+    """
+    XGBoost model with extreme tree depth and aggressive regularization.
+    Designed to capture complex feature interactions while preventing overfitting
+    through strong L1/L2 regularization, high min_child_weight, and subsampling.
+    """
+    
+    def __init__(self, params=None):
+        self.params = params or self._default_params()
+        self.model = None
+        
+    def _default_params(self):
+        return {
+            "booster": "gbtree",
+            "max_depth": 16,
+            "learning_rate": 0.01,
+            "n_estimators": 1500,
+            "subsample": 0.7,
+            "colsample_bytree": 0.7,
+            "reg_alpha": 1,           # L1 regularization
+            "reg_lambda": 5,          # L2 regularization (aggressive)
+            "min_child_weight": 3,    # Prevent overfitting on small samples
+            "gamma": 0.5,             # Minimum loss reduction for split
+            "objective": "binary:logistic",
+            "eval_metric": "logloss",
+            "tree_method": "hist",    # GPU-compatible histogram method
+            "random_state": 42,
+            "n_jobs": -1
+        }
+    
+    def train(self, X, y, eval_set=None, early_stopping_rounds=None, verbose=False):
+        """
+        Train the XGBoost model with optional early stopping.
+        
+        Args:
+            X: Training features
+            y: Training targets
+            eval_set: Optional validation set for early stopping
+            early_stopping_rounds: Rounds to wait before stopping if no improvement
+            verbose: Whether to print training progress
+        """
+        self.model = xgb.XGBClassifier(**self.params)
+        
+        fit_params = {
+            "verbose": verbose
+        }
+        
+        if eval_set is not None and early_stopping_rounds is not None:
+            fit_params["eval_set"] = eval_set
+            fit_params["early_stopping_rounds"] = early_stopping_rounds
+        
+        self.model.fit(X, y, **fit_params)
+        return self
+    
+    def predict(self, X):
+        """
+        Predict class probabilities for binary classification.
+        
+        Returns:
+            Probability of positive class (shape: (n_samples,))
+        """
+        if self.model is None:
+            raise RuntimeError("Model has not been trained yet. Call train() first.")
+        return self.model.predict_proba(X)[:, 1]
+    
+    def predict_class(self, X):
+        """
+        Predict class labels (0 or 1).
+        """
+        if self.model is None:
+            raise RuntimeError("Model has not been trained yet. Call train() first.")
+        return self.model.predict(X)
+    
+    def evaluate(self, X, y):
+        """
+        Evaluate model using Brier score (proper scoring rule for probabilities).
+        Lower is better.
+        """
+        y_pred = self.predict(X)
+        return brier_score_loss(y, y_pred)
+    
+    def feature_importances(self, importance_type='gain'):
+        """
+        Get feature importances from the trained model.
+        
+        Args:
+            importance_type: 'gain', 'weight', 'cover', 'total_gain', 'total_cover'
+        """
+        if self.model is None:
+            raise RuntimeError("Model has not been trained yet. Call train() first.")
+        return self.model.get_booster().get_score(importance_type=importance_type)
+    
+    def get_params(self):
+        """Get current model parameters."""
+        return self.params.copy()
+
+
+def run_xgboost_extreme_depth_exp(exp, X, y, feature_names, X_val=None, y_val=None):
+    """
+    Run XGBoost extreme depth experiment with aggressive regularization.
+    
+    Args:
+        exp: Experiment configuration dict
+        X: Training features
+        y: Training targets
+        feature_names: List of feature names
+        X_val: Optional validation features
+        y_val: Optional validation targets
+    
+    Returns:
+        dict with model, predictions, and metrics
+    """
+    print("=" * 60)
+    print("Running XGBoost Extreme Depth + Aggressive Regularization")
+    print(f"Params: max_depth=16, learning_rate=0.01, n_estimators=1500")
+    print(f"        reg_alpha=1, reg_lambda=5, min_child_weight=3, gamma=0.5")
+    print("=" * 60)
+    
+    # Initialize model with experiment parameters
+    model = XGBoostExtremeDepthModel(params=exp.get('params'))
+    
+    # Setup validation for early stopping if provided
+    eval_set = None
+    early_stopping_rounds = None
+    if X_val is not None and y_val is not None:
+        eval_set = [(X_val, y_val)]
+        early_stopping_rounds = 50
+        print(f"Using validation set with early stopping (patience={early_stopping_rounds})")
+    
+    # Train model
+    model.train(X, y, eval_set=eval_set, early_stopping_rounds=early_stopping_rounds, verbose=True)
+    
+    # Generate predictions
+    y_pred_train = model.predict(X)
+    
+    # Calculate metrics
+    train_brier = brier_score_loss(y, y_pred_train)
+    
+    results = {
+        'model': model,
+        'y_pred_train': y_pred_train,
+        'train_brier_loss': train_brier,
+        'best_iteration': getattr(model.model, 'best_iteration', None),
+        'n_estimators_used': getattr(model.model, 'n_estimators', 1500)
+    }
+    
+    print(f"\nTraining Brier Loss: {train_brier:.6f}")
+    
+    if X_val is not None and y_val is not None:
+        y_pred_val = model.predict(X_val)
+        val_brier = brier_score_loss(y_val, y_pred_val)
+        results['y_pred_val'] = y_pred_val
+        results['val_brier_loss'] = val_brier
+        print(f"Validation Brier Loss: {val_brier:.6f}")
+        
+        # Log if early stopping was triggered
+        if hasattr(model.model, 'best_iteration') and model.model.best_iteration is not None:
+            print(f"Early stopping triggered at iteration: {model.model.best_iteration}")
+    
+    # Feature importance summary
+    try:
+        importances = model.feature_importances(importance_type='gain')
+        top_features = sorted(importances.items(), key=lambda x: x[1], reverse=True)[:10]
+        print(f"\nTop 10 features by gain:")
+        for feat, score in top_features:
+            idx = int(feat.replace('f', ''))
+            feat_name = feature_names[idx] if idx < len(feature_names) else feat
+            print(f"  {feat_name}: {score:.4f}")
+    except Exception as e:
+        print(f"Could not extract feature importances: {e}")
+    
+    print("=" * 60)
+    return results
+
+
+# Update experiment dispatcher
+def run_exp(exp, X, y, feature_names, X_val=None, y_val=None):
+    """
+    Main experiment runner dispatcher.
+    """
+    model_type = exp.get('model_type', '')
+    
+    if exp.get('model_type') == 'xgboost_dart':
+        run_xgboost_dart_exp(exp, X, y, feature_names)
+    elif model_type == 'xgboost_extreme_depth' or (
+        model_type == 'xgboost' and 
+        exp.get('params', {}).get('max_depth') == 16
+    ):
+        return run_xgboost_extreme_depth_exp(exp, X, y, feature_names, X_val, y_val)
+    else:
+        # existing experiment code
+        pass
+### END Model Architect addition ###
+### END Model Architect addition ###
