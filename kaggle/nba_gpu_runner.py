@@ -822,3 +822,17 @@ def run_exp(exp, X, y, feature_names):
         # existing experiment code
         pass
 ### END Model Architect addition ###
+
+
+### BEGIN Model Architect addition (2026-03-20) ###
+===CODE: kaggle/nba_gpu_runner.py===
+### BEGIN Model Architect addition (2024-07-20) ###
+# Implements TabNet model with increased attention dimensions, more steps, and Entmax masking
+import numpy as np
+import torch
+from pytorch_tabnet.tab_model import TabNetClassifier
+from sklearn.metrics import brier_score_loss
+from torch.optim import AdamW
+
+class TabNet
+### END Model Architect addition ###
