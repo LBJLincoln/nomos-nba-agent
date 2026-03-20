@@ -1323,3 +1323,104 @@ def run_exp(exp, X, y, feature_names, dates=None):
         pass
 ```
 ### END Calibrator addition ###
+
+
+### BEGIN Model Architect addition (2026-03-20) ###
+# XGBoost DART Ensemble with Aggressive Regularization
+# DART booster with dropout sampling, extreme depth, and strong regularization
+# Targets overfit reduction on high-dimensional data (2058 features)
+
+import xgboost as xgb
+from sklearn.metrics import brier_score, accuracy_score
+import numpy as np
+import json
+from datetime import datetime
+
+def run_xgboost_dart(exp, X, y, feature_names, dates=None):
+    """Run XGBoost DART ensemble with aggressive regularization"""
+    params = exp['params']
+    
+    # Convert to DMatrix
+    dtrain = xgb.DMatrix(X, label=y)
+    
+    # Set XGBoost parameters
+    xgb_params = {
+        'booster': params['booster'],
+        'max_depth': params['max_depth'],
+        'learning_rate': params['learning_rate'],
+        'n_estimators': params['n_estimators'],
+        'subsample': params['subsample'],
+        'colsample_bytree': params['colsample_bytree'],
+        'reg_alpha': params['reg_alpha'],
+        'reg_lambda': params['reg_lambda'],
+        'min_child_weight': params['min_child_weight'],
+        'gamma': params['gamma'],
+        'sample_type': params['sample_type'],
+        'normalize_type': params['normalize_type'],
+        'rate_drop': params['rate_drop'],
+        'skip_drop': params['skip_drop'],
+        'objective': params['objective'],
+        'eval_metric': params['eval_metric'],
+        'tree_method': params['tree_method'],
+        'device': params['device'],
+        'verbosity': 0
+    }
+    
+    # Train model
+    model = xgb.train(
+        xgb_params,
+        dtrain,
+        num_boost_round=params['n_estimators'],
+        evals=[(dtrain, 'train')],
+        early_stopping_rounds=100,
+        verbose_eval=False
+    )
+    
+    # Get predictions
+    logits = model.predict(dtrain)
+    calibrated_probs = 1 / (1 + np.exp(-logits))  # Sigmoid
+    
+    # Calculate weights if dates provided
+    if dates is not None:
+        end_date = datetime.strptime(dates[-1], '%Y-%m-%d')
+        weights = []
+        for date_str in dates:
+            game_date = datetime.strptime(date_str, '%Y-%m-%d')
+            days_old = (end_date - game_date).days
+            weight = np.exp(-0.01 * days_old)  # Default decay
+            weights.append(weight)
+        weights = np.array(weights)
+        weights /= weights.sum()
+    else:
+        weights = None
+    
+    # Evaluation
+    brier = brier_score(y, calibrated_probs, sample_weight=weights)
+    accuracy = accuracy_score(y, (calibrated_probs > 0.5).astype(int))
+    
+    # Save results
+    result = {
+        'brier_score': brier,
+        'accuracy': accuracy,
+        'predictions': calibrated_probs.tolist(),
+        'model_type': 'xgboost_dart',
+        'model_params': xgb_params,
+        'feature_importance': model.get_score(importance_type='gain')
+    }
+    save_results(exp, result)
+    print(f"✓ XGBoost DART complete: Brier={brier:.4f}, Acc={accuracy:.4f}")
+
+# Add to run_exp dispatch
+def run_exp(exp, X, y, feature_names, dates=None):
+    """Dispatch to appropriate model runner"""
+    model_type = exp['params']['model_type']
+    if model_type == 'ft_transformer':
+        run_ft_transformer(exp, X, y, feature_names)
+    elif model_type == 'calibrated_temperature_scaling':
+        run_calibrated_temperature_scaling(exp, X, y, feature_names, dates)
+    elif model_type == 'xgboost_dart':
+        run_xgboost_dart(exp, X, y, feature_names, dates)
+    else:
+        # Existing model runners...
+        pass
+### END Model Architect addition ###
