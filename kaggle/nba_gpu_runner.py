@@ -8,8 +8,14 @@ Picks up experiments with target_space IN ('colab','gpu','kaggle','any',NULL).
 Push via Kaggle API — see trigger.sh
 """
 import subprocess, sys
+
+# Resilient pip install — don't crash if DNS/network is flaky
 for pkg in ["psycopg2-binary", "pytorch-tabnet", "scikit-learn>=1.3"]:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg])
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg],
+                              timeout=60, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        print(f"[WARN] pip install {pkg} failed: {e} — using pre-installed version")
 
 import os, json, time, traceback, numpy as np, torch, torch.nn as nn
 from datetime import datetime, timezone
