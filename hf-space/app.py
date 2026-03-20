@@ -596,9 +596,12 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
     lr = hp_eval.get("learning_rate", 0.1)
 
     briers, rois, all_p, all_y = [], [], [], []
+    PURGE_GAP = 5
     for ti, vi in tscv.split(X_sub):
         try:
-            X_tr, y_tr = X_sub[ti], y_eval[ti]
+            # Purge last PURGE_GAP games from training to prevent temporal leakage
+            ti_safe = ti[:-PURGE_GAP] if len(ti) > PURGE_GAP + 50 else ti
+            X_tr, y_tr = X_sub[ti_safe], y_eval[ti_safe]
             X_val, y_val = X_sub[vi], y_eval[vi]
 
             # Build 3 base models (capped at 80 estimators each)
@@ -629,7 +632,8 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
                     random_state=42, n_jobs=-1))
 
             # Get OOF predictions from each base model using inner CV
-            inner_cv = TimeSeriesSplit(n_splits=2)
+            # Use 4-fold (was 2) to reduce stacking leakage
+            inner_cv = TimeSeriesSplit(n_splits=4)
             oof_preds = np.zeros((len(X_tr), len(base_models)))
             for m_idx, bm in enumerate(base_models):
                 try:
@@ -753,12 +757,19 @@ def evaluate(ind, X, y, n_splits=2, fast=True):
         splits = n_splits if fast else max(n_splits, 3)
         tscv = TimeSeriesSplit(n_splits=splits)
         briers, rois, all_p, all_y = [], [], [], []
+        PURGE_GAP = 5  # 5-game buffer between train/test to prevent lookahead
         for ti, vi in tscv.split(X_sub):
             try:
+                # Purge last PURGE_GAP games from training to avoid temporal leakage
+                ti_safe = ti[:-PURGE_GAP] if len(ti) > PURGE_GAP + 50 else ti
                 m = clone(model)
-                if hp_eval["calibration"] != "none":
-                    m = CalibratedClassifierCV(m, method=hp_eval["calibration"], cv=2)
-                m.fit(X_sub[ti], y_eval[ti])
+                # Force sigmoid calibration (Platt scaling) — isotonic overfits on small folds
+                cal_method = hp_eval["calibration"]
+                if cal_method == "isotonic":
+                    cal_method = "sigmoid"  # Isotonic needs >500 samples, sigmoid is more robust
+                if cal_method != "none":
+                    m = CalibratedClassifierCV(m, method=cal_method, cv=3)
+                m.fit(X_sub[ti_safe], y_eval[ti_safe])
                 p = m.predict_proba(X_sub[vi])[:, 1]
                 briers.append(brier_score_loss(y_eval[vi], p))
                 rois.append(_log_loss_score(p, y_eval[vi]))
@@ -779,7 +790,7 @@ def evaluate(ind, X, y, n_splits=2, fast=True):
     # log_loss_score breaks the circular ROI problem: rewards calibration without
     # comparing model to itself. Sharpe measures consistency across folds.
     n_features = len(selected)
-    feature_penalty = 0.001 * max(0, n_features - 80)  # Soft pressure toward 80 features
+    feature_penalty = 0.001 * max(0, n_features - 65)  # Soft pressure toward 65 features
     composite = (0.40 * (1 - ab)
                  + 0.25 * ar  # ar is already in [0, 1] from _log_loss_score
                  + 0.20 * max(0, min(sh, 3) / 3)
@@ -797,17 +808,20 @@ def _build(hp):
         n_est = min(hp["n_estimators"], 200)  # Cap for speed
         depth = min(hp["max_depth"], 8)       # Cap to prevent overfitting
         lr = hp["learning_rate"]
+        # Enforce minimum regularization to prevent overfitting
+        reg_a = max(hp["reg_alpha"], 0.01)
+        reg_l = max(hp["reg_lambda"], 0.1)
         if mt == "xgboost":
             return xgb.XGBClassifier(n_estimators=n_est, max_depth=depth,
                                      learning_rate=lr, subsample=hp["subsample"],
                                      colsample_bytree=hp["colsample_bytree"], min_child_weight=hp["min_child_weight"],
-                                     reg_alpha=hp["reg_alpha"], reg_lambda=hp["reg_lambda"],
+                                     reg_alpha=reg_a, reg_lambda=reg_l,
                                      eval_metric="logloss", random_state=42, n_jobs=-1, tree_method="hist")
         elif mt == "lightgbm":
             return lgbm.LGBMClassifier(n_estimators=n_est, max_depth=depth,
                                        learning_rate=lr, subsample=hp["subsample"],
                                        num_leaves=min(2 ** depth - 1, 31),
-                                       reg_alpha=hp["reg_alpha"], reg_lambda=hp["reg_lambda"],
+                                       reg_alpha=reg_a, reg_lambda=reg_l,
                                        min_child_samples=20, feature_fraction=0.7,
                                        verbose=-1, random_state=42, n_jobs=-1)
         elif mt == "catboost":
@@ -912,7 +926,7 @@ POP_SIZE = 60            # Moderate pop — balance diversity and speed
 ELITE_SIZE = 5           # Top ~8% preserved
 BASE_MUT = 0.04          # Low mutation — allow convergence on good regions
 CROSSOVER_RATE = 0.80    # High recombination
-TARGET_FEATURES = 80     # TIGHT feature sets — prevent overfitting (9551 games / 80 features = ~120 samples/feature)
+TARGET_FEATURES = 65     # Tighter feature sets — overfitting guard (9551/65 = 147 samples/feature)
 N_SPLITS = 3             # 3-fold walk-forward for reliable Brier estimates
 GENS_PER_CYCLE = 3       # Save every 3 gens
 COOLDOWN = 5             # Minimal cooldown
