@@ -1324,3 +1324,219 @@ def run_exp(exp, X, y, feature_names):
         # existing experiment code
         pass
 ### END Model Architect addition ###
+
+
+### BEGIN Research Scholar addition (2026-03-20) ###
+# Implements FT-Transformer with feature tokenization + self-attention (Gorishniy 2021→2025 improvements)
+# Feature tokenization converts tabular features into token embeddings
+# Self-attention allows the model to learn feature interactions and importance weights
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.optim import Adam
+from sklearn.metrics import brier_score_loss
+from sklearn.model_selection import KFold
+import numpy as np
+
+class FeatureTokenizer(nn.Module):
+    """Converts tabular features into token embeddings"""
+    def __init__(self, num_features, embedding_dim):
+        super().__init__()
+        self.token_embeddings = nn.Embedding(num_features, embedding_dim)
+        self.feature_type_embeddings = nn.Embedding(3, embedding_dim)  # categorical, numerical, binary
+        
+    def forward(self, x):
+        batch_size, num_features = x.shape
+        token_ids = torch.arange(num_features, device=x.device).expand(batch_size, -1)
+        token_embeddings = self.token_embeddings(token_ids)
+        feature_types = self._get_feature_types(x)
+        type_embeddings = self.feature_type_embeddings(feature_types)
+        return token_embeddings + type_embeddings
+
+    def _get_feature_types(self, x):
+        # Simple heuristic: infer feature types from value ranges
+        is_categorical = (x.abs() <= 1).float()
+        is_binary = ((x == 0) | (x == 1)).float()
+        is_numerical = 1 - is_categorical - is_binary
+        return torch.argmax(torch.stack([is_categorical, is_numerical, is_binary], dim=1), dim=1)
+
+class FTTransformerBlock(nn.Module):
+    """Single FT-Transformer block with self-attention"""
+    def __init__(self, embedding_dim, num_heads, attention_dropout=0.2):
+        super().__init__()
+        self.self_attention = nn.MultiheadAttention(embedding_dim, num_heads, dropout=attention_dropout)
+        self.norm1 = nn.LayerNorm(embedding_dim)
+        self.norm2 = nn.LayerNorm(embedding_dim)
+        self.ff = nn.Sequential(
+            nn.Linear(embedding_dim, embedding_dim * 2),
+            nn.GELU(),
+            nn.Linear(embedding_dim * 2, embedding_dim)
+        )
+        
+    def forward(self, x, mask=None):
+        # Self-attention with residual connection
+        attn_output, _ = self.self_attention(x, x, x, key_padding_mask=mask)
+        x = self.norm1(x + attn_output)
+        
+        # Feed-forward network with residual connection
+        ff_output = self.ff(x)
+        x = self.norm2(x + ff_output)
+        return x
+
+class FTTransformer(nn.Module):
+    """Full FT-Transformer model with feature tokenization"""
+    def __init__(self, num_features, embedding_dim=64, num_blocks=12, num_heads=8, attention_dropout=0.2):
+        super().__init__()
+        self.feature_tokenizer = FeatureTokenizer(num_features, embedding_dim)
+        self.blocks = nn.ModuleList([
+            FTTransformerBlock(embedding_dim, num_heads, attention_dropout)
+            for _ in range(num_blocks)
+        ])
+        self.output_projection = nn.Linear(embedding_dim, 1)
+        
+    def forward(self, x):
+        # Tokenize features
+        x_tokens = self.feature_tokenizer(x)
+        
+        # Apply transformer blocks
+        for block in self.blocks:
+            x_tokens = block(x_tokens)
+            
+        # Pool over feature dimension and project to output
+        x_pooled = x_tokens.mean(dim=1)
+        return torch.sigmoid(self.output_projection(x_pooled))
+
+class FTTransformerEnsemble:
+    """Ensemble of FT-Transformer models with different random seeds"""
+    def __init__(self, params):
+        self.model_type = params['model_type']
+        self.feature_tokenization = params['feature_tokenization']
+        self.attention_heads = params['attention_heads']
+        self.brier_loss_weight = params['brier_loss_weight']
+        self.focal_loss_weight = params['focal_loss_weight']
+        self.focal_gamma = params['focal_gamma']
+        self.max_depth = params['max_depth']
+        self.learning_rate = params['learning_rate']
+        self.epochs = params['epochs']
+        self.ensemble_method = params['ensemble_method']
+        self.weights = params['weights']
+        self.cv_folds = params['cv_folds']
+        
+        self.models = []
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        
+    def fit(self, X, y):
+        """Train ensemble using cross-validation"""
+        if self.cv_folds > 1:
+            kf = KFold(n_splits=self.cv_folds, shuffle=True, random_state=42)
+            for fold, (train_idx, val_idx) in enumerate(kf.split(X)):
+                X_train, X_val = X[train_idx], X[val_idx]
+                y_train, y_val = y[train_idx], y[val_idx]
+                
+                model = FTTransformer(
+                    num_features=X.shape[1],
+                    embedding_dim=64,
+                    num_blocks=12,
+                    num_heads=self.attention_heads,
+                    attention_dropout=0.2
+                ).to(self.device)
+                
+                self._train_single_model(model, X_train, y_train, X_val, y_val)
+                self.models.append(model)
+        else:
+            # Train single model
+            model = FTTransformer(
+                num_features=X.shape[1],
+                embedding_dim=64,
+                num_blocks=12,
+                num_heads=self.attention_heads,
+                attention_dropout=0.2
+            ).to(self.device)
+            self._train_single_model(model, X, y, X, y)
+            self.models.append(model)
+            
+    def _train_single_model(self, model, X_train, y_train, X_val, y_val):
+        """Train a single FT-Transformer model"""
+        model.train()
+        optimizer = Adam(model.parameters(), lr=self.learning_rate)
+        brier_loss_fn = nn.BCELoss()
+        focal_loss_fn = self._focal_loss
+        
+        for epoch in range(self.epochs):
+            model.train()
+            optimizer.zero_grad()
+            y_pred = model(torch.FloatTensor(X_train).to(self.device)).squeeze()
+            brier_loss = brier_loss_fn(y_pred, torch.FloatTensor(y_train).to(self.device))
+            focal_loss = focal_loss_fn(y_pred, torch.FloatTensor(y_train).to(self.device))
+            loss = (self.brier_loss_weight * brier_loss +
+                    self.focal_loss_weight * focal_loss)
+            loss.backward()
+            optimizer.step()
+            
+            # Validation
+            if epoch % 50 == 0:
+                model.eval()
+                with torch.no_grad():
+                    val_pred = model(torch.FloatTensor(X_val).to(self.device)).squeeze()
+                    val_brier = brier_loss_fn(val_pred, torch.FloatTensor(y_val).to(self.device))
+                    print(f"Epoch {epoch}, Val Brier: {val_brier.item():.4f}")
+    
+    def _focal_loss(self, y_pred, y_true, gamma=2.0):
+        """Focal loss for imbalanced data"""
+        bce = F.binary_cross_entropy(y_pred, y_true, reduction='none')
+        pt = torch.exp(-bce)
+        focal_loss = ((1 - pt) ** gamma * bce).mean()
+        return focal_loss
+    
+    def predict_proba(self, X):
+        """Ensemble prediction"""
+        self.models[0].eval()
+        with torch.no_grad():
+            X_tensor = torch.FloatTensor(X).to(self.device)
+            predictions = [model(X_tensor).squeeze().cpu().numpy() for model in self.models]
+            
+        if self.ensemble_method == 'weighted_average':
+            return np.average(predictions, axis=0, weights=self.weights)
+        else:
+            return np.mean(predictions, axis=0)
+    
+    def evaluate(self, X, y):
+        """Evaluate ensemble performance"""
+        y_pred = self.predict_proba(X)
+        return brier_score_loss(y, y_pred)
+
+def run_ft_transformer_ensemble_exp(exp, X, y, feature_names):
+    """
+    Run FT-Transformer with Brier loss + Focal loss ensemble experiment
+    """
+    params = {
+        "model_type": "ft_transformer",
+        "feature_tokenization": True,
+        "attention_heads": 8,
+        "brier_loss_weight": 0.7,
+        "focal_loss_weight": 0.3,
+        "focal_gamma": 2,
+        "max_depth": 6,
+        "learning_rate": 0.001,
+        "epochs": 200,
+        "ensemble_method": "weighted_average",
+        "weights": [0.5, 0.5],
+        "cv_folds": 5
+    }
+    model = FTTransformerEnsemble(params)
+    model.fit(X, y)
+    y_pred = model.predict_proba(X)
+    brier_loss = model.evaluate(X, y)
+    print(f"FT-Transformer Ensemble Brier Loss: {brier_loss:.4f}")
+
+# Add this to the experiment loop
+def run_exp(exp, X, y, feature_names):
+    if exp['model_type'] == 'platt_temperature_scaling_ensemble':
+        run_platt_temperature_scaling_ensemble_exp(exp, X, y, feature_names)
+    elif exp['model_type'] == 'ft_transformer':
+        run_ft_transformer_ensemble_exp(exp, X, y, feature_names)
+    else:
+        # existing experiment code
+        pass
+### END Research Scholar addition ###
