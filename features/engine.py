@@ -3266,3 +3266,62 @@ def register_defensive_scheme_features(engine):
         'Three-point attack vs closeout: three_pt_rate_10g × (1/opp_closeout_speed_rank) × pace_diff'
     ])
 ### END Feature Scout addition ###
+
+
+### BEGIN Market Intel addition (2026-03-20) ###
+# Steam Move Velocity feature: Pinnacle line velocity vs consensus, weighted by volume timing
+import numpy as np
+from scipy.stats import percentileofscore
+
+def pinnacle_steam_velocity(df):
+    """
+    Compute Pinnacle Steam Move Velocity feature:
+    - Measures rate of change of Pinnacle line vs consensus, weighted by volume timing
+    - Captures when sharpest book moves faster than market can absorb
+    - steam_flag indicates high-velocity moves with significant volume
+    """
+    # Calculate velocity: change per hour over final 4 hours
+    df['pinnacle_velocity'] = (
+        (df['pinnacle_closing_spread'] - df['line_at_T_minus_4h']) / 4
+    )
+    df['consensus_velocity'] = (
+        (df['consensus_closing_spread'] - df['line_at_T_minus_4h']) / 4
+    )
+
+    # Steam velocity: Pinnacle velocity minus consensus velocity
+    df['steam_velocity'] = df['pinnacle_velocity'] - df['consensus_velocity']
+
+    # Volume percentile (75th percentile threshold)
+    df['pinnacle_volume_percentile'] = df['pinnacle_volume_4h'].apply(
+        lambda x: percentileofscore(df['pinnacle_volume_4h'], x) / 100
+    )
+
+    # Steam flag: high velocity (>0.125 pts/hour) AND high volume (>75th percentile)
+    df['steam_flag'] = (
+        (df['steam_velocity'] > 0.125) & 
+        (df['pinnacle_volume_percentile'] > 0.75)
+    )
+
+    # Additional interaction features for model robustness
+    df['steam_rest_interaction'] = df['steam_flag'] * df['rest_days_home']
+    df['steam_back_to_back'] = df['steam_flag'] * df['back_to_back_flag']
+
+    return df[['steam_velocity', 'steam_flag', 'steam_rest_interaction', 'steam_back_to_back']]
+
+# Register feature in NBAFeatureEngine
+def register_pinnacle_steam_features(engine):
+    """Add Pinnacle Steam Move Velocity features to the feature engine"""
+    engine.feature_functions.append(pinnacle_steam_velocity)
+    engine.feature_names.extend([
+        'steam_velocity', 'steam_flag', 'steam_rest_interaction', 'steam_back_to_back'
+    ])
+    engine.feature_categories.extend([
+        'market', 'market', 'market', 'market'
+    ])
+    engine.feature_descriptions.extend([
+        'Pinnacle Steam Velocity: (Pinnacle velocity - Consensus velocity) in final 4h',
+        'Steam Flag: Velocity >0.125 AND volume >75th percentile',
+        'Steam × Rest Days Home: Interaction for home team steam situations',
+        'Steam × Back-to-Back: Interaction for rest-sensitive steam situations'
+    ])
+### END Market Intel addition ###
