@@ -2108,3 +2108,12 @@ if __name__ == "__main__":
     mode = "EXPERIMENT RUNNER" if os.environ.get("EXPERIMENT_MODE") else "EVOLUTION"
     log(f"Starting with FastAPI + Gradio ({mode} mode, remote control API enabled)")
     uvicorn.run(gr_app, host="0.0.0.0", port=7860)
+
+
+### BEGIN Evolution Tuner addition (2026-03-20) ###
+===CODE: hf-space/app.py===
+# --- Improvement: Switch to Differential Evolution with high F and CR ---
+# Type: config_change
+# Description: RADICAL: Switch to Differential Evolution with high F and CR to escape local optimum
+# Hypothesis: Current GA is converging prematurely on feature subsets that don't generalize. DE's difference-vector mutation maintains better exploration in high-dimensional space (2058 features). High F=1
+### END Evolution Tuner addition ###
