@@ -2300,3 +2300,90 @@ def island_model_evolution(pop_size, cxpb, mutpb, ngen, stats, halloffame, logbo
     all_inds = [ind for pop in islands for ind in pop]
     return tools.selBest(all_inds, 1)[0]
 ### END Evolution Tuner addition ###
+
+
+### BEGIN Evolution Tuner addition (2026-03-20) ###
+# Island Model GA with diverse selection strategies
+import random
+import numpy as np
+from deap import tools, base, creator
+
+def island_model_ga(toolbox, population_size, num_islands, island_pop, migration_interval, migration_size, island_selections, tournament_k, selection_pressure, elitism, cxpb, mutpb, ngen, stats=None, halloffame=None, verbose=__debug__):
+    """
+    Island model genetic algorithm with 4 islands using different selection strategies.
+    Migration occurs every 10 generations to maintain diversity.
+    """
+    # Create islands with different selection strategies
+    islands = []
+    island_toolboxes = []
+
+    for i in range(num_islands):
+        # Create island population
+        pop = toolbox.population(n=island_pop)
+
+        # Create island-specific toolbox
+        island_tb = base.Toolbox()
+        island_tb.register("mate", toolbox.mate)
+        island_tb.register("mutate", toolbox.mutate)
+        island_tb.register("evaluate", toolbox.evaluate)
+
+        # Register island-specific selection
+        if island_selections[i] == "tournament":
+            k = tournament_k[i]
+            island_tb.register("select", tools.selTournament, k=k)
+        elif island_selections[i] == "sus":
+            island_tb.register("select", tools.selStochasticUniversalSampling)
+        elif island_selections[i] == "rank":
+            pressure = selection_pressure[i]
+            island_tb.register("select", tools.selRank, pressure=pressure)
+
+        islands.append(pop)
+        island_toolboxes.append(island_tb)
+
+    # Main evolution loop
+    for gen in range(ngen):
+        for island_idx, (population, island_toolbox) in enumerate(zip(islands, island_toolboxes)):
+            # Select and clone for next generation
+            offspring = island_toolbox.select(population, len(population))
+            offspring = list(map(toolbox.clone, offspring))
+
+            # Apply crossover and mutation
+            for child1, child2 in zip(offspring[::2], offspring[1::2]):
+                if random.random() < cxpb:
+                    island_toolbox.mate(child1, child2)
+                    del child1.fitness.values
+                    del child2.fitness.values
+
+            for mutant in offspring:
+                if random.random() < mutpb:
+                    island_toolbox.mutate(mutant)
+                    del mutant.fitness.values
+
+            # Apply elitism
+            elite = tools.selBest(population, elitism)
+            offspring = tools.selBest(offspring, len(offspring) - elitism) + elite
+
+            islands[island_idx] = offspring
+
+        # Migration phase
+        if (gen + 1) % migration_interval == 0:
+            # Extract best individuals from each island
+            best_per_island = [tools.selBest(pop, migration_size) for pop in islands]
+            migrants = [ind for sublist in best_per_island for ind in sublist]
+            random.shuffle(migrants)
+            for idx, pop in enumerate(islands):
+                worst = tools.selWorst(pop, migration_size)
+                for i in range(migration_size):
+                    pop[pop.index(worst[i])] = migrants.pop()
+
+        # Log stats every migration interval
+        if (gen + 1) % migration_interval == 0:
+            all_inds = [ind for pop in islands for ind in pop]
+            fits = [ind.fitness.values[0] for ind in all_inds if ind.fitness.valid]
+            if fits:
+                print(f"Gen {gen+1}: Min={min(fits):.4f}, Avg={np.mean(fits):.4f}")
+
+    # Return the best individual across all islands
+    all_inds = [ind for pop in islands for ind in pop]
+    return tools.selBest(all_inds, 1)[0]
+### END Evolution Tuner addition ###
