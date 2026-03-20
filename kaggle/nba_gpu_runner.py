@@ -1424,3 +1424,277 @@ def run_exp(exp, X, y, feature_names, dates=None):
         # Existing model runners...
         pass
 ### END Model Architect addition ###
+
+
+### BEGIN Research Scholar addition (2026-03-20) ###
+# FT-Transformer with Feature Tokenization + Self-Attention (Gorishniy 2021)
+# Implements feature tokenization + self-attention for tabular NBA data
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import brier_score, accuracy_score
+
+class FeatureTokenizer(nn.Module):
+    """Converts tabular features into token embeddings"""
+    def __init__(self, n_features, d_token, n_bins=16, share=0.5):
+        super().__init__()
+        self.n_features = n_features
+        self.d_token = d_token
+        self.n_bins = n_bins
+        self.share = share
+        
+        # Learnable embeddings for each feature
+        self.feature_embeddings = nn.Parameter(
+            torch.randn(n_features, d_token // 2)
+        )
+        
+        # Learnable bin embeddings for discretization
+        self.bin_embeddings = nn.Parameter(
+            torch.randn(n_bins, d_token // 2)
+        )
+        
+    def forward(self, x):
+        # Normalize features to [0, 1]
+        x_norm = torch.sigmoid(x)
+        
+        # Quantize to bins
+        bin_indices = torch.clamp(
+            (x_norm * (self.n_bins - 1)).long(), 
+            0, self.n_bins - 1
+        )
+        
+        # Get bin embeddings
+        bin_emb = self.bin_embeddings[bin_indices]
+        
+        # Combine with feature embeddings
+        feat_emb = self.feature_embeddings.unsqueeze(0).expand(
+            x.size(0), -1, -1
+        )
+        
+        # Concatenate and project
+        tokens = torch.cat([feat_emb, bin_emb], dim=-1)
+        
+        return tokens
+
+class FT_Transformer(nn.Module):
+    """FT-Transformer with feature tokenization"""
+    def __init__(self, n_features, n_blocks=6, d_token=256, n_heads=8, 
+                 d_ff=1024, activation='mish', dropout=0.2, max_distance=0.5):
+        super().__init__()
+        self.n_features = n_features
+        self.d_token = d_token
+        
+        # Feature tokenizer
+        self.tokenizer = FeatureTokenizer(n_features, d_token)
+        
+        # Transformer blocks
+        self.blocks = nn.ModuleList([
+            TransformerBlock(d_token, n_heads, d_ff, activation, dropout, max_distance)
+            for _ in range(n_blocks)
+        ])
+        
+        # Output projection
+        self.output_proj = nn.Linear(d_token, 1)
+        
+    def forward(self, x):
+        # Tokenize features
+        tokens = self.tokenizer(x)
+        
+        # Apply transformer blocks
+        for block in self.blocks:
+            tokens = block(tokens)
+        
+        # Global average pooling
+        pooled = tokens.mean(dim=1)
+        
+        # Output
+        logits = self.output_proj(pooled).squeeze(-1)
+        return logits
+
+class TransformerBlock(nn.Module):
+    """Single transformer block"""
+    def __init__(self, d_token, n_heads, d_ff, activation, dropout, max_distance):
+        super().__init__()
+        self.attn = MultiHeadSelfAttention(d_token, n_heads, max_distance)
+        self.ff = FeedForward(d_token, d_ff, activation, dropout)
+        self.norm1 = nn.LayerNorm(d_token)
+        self.norm2 = nn.LayerNorm(d_token)
+        self.dropout = dropout
+        
+    def forward(self, x):
+        # Self-attention
+        attn_out = self.attn(x)
+        x = x + F.dropout(attn_out, p=self.dropout)
+        x = self.norm1(x)
+        
+        # Feed-forward
+        ff_out = self.ff(x)
+        x = x + F.dropout(ff_out, p=self.dropout)
+        x = self.norm2(x)
+        
+        return x
+
+class MultiHeadSelfAttention(nn.Module):
+    """Multi-head self-attention with learnable positional encodings"""
+    def __init__(self, d_token, n_heads, max_distance):
+        super().__init__()
+        assert d_token % n_heads == 0
+        self.d_head = d_token // n_heads
+        self.n_heads = n_heads
+        
+        # Learnable positional encodings
+        self.pos_encoding = nn.Parameter(
+            torch.randn(100, d_token)  # Enough for NBA games
+        )
+        
+        # Linear projections
+        self.qkv = nn.Linear(d_token, d_token * 3)
+        self.out = nn.Linear(d_token, d_token)
+        
+        # Max distance for attention masking
+        self.max_distance = max_distance
+        
+    def forward(self, x):
+        B, N, _ = x.shape
+        
+        # Add positional encodings
+        pos = self.pos_encoding[:N].unsqueeze(0).expand(B, -1, -1)
+        x = x + pos
+        
+        # QKV projection
+        qkv = self.qkv(x)
+        q, k, v = torch.split(qkv, self.d_head * self.n_heads, dim=-1)
+        q = q.view(B, N, self.n_heads, self.d_head).transpose(1, 2)
+        k = k.view(B, N, self.n_heads, self.d_head).transpose(1, 2)
+        v = v.view(B, N, self.n_heads, self.d_head).transpose(1, 2)
+        
+        # Scaled dot-product attention
+        scores = torch.matmul(q, k.transpose(-2, -1)) / (self.d_head ** 0.5)
+        
+        # Distance-based masking
+        if self.max_distance > 0:
+            distances = torch.arange(N, device=x.device).unsqueeze(0) - torch.arange(N, device=x.device).unsqueeze(1)
+            mask = (distances.abs() > self.max_distance * N).unsqueeze(0).unsqueeze(0)
+            scores = scores.masked_fill(mask, float('-inf'))
+        
+        attn_weights = torch.softmax(scores, dim=-1)
+        attn_out = torch.matmul(attn_weights, v)
+        
+        # Concatenate heads
+        attn_out = attn_out.transpose(1, 2).contiguous().view(B, N, self.d_head * self.n_heads)
+        
+        # Output projection
+        out = self.out(attn_out)
+        
+        return out
+
+class FeedForward(nn.Module):
+    """Feed-forward network with activation"""
+    def __init__(self, d_token, d_ff, activation, dropout):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(d_token, d_ff),
+            self._get_activation(activation),
+            nn.Dropout(dropout),
+            nn.Linear(d_ff, d_token),
+            nn.Dropout(dropout)
+        )
+        
+    def _get_activation(self, activation):
+        if activation == 'mish':
+            return Mish()
+        elif activation == 'relu':
+            return nn.ReLU()
+        elif activation == 'gelu':
+            return nn.GELU()
+        else:
+            raise ValueError(f"Unknown activation: {activation}")
+    
+    def forward(self, x):
+        return self.net(x)
+
+class Mish(nn.Module):
+    """Mish activation function"""
+    def forward(self, x):
+        return x * torch.tanh(F.softplus(x))
+
+def run_ft_transformer(exp, X, y, feature_names):
+    """Run FT-Transformer with feature tokenization"""
+    params = exp['params']
+    
+    # Model parameters
+    n_blocks = params.get('n_blocks', 6)
+    d_token = params.get('d_token', 256)
+    n_heads = params.get('n_heads', 8)
+    d_ff = params.get('d_ff', 1024)
+    activation = params.get('activation', 'mish')
+    dropout = params.get('dropout', 0.2)
+    n_bins = params.get('n_bins', 16)
+    share = params.get('share', 0.5)
+    max_distance = params.get('max_distance', 0.5)
+    
+    # Device
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    # Convert to tensors
+    X_tensor = torch.FloatTensor(X).to(device)
+    y_tensor = torch.FloatTensor(y).to(device)
+    
+    # Model
+    model = FT_Transformer(
+        n_features=X.shape[1],
+        n_blocks=n_blocks,
+        d_token=d_token,
+        n_heads=n_heads,
+        d_ff=d_ff,
+        activation=activation,
+        dropout=dropout,
+        max_distance=max_distance
+    ).to(device)
+    
+    # Loss and optimizer
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+    
+    # Training
+    dataset = TensorDataset(X_tensor, y_tensor)
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    
+    for epoch in range(100):
+        model.train()
+        total_loss = 0
+        
+        for x_batch, y_batch in dataloader:
+            optimizer.zero_grad()
+            logits = model(x_batch)
+            loss = criterion(logits, y_batch)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+        
+        if (epoch + 1) % 10 == 0:
+            print(f"Epoch {epoch+1}/100, Loss: {total_loss/len(dataloader):.4f}")
+    
+    # Evaluation
+    model.eval()
+    with torch.no_grad():
+        logits = model(X_tensor)
+        probs = torch.sigmoid(logits).cpu().numpy().flatten()
+    
+    brier = brier_score(y, probs)
+    accuracy = accuracy_score(y, probs > 0.5)
+    
+    # Save results
+    result = {
+        'brier_score': brier,
+        'accuracy': accuracy,
+        'predictions': probs.tolist(),
+        'model_type': 'ft_transformer',
+        'model_params': params
+    }
+    save_results(exp, result)
+    print(f"✓ FT-Transformer complete: Brier={brier:.4f}, Acc={accuracy:.4f}")
+### END Research Scholar addition ###
