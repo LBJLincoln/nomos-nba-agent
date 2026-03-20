@@ -3207,3 +3207,62 @@ def register_steam_move_features(engine):
         'Velocity * log(volume) * rest differential score'
     ])
 ### END Market Intel addition ###
+
+
+### BEGIN Feature Scout addition (2026-03-20) ###
+# Defensive Scheme Mismatch feature implementation
+# Captures offensive efficiency variation based on defensive scheme fit
+
+import numpy as np
+
+def defensive_scheme_mismatch(df):
+    """
+    Compute defensive scheme mismatch feature:
+    efg_pct_10g × (1 / opp_def_scheme_rating) × pace_diff
+    Higher values indicate better offensive efficiency against current defensive scheme
+    """
+    # Handle division by zero for perfect defensive schemes
+    df['def_scheme_rating_adj'] = np.where(
+        df['opp_def_scheme_rating'] == 0,
+        0.01,  # Small epsilon to avoid division by zero
+        df['opp_def_scheme_rating']
+    )
+
+    # Core interaction feature
+    df['def_scheme_mismatch'] = (
+        df['efg_pct_10g'] * 
+        (1 / df['def_scheme_rating_adj']) * 
+        df['pace_diff']
+    )
+
+    # Additional derived features for model robustness
+    df['scheme_paint_interaction'] = (
+        df['pts_in_paint_10g'] * 
+        (1 / df['opp_rim_protection_rating']) * 
+        df['pace_diff']
+    )
+
+    df['scheme_threept_interaction'] = (
+        df['three_pt_rate_10g'] * 
+        (1 / df['opp_closeout_speed_rank']) * 
+        df['pace_diff']
+    )
+
+    return df[['def_scheme_mismatch', 'scheme_paint_interaction', 'scheme_threept_interaction']]
+
+# Register feature in NBAFeatureEngine
+def register_defensive_scheme_features(engine):
+    """Add defensive scheme mismatch features to the feature engine"""
+    engine.feature_functions.append(defensive_scheme_mismatch)
+    engine.feature_names.extend([
+        'def_scheme_mismatch', 'scheme_paint_interaction', 'scheme_threept_interaction'
+    ])
+    engine.feature_categories.extend([
+        'matchup', 'matchup', 'matchup'
+    ])
+    engine.feature_descriptions.extend([
+        'Defensive scheme mismatch: efg_pct_10g × (1/opp_def_scheme_rating) × pace_diff',
+        'Paint attack vs rim protection: pts_in_paint_10g × (1/opp_rim_protection_rating) × pace_diff',
+        'Three-point attack vs closeout: three_pt_rate_10g × (1/opp_closeout_speed_rank) × pace_diff'
+    ])
+### END Feature Scout addition ###
