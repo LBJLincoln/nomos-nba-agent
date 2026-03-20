@@ -3141,3 +3141,20 @@ class NBAFeatureEngine:
         """
         Calculates the interaction between
 ### END Market Intel addition ###
+
+
+### BEGIN Market Intel addition (2026-03-20) ###
+===CODE: features/engine.py===
+# Feature Test: Interaction of extreme line velocity and sustained market confidence
+# This implements new market-derived features including line velocities, acceleration,
+# total spread movements, and interaction terms with market confidence.
+
+import pandas as pd
+import numpy as np
+
+class NBAFeatureEngine:
+    # ... (existing methods and attributes) ...
+
+    @staticmethod
+    def _calculate_time_based_diff(df: pd.DataFrame,
+### END Market Intel addition ###
