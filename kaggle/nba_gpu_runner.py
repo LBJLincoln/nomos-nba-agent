@@ -1239,3 +1239,88 @@ def run_exp(exp, X, y, feature_names):
         pass
 ```
 ### END Research Scholar addition ###
+
+
+### BEGIN Model Architect addition (2026-03-20) ###
+# XGBoost with extreme depth and regularization
+# Very deep trees with strong regularization to capture complex interactions without overfitting
+
+import xgboost as xgb
+from sklearn.metrics import brier_score_loss
+
+class XGBoostExtremeDepth:
+    def __init__(self, params):
+        self.params = params
+        self.model = None
+
+    def fit(self, X, y):
+        # Convert to DMatrix for XGBoost
+        dtrain = xgb.DMatrix(X, label=y)
+
+        # Set XGBoost parameters
+        xgb_params = {
+            'max_depth': self.params['max_depth'],
+            'learning_rate': self.params['learning_rate'],
+            'n_estimators': self.params['n_estimators'],
+            'subsample': self.params['subsample'],
+            'colsample_bytree': self.params['colsample_bytree'],
+            'reg_alpha': self.params['reg_alpha'],
+            'reg_lambda': self.params['reg_lambda'],
+            'min_child_weight': self.params['min_child_weight'],
+            'gamma': self.params['gamma'],
+            'booster': self.params['booster'],
+            'objective': 'binary:logistic',
+            'eval_metric': 'logloss',
+            'tree_method': 'gpu_hist' if 'gpu' in self.params else 'hist',
+            'random_state': 42
+        }
+
+        # Train model
+        self.model = xgb.train(
+            xgb_params,
+            dtrain,
+            num_boost_round=self.params['n_estimators'],
+            verbose_eval=100
+        )
+
+    def predict_proba(self, X):
+        dtest = xgb.DMatrix(X)
+        return self.model.predict(dtest)
+
+    def evaluate(self, X, y):
+        y_pred = self.predict_proba(X)
+        return brier_score_loss(y, y_pred)
+
+# Add to experiment loop
+def run_xgboost_extreme_depth_exp(exp, X, y, feature_names):
+    params = {
+        "model_type": "xgboost",
+        "max_depth": 20,
+        "learning_rate": 0.01,
+        "n_estimators": 1500,
+        "subsample": 0.8,
+        "colsample_bytree": 0.7,
+        "reg_alpha": 1,
+        "reg_lambda": 5,
+        "min_child_weight": 5,
+        "gamma": 0.5,
+        "booster": "gbtree"
+    }
+    model = XGBoostExtremeDepth(params)
+    model.fit(X, y)
+    y_pred = model.predict_proba(X)
+    brier_loss = model.evaluate(X, y)
+    print(f"XGBoost Extreme Depth Brier Loss: {brier_loss:.4f}")
+
+# Add this to the experiment loop
+def run_exp(exp, X, y, feature_names):
+    if exp['model_type'] == 'platt_temperature_scaling_ensemble':
+        run_platt_temperature_scaling_ensemble_exp(exp, X, y, feature_names)
+    elif exp['model_type'] == 'ft_transformer':
+        run_ft_transformer_ensemble_exp(exp, X, y, feature_names)
+    elif exp['model_type'] == 'xgboost_extreme_depth':
+        run_xgboost_extreme_depth_exp(exp, X, y, feature_names)
+    else:
+        # existing experiment code
+        pass
+### END Model Architect addition ###
