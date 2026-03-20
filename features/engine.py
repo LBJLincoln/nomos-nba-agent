@@ -3368,3 +3368,128 @@ def register_opponent_adjusted_four_factors_momentum(engine):
         'Streak length'
     ])
 ### END Feature Scout addition ###
+
+
+### BEGIN Market Intel addition (2026-03-20) ###
+```python
+# Steam Move Velocity with Decay Weighting feature implementation
+# Captures the speed and magnitude of synchronized line movements across sharp books
+# with exponential decay on recency weighting
+
+import numpy as np
+import pandas as pd
+from datetime import datetime, timedelta
+
+def steam_move_velocity_decay(df, lookback_hours=4, decay_lambda=0.5, sharp_books=None, velocity_threshold=0.5, include_acceleration=True, cross_book_confirmation_count=3):
+    """
+    Calculate Steam Move Velocity with Decay Weighting
+    
+    Args:
+        df: DataFrame containing line movement data with columns:
+            - timestamp: datetime of the line movement
+            - book: sportsbook name
+            - team: team name
+            - line_spread: spread line value
+            - line_spread_moved: boolean if spread moved
+            - line_spread_magnitude: magnitude of spread movement
+            - line_spread_velocity: velocity of spread movement (per hour)
+        lookback_hours: hours to look back for steam move detection
+        decay_lambda: exponential decay rate (higher = faster decay)
+        sharp_books: list of sharp books to monitor for steam moves
+        velocity_threshold: minimum velocity to consider a steam move
+        include_acceleration: whether to include acceleration in the feature
+        cross_book_confirmation_count: minimum number of sharp books confirming steam
+    
+    Returns:
+        DataFrame with steam move velocity features
+    """
+    if sharp_books is None:
+        sharp_books = ["pinnacle", "circa", "cris", "bookmaker", "heritage"]
+    
+    # Filter for sharp books and relevant columns
+    sharp_df = df[df['book'].isin(sharp_books)].copy()
+    
+    # Calculate time-based decay weights
+    current_time = sharp_df['timestamp'].max()
+    sharp_df['age_hours'] = (current_time - sharp_df['timestamp']).dt.total_seconds() / 3600
+    sharp_df['decay_weight'] = np.exp(-decay_lambda * sharp_df['age_hours'])
+    
+    # Detect steam moves: synchronized movements across sharp books
+    steam_signals = []
+    for team in sharp_df['team'].unique():
+        team_df = sharp_df[sharp_df['team'] == team]
+        for timestamp in team_df['timestamp'].unique():
+            window_start = timestamp - timedelta(hours=lookback_hours)
+            window_df = team_df[(team_df['timestamp'] >= window_start) & (team_df['timestamp'] <= timestamp)]
+            
+            if len(window_df) >= cross_book_confirmation_count:
+                # Check for synchronized movement direction
+                direction = np.sign(window_df['line_spread_magnitude'].sum())
+                if direction != 0:
+                    # Calculate steam velocity (weighted by decay)
+                    steam_velocity = (window_df['line_spread_velocity'] * window_df['decay_weight']).sum() / window_df['decay_weight'].sum()
+                    
+                    if steam_velocity >= velocity_threshold:
+                        steam_signals.append({
+                            'team': team,
+                            'timestamp': timestamp,
+                            'steam_velocity': steam_velocity,
+                            'steam_direction': direction,
+                            'steam_magnitude': window_df['line_spread_magnitude'].sum(),
+                            'decay_weighted_velocity': steam_velocity,
+                            'acceleration': window_df['line_spread_velocity'].diff().mean() if include_acceleration else 0
+                        })
+    
+    steam_df = pd.DataFrame(steam_signals)
+    
+    # Aggregate features by team
+    steam_features = []
+    for team in sharp_df['team'].unique():
+        team_steam = steam_df[steam_df['team'] == team]
+        
+        if not team_steam.empty:
+            steam_features.append({
+                'team': team,
+                'steam_velocity_mean': team_steam['steam_velocity'].mean(),
+                'steam_velocity_max': team_steam['steam_velocity'].max(),
+                'steam_velocity_weighted': (team_steam['steam_velocity'] * np.exp(-decay_lambda * team_steam['steam_velocity'].rank())).sum(),
+                'steam_direction_count': team_steam['steam_direction'].value_counts().to_dict(),
+                'steam_confidence': team_steam['steam_velocity'].mean() * team_steam['steam_magnitude'].mean(),
+                'recent_steam_signal': 1 if not team_steam[team_steam['timestamp'] >= (current_time - timedelta(hours=1))].empty else 0,
+                'steam_acceleration_mean': team_steam['acceleration'].mean() if include_acceleration else 0
+            })
+    
+    steam_feature_df = pd.DataFrame(steam_features).set_index('team')
+    
+    # Merge back with original data
+    df = df.merge(steam_feature_df, how='left', left_on='team', right_index=True)
+    df.fillna(0, inplace=True)
+    
+    return df[[
+        'steam_velocity_mean', 'steam_velocity_max', 'steam_velocity_weighted',
+        'steam_direction_count', 'steam_confidence', 'recent_steam_signal',
+        'steam_acceleration_mean'
+    ]]
+
+def register_steam_move_velocity_decay(engine):
+    """Add Steam Move Velocity with Decay Weighting features to the feature engine"""
+    engine.feature_functions.append(steam_move_velocity_decay)
+    engine.feature_names.extend([
+        'steam_velocity_mean', 'steam_velocity_max', 'steam_velocity_weighted',
+        'steam_direction_count', 'steam_confidence', 'recent_steam_signal',
+        'steam_acceleration_mean'
+    ])
+    engine.feature_categories.extend([
+        'market', 'market', 'market', 'market', 'market', 'market', 'market'
+    ])
+    engine.feature_descriptions.extend([
+        'Mean steam move velocity across sharp books (last 4 hours)',
+        'Maximum steam move velocity observed',
+        'Decay-weighted steam velocity',
+        'Steam move direction counts (positive/negative)',
+        'Steam confidence score (velocity × magnitude)',
+        'Recent steam signal (1 if steam in last hour)',
+        'Mean steam acceleration'
+    ])
+```
+### END Market Intel addition ###
