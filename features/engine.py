@@ -3472,3 +3472,53 @@ class NBAFeatureEngine:
             return pd.Series([np.nan] * len(df))
 ```
 ### END Feature Scout addition ###
+
+
+### BEGIN Market Intel addition (2026-03-20) ###
+# Line Movement Reversal Magnitude Feature
+# Measures sharp money conviction through reverse line move magnitude
+# Interaction: abs(spread_movement) * (public_betting_pct_home - 0.5) * (1/movement_timing_hours) * reverse_line_move_flag
+# Normalization: z-score within season
+# Null handling: set 0 when reverse_line_move_flag=0
+
+import numpy as np
+import pandas as pd
+
+class LineMovementFeatures:
+    @staticmethod
+    def _line_movement_reversal_magnitude_feature(df: pd.DataFrame) -> pd.Series:
+        """
+        Calculates line movement reversal magnitude weighted by public betting concentration and timing.
+
+        Args:
+            df: DataFrame containing line movement and betting data
+
+        Returns:
+            Series of line movement reversal magnitude scores
+        """
+        try:
+            # Extract required base features
+            spread_movement = df['spread_movement'].abs()
+            public_pct = df['public_betting_pct_home'] - 0.5  # Center around 0
+            timing_weight = 1 / df['movement_timing_hours'].replace(0, np.nan)
+            reverse_flag = df['reverse_line_move_flag']
+
+            # Calculate interaction term
+            interaction = spread_movement * public_pct * timing_weight * reverse_flag
+
+            # Normalize within season (group by season_year)
+            season_groups = interaction.groupby(df['season_year'])
+            means = season_groups.transform(lambda x: x.mean())
+            stds = season_groups.transform(lambda x: x.std())
+
+            # Z-score normalization with fallback
+            z_scores = (interaction - means) / stds.replace(0, np.nan)
+            z_scores = z_scores.fillna(0)
+
+            # Handle null cases from reverse_flag=0
+            z_scores[reverse_flag == 0] = 0
+
+            return z_scores
+        except Exception:
+            return pd.Series([np.nan] * len(df))
+### END Market Intel addition ###
