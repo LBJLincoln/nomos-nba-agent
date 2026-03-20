@@ -2108,3 +2108,95 @@ if __name__ == "__main__":
     mode = "EXPERIMENT RUNNER" if os.environ.get("EXPERIMENT_MODE") else "EVOLUTION"
     log(f"Starting with FastAPI + Gradio ({mode} mode, remote control API enabled)")
     uvicorn.run(gr_app, host="0.0.0.0", port=7860)
+
+
+### BEGIN Evolution Tuner addition (2026-03-20) ###
+# Island Model GA Implementation - RADICAL config
+from typing import List, Tuple
+import random
+import numpy as np
+from deap import base, creator, tools, algorithms
+
+# Create fitness and individual classes if not already created
+if not hasattr(creator, "Fitness"):
+    creator.create("Fitness", base.Fitness, weights=(-1.0,))
+if not hasattr(creator, "Individual"):
+    creator.create("Individual", list, fitness=creator.Fitness)
+
+def island_model_evolution(
+    toolbox,
+    num_islands: int = 4,
+    island_population: int = 50,
+    migration_rate: int = 2,
+    migration_interval: int = 5,
+    tournament_k: int = 7,
+    crossover_rate: float = 0.7,
+    mutation_rate: float = 0.03,
+    elitism: int = 5
+):
+    """Island model genetic algorithm with periodic migration"""
+    islands = []
+    for _ in range(num_islands):
+        population = toolbox.population(n=island_population)
+        islands.append(population)
+
+    # Initialize statistics
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("min", np.min)
+    stats.register("avg", np.mean)
+
+    # Evolution loop
+    for gen in range(migration_interval * 10):  # Run for 10 migration cycles
+        for island_idx, population in enumerate(islands):
+            # Evaluate fitness if not already evaluated
+            invalid_ind = [ind for ind in population if not ind.fitness.valid]
+            if invalid_ind:
+                fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+                for ind, fit in zip(invalid_ind, fitnesses):
+                    ind.fitness.values = fit
+
+            # Select and clone for next generation
+            offspring = toolbox.select(population, len(population))
+            offspring = list(map(toolbox.clone, offspring))
+
+            # Apply crossover and mutation
+            for child1, child2 in zip(offspring[::2], offspring[1::2]):
+                if random.random() < crossover_rate:
+                    toolbox.mate(child1, child2)
+                    del child1.fitness.values
+                    del child2.fitness.values
+
+            for mutant in offspring:
+                if random.random() < mutation_rate:
+                    toolbox.mutate(mutant)
+                    del mutant.fitness.values
+
+            # Apply elitism
+            if elitism > 0:
+                elite = tools.selBest(population, elitism)
+                offspring = tools.selBest(offspring, len(offspring) - elitism) + elite
+
+            islands[island_idx] = offspring
+
+        # Migration phase
+        if (gen + 1) % migration_interval == 0:
+            # Extract best individuals from each island
+            best_per_island = [tools.selBest(pop, migration_rate) for pop in islands]
+            # Flatten and redistribute
+            migrants = [ind for sublist in best_per_island for ind in sublist]
+            random.shuffle(migrants)
+            for idx, pop in enumerate(islands):
+                worst = tools.selWorst(pop, migration_rate)
+                for i in range(migration_rate):
+                    pop[pop.index(worst[i])] = migrants.pop()
+
+        # Log stats every migration interval
+        if (gen + 1) % migration_interval == 0:
+            all_inds = [ind for pop in islands for ind in pop]
+            fits = [ind.fitness.values[0] for ind in all_inds]
+            print(f"Gen {gen+1}: Min={min(fits):.4f}, Avg={np.mean(fits):.4f}")
+
+    # Return the best individual across all islands
+    all_inds = [ind for pop in islands for ind in pop]
+    return tools.selBest(all_inds, 1)[0]
+### END Evolution Tuner addition ###
