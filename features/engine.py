@@ -3522,3 +3522,318 @@ class LineMovementFeatures:
         except Exception:
             return pd.Series([np.nan] * len(df))
 ### END Market Intel addition ###
+
+
+# === AGENTIC LOOP (2026-03-20 12:41) ===
+### START Opponent-adjusted Four Factors EMA Divergence with Market Line Movement Absorption ###
+
+import numpy as np
+import pandas as pd
+from typing import List, Optional, Dict
+from functools import lru_cache
+
+
+class OpponentAdjustedFourFactorsEMA:
+    """
+    Implements opponent-adjusted four factors EMA divergence with market line movement absorption.
+    
+    Combines opponent-adjusted true shooting percentage and defensive efficiency EMAs
+    with closing line value and line movement features through multiplicative interaction.
+    """
+    
+    # Feature configuration
+    FEATURES = ["opp_adj_ts_ema", "opp_adj_def_eff_ema", "clv_3hr", "line_movement_open_close"]
+    INTERACTION = "multiply"
+    WINDOWS = [7, 15]
+    ADJUSTMENT = "opponent_strength_regression"
+    
+    def __init__(self, windows: Optional[List[int]] = None):
+        self.windows = windows or self.WINDOWS
+        self._team_ratings_cache: Dict[str, pd.DataFrame] = {}
+    
+    def calculate_all_features(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculate all opponent-adjusted four factors EMA features for given windows.
+        
+        Args:
+            df: DataFrame with game data including team stats and market lines
+            
+        Returns:
+            DataFrame with new feature columns added
+        """
+        result_df = df.copy()
+        
+        for window in self.windows:
+            # Calculate base EMA features
+            opp_adj_ts = self._calculate_opp_adj_ts_ema(df, window)
+            opp_adj_def = self._calculate_opp_adj_def_eff_ema(df, window)
+            
+            # Calculate market features
+            clv_3hr = self._calculate_clv_3hr(df)
+            line_movement = self._calculate_line_movement_open_close(df)
+            
+            # Calculate divergence (difference between offensive and defensive expectations)
+            divergence = opp_adj_ts - opp_adj_def
+            
+            # Apply opponent strength regression adjustment
+            adjusted_divergence = self._apply_opponent_strength_regression(
+                df, divergence, window
+            )
+            
+            # Create interaction with market features
+            interaction_feature = self._create_market_interaction(
+                adjusted_divergence, clv_3hr, line_movement
+            )
+            
+            # Add columns with window suffix
+            result_df[f'opp_adj_4f_ema_div_{window}'] = adjusted_divergence
+            result_df[f'opp_adj_4f_market_absorb_{window}'] = interaction_feature
+            
+        return result_df
+    
+    def _calculate_opp_adj_ts_ema(self, df: pd.DataFrame, window: int) -> pd.Series:
+        """
+        Calculate opponent-adjusted true shooting percentage EMA.
+        
+        Adjusts TS% based on opponent defensive strength using regression.
+        """
+        try:
+            # Base true shooting percentage
+            ts_pct = df['pts'] / (2 * (df['fga'] + 0.44 * df['fta']))
+            
+            # Get opponent defensive rating (points allowed per 100 possessions)
+            opp_def_rating = self._get_opponent_stat(df, 'def_rating', window)
+            
+            # League average defensive rating for context
+            league_avg_def = df.groupby('season_year')['def_rating'].transform(
+                lambda x: x.rolling(100, min_periods=20).mean()
+            )
+            
+            # Calculate opponent adjustment factor
+            opp_strength_factor = opp_def_rating / league_avg_def
+            
+            # Adjust TS%: higher if opponent defense is stronger than average
+            adj_ts = ts_pct * opp_strength_factor
+            
+            # Calculate EMA
+            ema_ts = self._calculate_team_ema(df, adj_ts, window)
+            
+            return ema_ts
+            
+        except Exception as e:
+            return pd.Series([np.nan] * len(df))
+    
+    def _calculate_opp_adj_def_eff_ema(self, df: pd.DataFrame, window: int) -> pd.Series:
+        """
+        Calculate opponent-adjusted defensive efficiency EMA.
+        
+        Adjusts defensive efficiency based on opponent offensive strength.
+        """
+        try:
+            # Base defensive efficiency (points allowed per possession)
+            def_eff = df['pts_allowed'] / df['possessions']
+            
+            # Get opponent offensive rating
+            opp_off_rating = self._get_opponent_stat(df, 'off_rating', window)
+            
+            # League average offensive rating
+            league_avg_off = df.groupby('season_year')['off_rating'].transform(
+                lambda x: x.rolling(100, min_periods=20).mean()
+            )
+            
+            # Calculate opponent adjustment factor
+            opp_strength_factor = opp_off_rating / league_avg_off
+            
+            # Adjust def_eff: lower (better) if opponent offense is stronger
+            adj_def = def_eff / opp_strength_factor
+            
+            # Calculate EMA
+            ema_def = self._calculate_team_ema(df, adj_def, window)
+            
+            return ema_def
+            
+        except Exception as e:
+            return pd.Series([np.nan] * len(df))
+    
+    def _get_opponent_stat(self, df: pd.DataFrame, stat: str, window: int) -> pd.Series:
+        """
+        Retrieve opponent's rolling statistic using team-opponent mapping.
+        """
+        try:
+            # Create team-opponent lookup
+            team_dates = df[['team_id', 'game_date', stat]].copy()
+            team_dates = team_dates.rename(columns={'team_id': 'opponent_id', stat: f'opp_{stat}'})
+            
+            # Merge opponent stats
+            merged = df.merge(
+                team_dates,
+                left_on=['opponent_id', 'game_date'],
+                right_on=['opponent_id', 'game_date'],
+                how='left'
+            )
+            
+            # Return rolling mean as proxy for opponent strength
+            return merged.get(f'opp_{stat}', pd.Series([np.nan] * len(df)))
+            
+        except Exception:
+            return pd.Series([np.nan] * len(df))
+    
+    def _calculate_team_ema(self, df: pd.DataFrame, values: pd.Series, window: int) -> pd.Series:
+        """
+        Calculate exponential moving average for each team separately.
+        """
+        def ema_by_team(group):
+            return group.ewm(span=window, min_periods=max(3, window//3)).mean()
+        
+        return df.groupby('team_id')[values].transform(ema_by_team)
+    
+    def _apply_opponent_strength_regression(self, 
+                                            df: pd.DataFrame, 
+                                            values: pd.Series,
+                                            window: int) -> pd.Series:
+        """
+        Apply ridge-like regression adjustment to account for opponent strength uncertainty.
+        
+        Regresses values toward mean based on sample size and opponent quality variance.
+        """
+        try:
+            # Calculate sample size proxy (games played)
+            games_played = df.groupby('team_id').cumcount() + 1
+            
+            # Regression factor: more games = less regression
+            regression_weight = np.minimum(games_played / (2 * window), 1.0)
+            
+            # League mean by season
+            season_mean = df.groupby('season_year')[values.name if hasattr(values, 'name') else None].transform(
+                lambda x: x.rolling(50, min_periods=10).mean()
+            )
+            
+            if season_mean.isna().all():
+                season_mean = values.mean()
+            
+            # Apply regression: weighted average of observed and mean
+            regressed = regression_weight * values + (1 - regression_weight) * season_mean
+            
+            return regressed
+            
+        except Exception:
+            return values
+    
+    def _calculate_clv_3hr(self, df: pd.DataFrame) -> pd.Series:
+        """
+        Calculate closing line value 3 hours before game time.
+        
+        Measures line movement in final 3 hours as indicator of sharp money.
+        """
+        try:
+            # Line 3 hours before close vs final closing line
+            line_3hr = df.get('spread_3hr_before', df['spread_open'])
+            line_close = df['spread_close']
+            
+            # CLV: positive means line moved toward team (good for bettor)
+            clv = np.where(
+                df['is_home_team'] == 1,
+                line_3hr - line_close,  # Home perspective
+                line_close - line_3hr   # Away perspective (flip sign)
+            )
+            
+            # Normalize by game total for context
+            total = df.get('total_close', 220)
+            normalized_clv = clv / (total / 200)
+            
+            return pd.Series(normalized_clv, index=df.index)
+            
+        except Exception:
+            return pd.Series([0.0] * len(df))
+    
+    def _calculate_line_movement_open_close(self, df: pd.DataFrame) -> pd.Series:
+        """
+        Calculate total line movement from open to close.
+        """
+        try:
+            open_line = df['spread_open']
+            close_line = df['spread_close']
+            
+            # Movement from team perspective
+            movement = np.where(
+                df['is_home_team'] == 1,
+                close_line - open_line,
+                open_line - close_line
+            )
+            
+            # Sign indicates direction, magnitude indicates strength
+            return pd.Series(movement, index=df.index)
+            
+        except Exception:
+            return pd.Series([0.0] * len(df))
+    
+    def _create_market_interaction(self,
+                                    divergence: pd.Series,
+                                    clv: pd.Series,
+                                    line_movement: pd.Series) -> pd.Series:
+        """
+        Create multiplicative interaction between divergence and market features.
+        
+        Market absorption: high divergence + contrarian market movement = strong signal
+        """
+        try:
+            # Normalize inputs to comparable scales
+            div_z = (divergence - divergence.mean()) / divergence.std().replace(0, 1)
+            clv_norm = np.clip(clv, -3, 3)  # Winsorize extremes
+            move_norm = np.clip(line_movement / 3, -2, 2)
+            
+            # Multiplicative interaction
+            # Contrarian alignment: divergence and market move opposite directions
+            contrarian_factor = -np.sign(div_z) * np.sign(move_norm)
+            
+            interaction = div_z * (1 + 0.5 * clv_norm) * (1 + 0.3 * move_norm * contrarian_factor)
+            
+            # Final normalization
+            interaction = np.clip(interaction, -5, 5)
+            
+            return pd.Series(interaction, index=divergence.index)
+            
+        except Exception:
+            return pd.Series([0.0] * len(divergence))
+
+
+# Static method interface for engine integration
+staticmethod
+def _opponent_adjusted_four_factors_ema_feature(df: pd.DataFrame, window: int = 7) -> pd.Series:
+    """
+    Calculates opponent-adjusted four factors EMA divergence with market absorption.
+    
+    Args:
+        df: DataFrame containing team stats, opponent info, and market lines
+        window: EMA lookback window (default 7 games)
+        
+    Returns:
+        Series of opponent-adjusted four factors EMA divergence scores
+    """
+    try:
+        calculator = OpponentAdjustedFourFactorsEMA(windows=[window])
+        result_df = calculator.calculate_all_features(df)
+        return result_df[f'opp_adj_4f_market_absorb_{window}']
+    except Exception:
+        return pd.Series([np.nan] * len(df))
+
+
+staticmethod
+def _opponent_adjusted_four_factors_ema_15_feature(df: pd.DataFrame) -> pd.Series:
+    """
+    15-game window version of opponent-adjusted four factors EMA.
+    """
+    return _opponent_adjusted_four_factors_ema_feature(df, window=15)
+
+
+# Convenience function for batch processing
+staticmethod
+def calculate_all_opp_adj_4f_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate all opponent-adjusted four factors features for all configured windows.
+    """
+    calculator = OpponentAdjustedFourFactorsEMA()
+    return calculator.calculate_all_features(df)
+
+### END Opponent-adjusted Four Factors EMA Divergence with Market Line Movement Absorption ###
+# === END AGENTIC LOOP ===
