@@ -3231,3 +3231,107 @@ class NBAFeatureEngine:
 
         return pd.DataFrame(features)
 ### END Market Intel addition ###
+
+
+### BEGIN Feature Scout addition (2026-03-20) ###
+import pandas as pd
+import numpy as np
+from scipy.stats import zscore
+
+class NBAFeatureEngine:
+    # ... (existing methods and attributes) ...
+
+    @staticmethod
+    def _calculate_opponent_adjusted_four_factors(df: pd.DataFrame, window: int = 10, decay: float = 0.85) -> pd.DataFrame:
+        """
+        Calculate opponent-adjusted four factors with exponential decay weighting.
+
+        Args:
+            df: DataFrame containing team four factors and opponent defensive stats
+            window: Rolling window size for z-score calculation
+            decay: Exponential decay factor (0 < decay <= 1)
+
+        Returns:
+            DataFrame with opponent-adjusted four factors z-scores
+        """
+        if df.empty:
+            return pd.DataFrame()
+
+        # Calculate z-scores for team four factors
+        four_factors = ['efg', 'tov', 'orb', 'ftr']
+        team_z = df[four_factors].rolling(window=window).apply(zscore, raw=True)
+
+        # Calculate z-scores for opponent defensive stats allowed
+        opp_z = df[[f'opp_allowed_{f}' for f in four_factors]].rolling(window=window).apply(zscore, raw=True)
+
+        # Apply exponential decay weighting (most recent games weighted more)
+        weights = np.array([decay ** (window - i - 1) for i in range(window)])
+        weights = weights / weights.sum()
+
+        # Weighted average of z-scores
+        weighted_team_z = (team_z * weights).sum(axis=1)
+        weighted_opp_z = (opp_z * weights).sum(axis=1)
+
+        # Calculate opponent-adjusted z-scores
+        adj_z = weighted_team_z - weighted_opp_z
+
+        return pd.DataFrame({
+            'opp_adj_efg_z': adj_z.iloc[:, 0],
+            'opp_adj_tov_z': adj_z.iloc[:, 1],
+            'opp_adj_orb_z': adj_z.iloc[:, 2],
+            'opp_adj_ftr_z': adj_z.iloc[:, 3]
+        })
+
+    @staticmethod
+    def _calculate_four_factors_interaction(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculate interaction features between team and opponent adjusted four factors.
+
+        Args:
+            df: DataFrame containing opponent-adjusted four factors
+
+        Returns:
+            DataFrame with interaction features
+        """
+        if df.empty:
+            return pd.DataFrame()
+
+        # Team minus opponent z-score differences
+        interaction = pd.DataFrame({
+            'team_minus_opp_efg_z_diff': df['opp_adj_efg_z'] - df['opp_allowed_efg_z'],
+            'team_minus_opp_tov_z_diff': df['opp_adj_tov_z'] - df['opp_allowed_tov_z'],
+            'team_minus_opp_orb_z_diff': df['opp_adj_orb_z'] - df['opp_allowed_orb_z'],
+            'team_minus_opp_ftr_z_diff': df['opp_adj_ftr_z'] - df['opp_allowed_ftr_z']
+        })
+
+        return interaction
+
+    @staticmethod
+    def opponent_adjusted_four_factors_feature(df: pd.DataFrame, window: int = 10, decay: float = 0.85) -> pd.DataFrame:
+        """
+        Generate opponent-adjusted four factors features with recency weighting.
+
+        Args:
+            df: Input DataFrame with team and opponent stats
+            window: Rolling window size for z-score calculation
+            decay: Exponential decay factor
+
+        Returns:
+            DataFrame with opponent-adjusted four factors and interaction features
+        """
+        if df.empty:
+            return pd.DataFrame()
+
+        # Calculate opponent-adjusted four factors
+        adj_factors = NBAFeatureEngine._calculate_opponent_adjusted_four_factors(df, window, decay)
+
+        # Calculate opponent allowed z-scores
+        four_factors = ['efg', 'tov', 'orb', 'ftr']
+        opp_allowed_z = df[[f'opp_allowed_{f}' for f in four_factors]].rolling(window=window).apply(zscore, raw=True)
+        opp_allowed_z.columns = [f'opp_allowed_{f}_z' for f in four_factors]
+
+        # Calculate interaction features
+        interaction = NBAFeatureEngine._calculate_four_factors_interaction(pd.concat([adj_factors, opp_allowed_z], axis=1))
+
+        return pd.concat([adj_factors, opp_allowed_z, interaction], axis=1)
+### END Feature Scout addition ###
