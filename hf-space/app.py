@@ -5,21 +5,25 @@ NOMOS NBA QUANT AI — REAL Genetic Evolution (HF Space)
 RUNS 24/7 on HuggingFace Space (2 vCPU / 16GB RAM).
 
 NOT a fake LLM wrapper. REAL ML:
-  - Population of 60 individuals (feature mask + hyperparams)
+  - Population of 500 individuals across 5 islands (island model GA)
   - Walk-forward backtest fitness (Brier + LogLoss + Sharpe + ECE)
-  - Tournament selection, crossover, adaptive mutation
-  - Continuous cycles — saves after each generation
+  - NSGA-II style Pareto front ranking (multi-objective)
+  - 13 model types including neural nets (LSTM, Transformer, TabNet, etc.)
+  - Island migration every 10 generations for diversity
+  - Adaptive mutation decay (0.15 → 0.05) + tournament pressure
+  - Memory management: GC between evaluations for 16GB RAM
   - Gradio dashboard showing live evolution progress
   - JSON API for crew agents on VM
 
 Target: Brier < 0.20 | ROI > 5% | Sharpe > 1.0
 """
 
-import os, sys, json, time, math, threading, warnings, random, traceback
+import os, sys, json, time, math, threading, warnings, random, traceback, gc
 import numpy as np
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict, Counter
+from copy import deepcopy
 
 warnings.filterwarnings("ignore")
 
@@ -97,7 +101,7 @@ live = {
     "best_features": 0,
     "best_model_type": "none",
     "pop_size": 0,
-    "mutation_rate": 0.03,
+    "mutation_rate": 0.15,
     "stagnation": 0,
     "games": 0,
     "feature_candidates": 0,
@@ -107,6 +111,9 @@ live = {
     "top5": [],
     "started_at": datetime.now(timezone.utc).isoformat(),
     "last_update": "never",
+    "n_islands": 5,
+    "island_sizes": [],
+    "pareto_front_size": 0,
 }
 
 
@@ -513,8 +520,27 @@ def build_features(games):
 # GENETIC INDIVIDUAL
 # ═══════════════════════════════════════════════════════
 
+# All model types the GA can evolve (13 total)
+ALL_MODEL_TYPES = [
+    # Tree-based (fast, reliable)
+    "xgboost", "lightgbm", "catboost", "random_forest", "extra_trees",
+    # Ensemble
+    "stacking",
+    # Neural nets (slower, potentially more powerful)
+    "mlp", "lstm", "transformer", "tabnet", "ft_transformer", "deep_ensemble",
+    # AutoML
+    "autogluon",
+]
+
+# Neural net types (need special memory handling)
+NEURAL_NET_TYPES = {"lstm", "transformer", "tabnet", "ft_transformer", "deep_ensemble", "mlp", "autogluon"}
+
+# Fast model types (for islands that prioritize speed)
+FAST_MODEL_TYPES = ["xgboost", "lightgbm", "random_forest", "extra_trees"]
+
+
 class Individual:
-    def __init__(self, n_features, target=100):
+    def __init__(self, n_features, target=100, model_type=None):
         prob = target / max(n_features, 1)
         self.features = [1 if random.random() < prob else 0 for _ in range(n_features)]
         self.hyperparams = {
@@ -526,10 +552,19 @@ class Individual:
             "min_child_weight": random.randint(1, 15),
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
-            "model_type": random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"]),
+            "model_type": model_type or random.choice(ALL_MODEL_TYPES),
             "calibration": random.choice(["isotonic", "sigmoid", "none"]),
+            # Neural net hyperparams (used only for NN model types)
+            "nn_hidden_dims": random.choice([64, 128, 256]),
+            "nn_n_layers": random.randint(2, 4),
+            "nn_dropout": random.uniform(0.1, 0.5),
+            "nn_epochs": random.randint(20, 100),
+            "nn_batch_size": random.choice([32, 64, 128]),
         }
         self.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
+        self.pareto_rank = 999   # NSGA-II rank (0 = Pareto front)
+        self.crowding_dist = 0.0  # NSGA-II crowding distance
+        self.island_id = -1       # Which island this individual belongs to
         self.generation = 0
         self.n_features = sum(self.features)
 
@@ -538,7 +573,8 @@ class Individual:
 
     def to_dict(self):
         return {"n_features": self.n_features, "hyperparams": dict(self.hyperparams),
-                "fitness": dict(self.fitness), "generation": self.generation}
+                "fitness": dict(self.fitness), "generation": self.generation,
+                "pareto_rank": self.pareto_rank, "island_id": self.island_id}
 
     @staticmethod
     def crossover(p1, p2):
@@ -552,9 +588,14 @@ class Individual:
                 w = random.random()
                 val = w * p1.hyperparams[key] + (1 - w) * p2.hyperparams[key]
                 child.hyperparams[key] = int(round(val)) if isinstance(p1.hyperparams[key], int) else val
+            elif isinstance(p1.hyperparams[key], bool):
+                child.hyperparams[key] = random.choice([p1.hyperparams[key], p2.hyperparams[key]])
             else:
                 child.hyperparams[key] = random.choice([p1.hyperparams[key], p2.hyperparams[key]])
         child.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
+        child.pareto_rank = 999
+        child.crowding_dist = 0.0
+        child.island_id = random.choice([p1.island_id, p2.island_id]) if hasattr(p1, 'island_id') else -1
         child.generation = max(p1.generation, p2.generation) + 1
         child.n_features = sum(child.features)
         return child
@@ -564,12 +605,11 @@ class Individual:
         for i in range(len(self.features)):
             if random.random() < rate:
                 if feature_importance is not None and i < len(feature_importance):
-                    # Directed: more likely to ADD features that top performers use
                     imp = feature_importance[i]
                     if self.features[i] == 0 and imp > 0.5:
-                        self.features[i] = 1  # Add high-importance feature
+                        self.features[i] = 1
                     elif self.features[i] == 1 and imp < 0.15:
-                        self.features[i] = 0  # Drop low-importance feature
+                        self.features[i] = 0
                     else:
                         self.features[i] = 1 - self.features[i]
                 else:
@@ -577,9 +617,301 @@ class Individual:
         if random.random() < 0.15: self.hyperparams["n_estimators"] = max(50, min(200, self.hyperparams["n_estimators"] + random.randint(-50, 50)))
         if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(8, self.hyperparams["max_depth"] + random.randint(-2, 2)))
         if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.3, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
-        if random.random() < 0.10: self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"])
+        if random.random() < 0.08: self.hyperparams["model_type"] = random.choice(ALL_MODEL_TYPES)
         if random.random() < 0.05: self.hyperparams["calibration"] = random.choice(["isotonic", "sigmoid", "none"])
+        # Neural net hyperparams mutation
+        if random.random() < 0.10: self.hyperparams["nn_hidden_dims"] = random.choice([64, 128, 256, 512])
+        if random.random() < 0.10: self.hyperparams["nn_n_layers"] = max(1, min(6, self.hyperparams.get("nn_n_layers", 2) + random.randint(-1, 1)))
+        if random.random() < 0.10: self.hyperparams["nn_dropout"] = max(0.0, min(0.7, self.hyperparams.get("nn_dropout", 0.3) + random.uniform(-0.1, 0.1)))
+        if random.random() < 0.10: self.hyperparams["nn_epochs"] = max(10, min(200, self.hyperparams.get("nn_epochs", 50) + random.randint(-20, 20)))
         self.n_features = sum(self.features)
+
+
+# ═══════════════════════════════════════════════════════
+# NSGA-II PARETO RANKING
+# ═══════════════════════════════════════════════════════
+
+def _dominates(a, b):
+    """Individual a dominates b if a is no worse in all objectives and strictly better in at least one.
+    Objectives: minimize brier, maximize roi, maximize sharpe, minimize calibration."""
+    fa, fb = a.fitness, b.fitness
+    a_vals = (-fa["brier"], fa["roi"], fa["sharpe"], -fa["calibration"])
+    b_vals = (-fb["brier"], fb["roi"], fb["sharpe"], -fb["calibration"])
+    at_least_one_better = False
+    for av, bv in zip(a_vals, b_vals):
+        if av < bv:
+            return False
+        if av > bv:
+            at_least_one_better = True
+    return at_least_one_better
+
+
+def nsga2_rank(population):
+    """Assign NSGA-II Pareto rank and crowding distance to each individual.
+    Returns population sorted by (rank ASC, crowding_dist DESC)."""
+    n = len(population)
+    if n == 0:
+        return population
+
+    # Fast non-dominated sorting
+    dominated_by = [0] * n  # count of how many dominate this individual
+    dominates_set = [[] for _ in range(n)]  # indices this individual dominates
+    fronts = [[]]
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            if _dominates(population[i], population[j]):
+                dominates_set[i].append(j)
+                dominated_by[j] += 1
+            elif _dominates(population[j], population[i]):
+                dominates_set[j].append(i)
+                dominated_by[i] += 1
+
+    for i in range(n):
+        if dominated_by[i] == 0:
+            population[i].pareto_rank = 0
+            fronts[0].append(i)
+
+    rank = 0
+    while fronts[rank]:
+        next_front = []
+        for i in fronts[rank]:
+            for j in dominates_set[i]:
+                dominated_by[j] -= 1
+                if dominated_by[j] == 0:
+                    population[j].pareto_rank = rank + 1
+                    next_front.append(j)
+        rank += 1
+        fronts.append(next_front)
+
+    # Crowding distance per front
+    objectives = [
+        lambda ind: ind.fitness["brier"],       # minimize
+        lambda ind: -ind.fitness["roi"],         # maximize (negate for sorting)
+        lambda ind: -ind.fitness["sharpe"],      # maximize
+        lambda ind: ind.fitness["calibration"],  # minimize
+    ]
+
+    for front_indices in fronts:
+        if not front_indices:
+            continue
+        front = [population[i] for i in front_indices]
+        for ind in front:
+            ind.crowding_dist = 0.0
+
+        for obj_fn in objectives:
+            front_sorted = sorted(range(len(front)), key=lambda k: obj_fn(front[k]))
+            front[front_sorted[0]].crowding_dist = float('inf')
+            front[front_sorted[-1]].crowding_dist = float('inf')
+            obj_range = obj_fn(front[front_sorted[-1]]) - obj_fn(front[front_sorted[0]])
+            if obj_range < 1e-10:
+                continue
+            for k in range(1, len(front_sorted) - 1):
+                front[front_sorted[k]].crowding_dist += (
+                    obj_fn(front[front_sorted[k + 1]]) - obj_fn(front[front_sorted[k - 1]])
+                ) / obj_range
+
+    # Also compute composite for backwards compatibility (weighted sum)
+    for ind in population:
+        f = ind.fitness
+        feature_penalty = 0.001 * max(0, ind.n_features - 65)
+        ind.fitness["composite"] = round(
+            0.40 * (1 - f["brier"]) +
+            0.25 * max(0, f["roi"]) +
+            0.20 * max(0, min(f["sharpe"], 3) / 3) +
+            0.15 * (1 - f["calibration"])
+            - feature_penalty, 5)
+
+    # Sort: primary = pareto_rank ASC, secondary = crowding_dist DESC
+    population.sort(key=lambda x: (x.pareto_rank, -x.crowding_dist))
+    return population
+
+
+# ═══════════════════════════════════════════════════════
+# ISLAND MODEL
+# ═══════════════════════════════════════════════════════
+
+class IslandModel:
+    """Manages multiple sub-populations (islands) with periodic migration."""
+
+    def __init__(self, n_islands=5, island_size=100, n_features=164,
+                 target_features=65, migration_interval=10, migrants_per_island=5):
+        self.n_islands = n_islands
+        self.island_size = island_size
+        self.total_pop = n_islands * island_size
+        self.n_features = n_features
+        self.target_features = target_features
+        self.migration_interval = migration_interval
+        self.migrants_per_island = migrants_per_island
+        self.islands = []  # list of lists of Individuals
+
+        # Each island can specialize — assign model type biases
+        self.island_specializations = [
+            FAST_MODEL_TYPES,                                          # Island 0: fast tree models
+            ["catboost", "stacking", "extra_trees"],                    # Island 1: ensemble specialists
+            ["mlp", "tabnet", "ft_transformer"],                       # Island 2: neural nets
+            ["lstm", "transformer", "deep_ensemble"],                  # Island 3: deep learning
+            ALL_MODEL_TYPES,                                           # Island 4: unrestricted (melting pot)
+        ]
+
+    def initialize(self):
+        """Create initial population across all islands."""
+        self.islands = []
+        for island_id in range(self.n_islands):
+            island = []
+            specialization = self.island_specializations[island_id]
+            for _ in range(self.island_size):
+                mt = random.choice(specialization)
+                ind = Individual(self.n_features, self.target_features, model_type=mt)
+                ind.island_id = island_id
+                island.append(ind)
+            self.islands.append(island)
+
+    def get_all_individuals(self):
+        """Flatten all islands into a single list."""
+        return [ind for island in self.islands for ind in island]
+
+    def set_all_individuals(self, population):
+        """Distribute a flat population back into islands."""
+        self.islands = []
+        for island_id in range(self.n_islands):
+            start = island_id * self.island_size
+            end = start + self.island_size
+            island = population[start:end]
+            for ind in island:
+                ind.island_id = island_id
+            self.islands.append(island)
+        # Handle any remainder (from injections, etc.)
+        remainder = population[self.n_islands * self.island_size:]
+        if remainder:
+            for ind in remainder:
+                target_island = random.randint(0, self.n_islands - 1)
+                ind.island_id = target_island
+                self.islands[target_island].append(ind)
+
+    def migrate(self, generation):
+        """Migrate best individuals between islands every migration_interval generations."""
+        if generation % self.migration_interval != 0 or generation == 0:
+            return False
+
+        n_migrate = self.migrants_per_island
+        # Collect best from each island
+        migrants = []
+        for island in self.islands:
+            island.sort(key=lambda x: (x.pareto_rank, -x.crowding_dist))
+            best = island[:n_migrate]
+            # Deep copy migrants (they stay on original island too)
+            for ind in best:
+                clone = Individual.__new__(Individual)
+                clone.features = ind.features[:]
+                clone.hyperparams = dict(ind.hyperparams)
+                clone.fitness = dict(ind.fitness)
+                clone.pareto_rank = ind.pareto_rank
+                clone.crowding_dist = ind.crowding_dist
+                clone.n_features = ind.n_features
+                clone.generation = ind.generation
+                migrants.append(clone)
+
+        random.shuffle(migrants)
+
+        # Distribute migrants to next island (ring topology)
+        for i, island in enumerate(self.islands):
+            # Remove worst n_migrate from this island
+            island.sort(key=lambda x: (x.pareto_rank, -x.crowding_dist))
+            island_trimmed = island[:self.island_size - n_migrate]
+            # Add migrants from the pool
+            received = migrants[i * n_migrate:(i + 1) * n_migrate]
+            for ind in received:
+                ind.island_id = i
+            island_trimmed.extend(received)
+            self.islands[i] = island_trimmed
+
+        return True
+
+    def get_island_stats(self):
+        """Return per-island statistics."""
+        stats = []
+        for i, island in enumerate(self.islands):
+            if not island:
+                stats.append({"island": i, "size": 0})
+                continue
+            models = Counter(ind.hyperparams["model_type"] for ind in island)
+            briers = [ind.fitness["brier"] for ind in island if ind.fitness["brier"] < 1.0]
+            stats.append({
+                "island": i,
+                "size": len(island),
+                "specialization": self.island_specializations[i],
+                "model_dist": dict(models.most_common(5)),
+                "best_brier": min(briers) if briers else 1.0,
+                "avg_brier": sum(briers) / len(briers) if briers else 1.0,
+                "pareto_front_count": sum(1 for ind in island if ind.pareto_rank == 0),
+            })
+        return stats
+
+    def to_state_dict(self):
+        """Serialize for persistence."""
+        return {
+            "n_islands": self.n_islands,
+            "island_size": self.island_size,
+            "migration_interval": self.migration_interval,
+            "migrants_per_island": self.migrants_per_island,
+            "islands": [
+                [{"features": ind.features,
+                  "hyperparams": {k: (float(v) if isinstance(v, np.floating) else v) for k, v in ind.hyperparams.items()},
+                  "fitness": ind.fitness, "generation": ind.generation,
+                  "island_id": ind.island_id,
+                  "pareto_rank": getattr(ind, 'pareto_rank', 999)}
+                 for ind in island]
+                for island in self.islands
+            ]
+        }
+
+    @classmethod
+    def from_state_dict(cls, state, n_features):
+        """Restore from persisted state."""
+        im = cls(
+            n_islands=state["n_islands"],
+            island_size=state.get("island_size", 100),
+            n_features=n_features,
+            migration_interval=state.get("migration_interval", 10),
+            migrants_per_island=state.get("migrants_per_island", 5),
+        )
+        im.islands = []
+        for island_data in state["islands"]:
+            island = []
+            for d in island_data:
+                ind = Individual.__new__(Individual)
+                ind.features = d["features"]
+                ind.hyperparams = d["hyperparams"]
+                ind.fitness = d["fitness"]
+                ind.generation = d.get("generation", 0)
+                ind.island_id = d.get("island_id", -1)
+                ind.pareto_rank = d.get("pareto_rank", 999)
+                ind.crowding_dist = 0.0
+                ind.n_features = sum(ind.features)
+                # Ensure new hyperparams exist
+                ind.hyperparams.setdefault("nn_hidden_dims", 128)
+                ind.hyperparams.setdefault("nn_n_layers", 2)
+                ind.hyperparams.setdefault("nn_dropout", 0.3)
+                ind.hyperparams.setdefault("nn_epochs", 50)
+                ind.hyperparams.setdefault("nn_batch_size", 64)
+                # Ensure model_type is valid
+                if ind.hyperparams.get("model_type") not in ALL_MODEL_TYPES:
+                    ind.hyperparams["model_type"] = random.choice(ALL_MODEL_TYPES)
+                island.append(ind)
+            im.islands.append(island)
+        return im
+
+
+def _gc_cleanup():
+    """Force garbage collection to manage 16GB RAM with 500 individuals."""
+    gc.collect()
+    try:
+        import torch
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except ImportError:
+        pass
 
 
 # ═══════════════════════════════════════════════════════
@@ -718,10 +1050,20 @@ def _prune_correlated_features(X_sub, threshold=0.95):
         return X_sub, np.ones(X_sub.shape[1], dtype=bool)
 
 
-def evaluate(ind, X, y, n_splits=2, fast=True):
-    """Two-tier evaluation: fast (subsample + 2-fold) or full (all data + 3-fold)."""
+def evaluate(ind, X, y, n_splits=2, fast=True, eval_counter=[0]):
+    """Two-tier evaluation: fast (subsample + 2-fold) or full (all data + 3-fold).
+    Includes memory management for 16GB RAM with 500 individuals."""
+    # Periodic GC to manage memory with large population
+    eval_counter[0] += 1
+    if eval_counter[0] % GC_INTERVAL == 0:
+        _gc_cleanup()
+
+    # Neural net models: cap features more aggressively to reduce memory
+    is_nn = ind.hyperparams.get("model_type") in NEURAL_NET_TYPES
+    max_features = 120 if is_nn else 200
+
     selected = ind.selected_indices()
-    if len(selected) < 15 or len(selected) > 200:
+    if len(selected) < 15 or len(selected) > max_features:
         ind.fitness = {"brier": 0.30, "roi": 0.0, "sharpe": 0.0, "calibration": 0.15, "composite": -1.0,
                        "features_pruned": 0}
         return
@@ -840,23 +1182,67 @@ def _build(hp):
                                         min_samples_leaf=max(int(hp["min_child_weight"]), 5),
                                         max_features="sqrt", random_state=42, n_jobs=-1)
         elif mt == "mlp":
+            hidden = hp.get("nn_hidden_dims", 128)
+            n_layers = hp.get("nn_n_layers", 3)
+            layers = tuple([hidden // (2 ** i) for i in range(n_layers) if hidden // (2 ** i) >= 16])
+            if not layers:
+                layers = (64, 32)
+            return Pipeline([
+                ('scaler', StandardScaler()),
+                ('mlp', MLPClassifier(
+                    hidden_layer_sizes=layers,
+                    activation='relu',
+                    max_iter=min(hp.get("nn_epochs", 500), 500),
+                    early_stopping=True,
+                    validation_fraction=0.15,
+                    random_state=42
+                ))
+            ])
+        elif mt == "lstm":
+            # LSTM via sklearn-compatible wrapper (falls back to MLP if pytorch unavailable)
             try:
-                return Pipeline([
-                    ('scaler', StandardScaler()),
-                    ('mlp', MLPClassifier(
-                        hidden_layer_sizes=(128, 64, 32),
-                        activation='relu',
-                        max_iter=500,
-                        early_stopping=True,
-                        validation_fraction=0.15,
-                        random_state=42
-                    ))
-                ])
+                return _build_pytorch_model(hp, model_type="lstm")
             except Exception:
-                # Fallback to XGBoost if MLP fails to build
-                return xgb.XGBClassifier(n_estimators=n_est, max_depth=depth,
-                                         learning_rate=lr, eval_metric="logloss",
-                                         random_state=42, n_jobs=-1, tree_method="hist")
+                return _build_mlp_fallback(hp)
+        elif mt == "transformer":
+            try:
+                return _build_pytorch_model(hp, model_type="transformer")
+            except Exception:
+                return _build_mlp_fallback(hp)
+        elif mt == "tabnet":
+            try:
+                from pytorch_tabnet.tab_model import TabNetClassifier
+                return TabNetClassifier(
+                    n_d=hp.get("nn_hidden_dims", 64), n_a=hp.get("nn_hidden_dims", 64),
+                    n_steps=max(3, hp.get("nn_n_layers", 3)),
+                    gamma=1.3, lambda_sparse=1e-3,
+                    cat_dims=[], cat_emb_dim=[],
+                    optimizer_params=dict(lr=lr),
+                    mask_type="entmax",
+                    max_epochs=min(hp.get("nn_epochs", 50), 50),
+                    patience=10, batch_size=hp.get("nn_batch_size", 128),
+                    verbose=0, seed=42,
+                )
+            except ImportError:
+                return _build_mlp_fallback(hp)
+        elif mt == "ft_transformer":
+            # Feature Tokenizer + Transformer — falls back to MLP
+            try:
+                return _build_pytorch_model(hp, model_type="ft_transformer")
+            except Exception:
+                return _build_mlp_fallback(hp)
+        elif mt == "deep_ensemble":
+            # Ensemble of 3 MLPs with different random seeds
+            try:
+                return _build_deep_ensemble(hp)
+            except Exception:
+                return _build_mlp_fallback(hp)
+        elif mt == "autogluon":
+            # AutoGluon wraps multiple models — heavy, use sparingly
+            try:
+                return _build_autogluon(hp)
+            except ImportError:
+                return _build_mlp_fallback(hp)
         elif mt == "stacking":
             # Return None — stacking is handled specially in evaluate()
             return None
@@ -868,6 +1254,212 @@ def _build(hp):
         from sklearn.ensemble import GradientBoostingClassifier
         return GradientBoostingClassifier(n_estimators=min(hp["n_estimators"], 100), max_depth=min(hp["max_depth"], 6),
                                           learning_rate=hp["learning_rate"], random_state=42)
+
+
+def _build_mlp_fallback(hp):
+    """Fallback MLP when a neural net type fails to build."""
+    hidden = hp.get("nn_hidden_dims", 128)
+    return Pipeline([
+        ('scaler', StandardScaler()),
+        ('mlp', MLPClassifier(
+            hidden_layer_sizes=(hidden, hidden // 2, max(hidden // 4, 16)),
+            activation='relu', max_iter=300, early_stopping=True,
+            validation_fraction=0.15, random_state=42
+        ))
+    ])
+
+
+def _build_pytorch_model(hp, model_type="lstm"):
+    """Build a PyTorch-based sklearn-compatible classifier (LSTM/Transformer/FT-Transformer).
+    Wraps in a sklearn Pipeline with StandardScaler for compatibility with the eval loop."""
+    try:
+        import torch
+        import torch.nn as nn
+        from sklearn.base import BaseEstimator, ClassifierMixin
+
+        class PytorchTabularClassifier(BaseEstimator, ClassifierMixin):
+            """Lightweight sklearn-compatible wrapper for PyTorch tabular models."""
+
+            def __init__(self, model_type="lstm", hidden_dim=128, n_layers=2,
+                         dropout=0.3, epochs=50, batch_size=64, lr=0.001):
+                self.model_type = model_type
+                self.hidden_dim = hidden_dim
+                self.n_layers = n_layers
+                self.dropout = dropout
+                self.epochs = epochs
+                self.batch_size = batch_size
+                self.lr = lr
+                self.model_ = None
+                self.scaler_ = StandardScaler()
+                self.classes_ = np.array([0, 1])
+
+            def _build_net(self, input_dim):
+                if self.model_type == "lstm":
+                    class LSTMNet(nn.Module):
+                        def __init__(self, input_dim, hidden, n_layers, dropout):
+                            super().__init__()
+                            self.lstm = nn.LSTM(input_dim, hidden, n_layers,
+                                                batch_first=True, dropout=dropout if n_layers > 1 else 0)
+                            self.fc = nn.Sequential(
+                                nn.Dropout(dropout), nn.Linear(hidden, hidden // 2),
+                                nn.ReLU(), nn.Linear(hidden // 2, 1), nn.Sigmoid())
+                        def forward(self, x):
+                            x = x.unsqueeze(1)  # (batch, 1, features)
+                            _, (h, _) = self.lstm(x)
+                            return self.fc(h[-1]).squeeze(-1)
+                    return LSTMNet(input_dim, self.hidden_dim, self.n_layers, self.dropout)
+                elif self.model_type == "transformer":
+                    class TransformerNet(nn.Module):
+                        def __init__(self, input_dim, hidden, n_layers, dropout):
+                            super().__init__()
+                            self.embedding = nn.Linear(input_dim, hidden)
+                            encoder_layer = nn.TransformerEncoderLayer(
+                                d_model=hidden, nhead=max(1, hidden // 32),
+                                dim_feedforward=hidden * 2, dropout=dropout, batch_first=True)
+                            self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
+                            self.fc = nn.Sequential(nn.Linear(hidden, 1), nn.Sigmoid())
+                        def forward(self, x):
+                            x = self.embedding(x).unsqueeze(1)
+                            x = self.encoder(x)
+                            return self.fc(x[:, 0]).squeeze(-1)
+                    return TransformerNet(input_dim, self.hidden_dim, self.n_layers, self.dropout)
+                else:  # ft_transformer
+                    class FTTransformerNet(nn.Module):
+                        def __init__(self, input_dim, hidden, n_layers, dropout):
+                            super().__init__()
+                            self.feature_tokens = nn.Linear(1, hidden)
+                            encoder_layer = nn.TransformerEncoderLayer(
+                                d_model=hidden, nhead=max(1, hidden // 32),
+                                dim_feedforward=hidden * 2, dropout=dropout, batch_first=True)
+                            self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
+                            self.cls_token = nn.Parameter(torch.randn(1, 1, hidden))
+                            self.fc = nn.Sequential(nn.Linear(hidden, 1), nn.Sigmoid())
+                        def forward(self, x):
+                            # x: (batch, features) -> per-feature tokens
+                            tokens = self.feature_tokens(x.unsqueeze(-1))  # (batch, features, hidden)
+                            cls = self.cls_token.expand(x.size(0), -1, -1)
+                            tokens = torch.cat([cls, tokens], dim=1)
+                            tokens = self.encoder(tokens)
+                            return self.fc(tokens[:, 0]).squeeze(-1)
+                    return FTTransformerNet(input_dim, self.hidden_dim, self.n_layers, self.dropout)
+
+            def fit(self, X, y):
+                X = self.scaler_.fit_transform(X)
+                X_t = torch.FloatTensor(X)
+                y_t = torch.FloatTensor(y.astype(float))
+                self.model_ = self._build_net(X.shape[1])
+                optimizer = torch.optim.Adam(self.model_.parameters(), lr=self.lr, weight_decay=1e-4)
+                criterion = nn.BCELoss()
+                self.model_.train()
+                best_loss = float('inf')
+                patience_counter = 0
+                for epoch in range(self.epochs):
+                    indices = torch.randperm(len(X_t))
+                    total_loss = 0
+                    n_batches = 0
+                    for start in range(0, len(X_t), self.batch_size):
+                        batch_idx = indices[start:start + self.batch_size]
+                        optimizer.zero_grad()
+                        pred = self.model_(X_t[batch_idx])
+                        loss = criterion(pred, y_t[batch_idx])
+                        loss.backward()
+                        torch.nn.utils.clip_grad_norm_(self.model_.parameters(), 1.0)
+                        optimizer.step()
+                        total_loss += loss.item()
+                        n_batches += 1
+                    avg_loss = total_loss / max(n_batches, 1)
+                    if avg_loss < best_loss - 0.001:
+                        best_loss = avg_loss
+                        patience_counter = 0
+                    else:
+                        patience_counter += 1
+                        if patience_counter >= 10:
+                            break
+                return self
+
+            def predict_proba(self, X):
+                X = self.scaler_.transform(X)
+                self.model_.eval()
+                with torch.no_grad():
+                    probs = self.model_(torch.FloatTensor(X)).numpy()
+                return np.column_stack([1 - probs, probs])
+
+            def predict(self, X):
+                return (self.predict_proba(X)[:, 1] > 0.5).astype(int)
+
+            def get_params(self, deep=True):
+                return {"model_type": self.model_type, "hidden_dim": self.hidden_dim,
+                        "n_layers": self.n_layers, "dropout": self.dropout,
+                        "epochs": self.epochs, "batch_size": self.batch_size, "lr": self.lr}
+
+        return PytorchTabularClassifier(
+            model_type=model_type,
+            hidden_dim=hp.get("nn_hidden_dims", 128),
+            n_layers=hp.get("nn_n_layers", 2),
+            dropout=hp.get("nn_dropout", 0.3),
+            epochs=min(hp.get("nn_epochs", 50), 50),  # Cap at 50 for speed
+            batch_size=hp.get("nn_batch_size", 64),
+            lr=hp.get("learning_rate", 0.001),
+        )
+    except ImportError:
+        raise  # Let caller handle fallback
+
+
+def _build_deep_ensemble(hp):
+    """Ensemble of 3 MLPs with different seeds — sklearn compatible."""
+    from sklearn.ensemble import VotingClassifier
+    hidden = hp.get("nn_hidden_dims", 128)
+    estimators = []
+    for seed in [42, 123, 456]:
+        mlp = Pipeline([
+            ('scaler', StandardScaler()),
+            ('mlp', MLPClassifier(
+                hidden_layer_sizes=(hidden, hidden // 2, max(hidden // 4, 16)),
+                activation='relu', max_iter=min(hp.get("nn_epochs", 200), 200),
+                early_stopping=True, validation_fraction=0.15, random_state=seed
+            ))
+        ])
+        estimators.append((f"mlp_{seed}", mlp))
+    return VotingClassifier(estimators=estimators, voting='soft', n_jobs=1)
+
+
+def _build_autogluon(hp):
+    """AutoGluon TabularPredictor wrapped for sklearn compatibility."""
+    try:
+        from autogluon.tabular import TabularPredictor
+        from sklearn.base import BaseEstimator, ClassifierMixin
+        import pandas as pd
+        import tempfile
+
+        class AutoGluonWrapper(BaseEstimator, ClassifierMixin):
+            def __init__(self, time_limit=60):
+                self.time_limit = time_limit
+                self.predictor_ = None
+                self.classes_ = np.array([0, 1])
+                self._tmpdir = tempfile.mkdtemp()
+
+            def fit(self, X, y):
+                df = pd.DataFrame(X)
+                df["target"] = y
+                self.predictor_ = TabularPredictor(
+                    label="target", path=self._tmpdir, verbosity=0
+                ).fit(df, time_limit=self.time_limit, presets="best_quality")
+                return self
+
+            def predict_proba(self, X):
+                df = pd.DataFrame(X)
+                probs = self.predictor_.predict_proba(df)
+                return probs.values if hasattr(probs, 'values') else np.column_stack([1 - probs, probs])
+
+            def predict(self, X):
+                return (self.predict_proba(X)[:, 1] > 0.5).astype(int)
+
+            def get_params(self, deep=True):
+                return {"time_limit": self.time_limit}
+
+        return AutoGluonWrapper(time_limit=min(hp.get("nn_epochs", 60), 60))
+    except ImportError:
+        raise
 
 
 def _simulate_betting_legacy(probs, actuals, edge=0.05):
@@ -922,18 +1514,26 @@ def _ece(probs, actuals, n_bins=10):
 # EVOLUTION ENGINE
 # ═══════════════════════════════════════════════════════
 
-POP_SIZE = 60            # Moderate pop — balance diversity and speed
-ELITE_SIZE = 5           # Top ~8% preserved
-BASE_MUT = 0.04          # Low mutation — allow convergence on good regions
-CROSSOVER_RATE = 0.80    # High recombination
+POP_SIZE = 500           # 500 individuals across 5 islands (100 per island)
+N_ISLANDS = 5            # Island model: 5 sub-populations
+ISLAND_SIZE = 100        # Individuals per island
+ELITE_SIZE = 25          # Top 5% preserved (5 per island)
+ELITE_PER_ISLAND = 5     # Elites per island
+BASE_MUT = 0.15          # Start high, decay to 0.05 over generations
+MUT_DECAY_RATE = 0.995   # Mutation rate *= this each generation (0.15 * 0.995^100 ≈ 0.09)
+MUT_FLOOR = 0.05         # Minimum mutation rate
+CROSSOVER_RATE = 0.85    # Constant high recombination
 TARGET_FEATURES = 65     # Tighter feature sets — overfitting guard (9551/65 = 147 samples/feature)
 N_SPLITS = 3             # 3-fold walk-forward for reliable Brier estimates
 GENS_PER_CYCLE = 3       # Save every 3 gens
 COOLDOWN = 5             # Minimal cooldown
-TOURNAMENT_SIZE = 4      # Moderate selection pressure — preserve exploration
+TOURNAMENT_SIZE = 4      # Starting tournament size — adapts based on diversity
 DIVERSITY_RESTART = 20   # Give more time before nuking population
 FAST_EVAL_GAMES = 7000   # More data in fast eval — better signal
 FULL_EVAL_TOP = 10       # Full eval for top 10 — better selection of champion
+MIGRATION_INTERVAL = 10  # Migrate best between islands every N generations
+MIGRANTS_PER_ISLAND = 5  # How many top individuals migrate each interval
+GC_INTERVAL = 10         # Force garbage collection every N individuals evaluated
 
 # ── Feature importance tracking (directed mutation) ──
 _feature_importance = None  # numpy array: how often each feature appears in top individuals
@@ -959,13 +1559,34 @@ remote_config = {
 }
 
 
+def _adaptive_tournament_size(population, base_size=4):
+    """Adaptive tournament size based on population diversity.
+    Low diversity -> larger tournaments (stronger selection pressure).
+    High diversity -> smaller tournaments (preserve exploration)."""
+    if not population:
+        return base_size
+    composites = [ind.fitness.get("composite", 0) for ind in population]
+    diversity = np.std(composites) if len(composites) > 1 else 0
+    if diversity < 0.005:
+        return min(base_size + 3, 10)  # Very low diversity: strong pressure
+    elif diversity < 0.01:
+        return min(base_size + 1, 8)
+    elif diversity > 0.05:
+        return max(base_size - 1, 2)   # High diversity: weak pressure
+    return base_size
+
+
 def evolution_loop():
-    """Main 24/7 genetic evolution loop — runs in background thread."""
-    global TARGET_FEATURES, CROSSOVER_RATE, COOLDOWN, POP_SIZE
+    """Main 24/7 genetic evolution loop — runs in background thread.
+    Uses island model with 5 sub-populations of 100, NSGA-II Pareto ranking,
+    adaptive mutation decay, and memory management for 16GB RAM."""
+    global TARGET_FEATURES, CROSSOVER_RATE, COOLDOWN, POP_SIZE, N_ISLANDS, ISLAND_SIZE
     global _evo_X, _evo_y, _evo_features, _evo_best, _evo_games
     log("=" * 60)
-    log("REAL GENETIC EVOLUTION LOOP v3 — STARTING")
-    log(f"Pop: {POP_SIZE} | Target features: {TARGET_FEATURES} | Gens/cycle: {GENS_PER_CYCLE}")
+    log("REAL GENETIC EVOLUTION LOOP v4 — ISLAND MODEL + NSGA-II")
+    log(f"Pop: {POP_SIZE} ({N_ISLANDS} islands x {ISLAND_SIZE}) | Target features: {TARGET_FEATURES} | Gens/cycle: {GENS_PER_CYCLE}")
+    log(f"Mutation: {BASE_MUT} -> {MUT_FLOOR} (decay {MUT_DECAY_RATE}/gen) | Crossover: {CROSSOVER_RATE}")
+    log(f"Migration: every {MIGRATION_INTERVAL} gens, {MIGRANTS_PER_ISLAND} per island")
     log("=" * 60)
 
     # ── Supabase Run Logger + Auto-Cut ──
@@ -1031,85 +1652,111 @@ def evolution_loop():
     _evo_features = feature_names
     _evo_games = games
 
-    # Try restore state
-    population = []
+    # Try restore state — island model
+    island_model = None
     generation = 0
     best_ever = None
     stagnation = 0
     mutation_rate = BASE_MUT
 
     state_file = STATE_DIR / "population.json"
+    restored = False
     if state_file.exists():
         try:
             st = json.loads(state_file.read_text())
             generation = st["generation"]
             stagnation = st.get("stagnation_counter", 0)
             mutation_rate = st.get("mutation_rate", BASE_MUT)
-            for d in st["population"]:
-                ind = Individual.__new__(Individual)
-                ind.features = d["features"]; ind.hyperparams = d["hyperparams"]
-                ind.fitness = d["fitness"]; ind.generation = d.get("generation", 0)
-                ind.n_features = sum(ind.features)
-                population.append(ind)
+
+            # Try island model restore first
+            if "island_model" in st:
+                island_model = IslandModel.from_state_dict(st["island_model"], n_feat)
+                log(f"RESTORED island model: gen {generation}, {N_ISLANDS} islands")
+                restored = True
+            elif "population" in st:
+                # Legacy flat population — convert to island model
+                population = []
+                for d in st["population"]:
+                    ind = Individual.__new__(Individual)
+                    ind.features = d["features"]; ind.hyperparams = d["hyperparams"]
+                    ind.fitness = d["fitness"]; ind.generation = d.get("generation", 0)
+                    ind.n_features = sum(ind.features)
+                    ind.pareto_rank = d.get("pareto_rank", 999)
+                    ind.crowding_dist = 0.0
+                    ind.island_id = d.get("island_id", -1)
+                    # Ensure new hyperparams exist
+                    ind.hyperparams.setdefault("nn_hidden_dims", 128)
+                    ind.hyperparams.setdefault("nn_n_layers", 2)
+                    ind.hyperparams.setdefault("nn_dropout", 0.3)
+                    ind.hyperparams.setdefault("nn_epochs", 50)
+                    ind.hyperparams.setdefault("nn_batch_size", 64)
+                    if ind.hyperparams.get("model_type") not in ALL_MODEL_TYPES:
+                        ind.hyperparams["model_type"] = random.choice(ALL_MODEL_TYPES)
+                    population.append(ind)
+
+                # Convert flat population to island model
+                island_model = IslandModel(n_islands=N_ISLANDS, island_size=ISLAND_SIZE,
+                                           n_features=n_feat, target_features=TARGET_FEATURES,
+                                           migration_interval=MIGRATION_INTERVAL,
+                                           migrants_per_island=MIGRANTS_PER_ISLAND)
+                # Keep elites from old population, fill rest
+                elites = sorted(population, key=lambda x: x.fitness.get("composite", 0), reverse=True)[:ELITE_SIZE]
+                for e in elites:
+                    if len(e.features) < n_feat:
+                        e.features.extend([random.randint(0, 1) for _ in range(n_feat - len(e.features))])
+                    elif len(e.features) > n_feat:
+                        e.features = e.features[:n_feat]
+                    e.n_features = sum(e.features)
+                island_model.initialize()
+                # Inject elites into island 0
+                for i, e in enumerate(elites):
+                    if i < len(island_model.islands[0]):
+                        island_model.islands[0][i] = e
+                log(f"MIGRATED legacy pop to island model: {len(population)} -> {N_ISLANDS}x{ISLAND_SIZE}")
+                restored = True
+
             if st.get("best_ever"):
                 be = st["best_ever"]
                 best_ever = Individual.__new__(Individual)
                 best_ever.features = be["features"]; best_ever.hyperparams = be["hyperparams"]
                 best_ever.fitness = be["fitness"]; best_ever.generation = be.get("generation", 0)
                 best_ever.n_features = sum(best_ever.features)
-            log(f"RESTORED: gen {generation}, {len(population)} individuals")
+                best_ever.pareto_rank = be.get("pareto_rank", 0)
+                best_ever.crowding_dist = 0.0
+                best_ever.island_id = be.get("island_id", 0)
+                best_ever.hyperparams.setdefault("nn_hidden_dims", 128)
+                best_ever.hyperparams.setdefault("nn_n_layers", 2)
+                best_ever.hyperparams.setdefault("nn_dropout", 0.3)
+                best_ever.hyperparams.setdefault("nn_epochs", 50)
+                best_ever.hyperparams.setdefault("nn_batch_size", 64)
+            log(f"RESTORED: gen {generation}, best Brier={best_ever.fitness['brier']:.4f}" if best_ever else "RESTORED: no best yet")
         except Exception as e:
             log(f"Restore failed: {e}", "WARN")
-            population = []
+            traceback.print_exc()
+            island_model = None
 
-    # Force reset if population size or feature count changed
-    needs_reset = False
-    if population and len(population) != POP_SIZE:
-        log(f"POP_SIZE changed: {len(population)} → {POP_SIZE}. Resetting population.")
-        needs_reset = True
-    if population and len(population[0].features) != n_feat:
-        log(f"Feature count changed: {len(population[0].features)} → {n_feat}. Resetting population.")
-        needs_reset = True
-    if needs_reset:
-        # Keep top 5 elites, re-init rest
-        elites = sorted(population, key=lambda x: x.fitness.get("composite", 0), reverse=True)[:5]
-        population = []
-        for e in elites:
-            # Resize feature mask if needed
-            if len(e.features) < n_feat:
-                e.features.extend([random.randint(0, 1) for _ in range(n_feat - len(e.features))])
-            elif len(e.features) > n_feat:
-                e.features = e.features[:n_feat]
-            e.n_features = sum(e.features)
-            # Add new model types to elite hyperparams
-            if e.hyperparams.get("model_type") not in ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"]:
-                e.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"])
-            population.append(e)
-        log(f"Kept {len(population)} elites, generating {POP_SIZE - len(population)} fresh individuals")
+    # Initialize fresh island model if not restored
+    if island_model is None:
+        island_model = IslandModel(n_islands=N_ISLANDS, island_size=ISLAND_SIZE,
+                                   n_features=n_feat, target_features=TARGET_FEATURES,
+                                   migration_interval=MIGRATION_INTERVAL,
+                                   migrants_per_island=MIGRANTS_PER_ISLAND)
+        island_model.initialize()
+        log(f"FRESH island model: {N_ISLANDS} islands x {ISLAND_SIZE} = {POP_SIZE} individuals")
+        log(f"Island specializations: {[s[:3] for s in island_model.island_specializations]}")
 
-    if not population or needs_reset:
-        # Equal distribution of all 6 model types in initial population
-        all_model_types = ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"]
-        existing_count = len(population)
-        slots_left = POP_SIZE - existing_count
-        idx = 0
-        while len(population) < POP_SIZE:
-            ind = Individual(n_feat, TARGET_FEATURES)
-            ind.hyperparams["model_type"] = all_model_types[idx % len(all_model_types)]
-            population.append(ind)
-            idx += 1
-        log(f"Population ready: {POP_SIZE} individuals, {n_feat} feature candidates (equal model distribution)")
+    live["pop_size"] = POP_SIZE
+    live["n_islands"] = N_ISLANDS
+    live["island_sizes"] = [len(isl) for isl in island_model.islands]
 
-    live["pop_size"] = len(population)
-
-    # ── INFINITE LOOP ──
+    # ── INFINITE LOOP (Island Model + NSGA-II) ──
     cycle = 0
     while True:
         cycle += 1
         live["cycle"] = cycle
         live["status"] = f"EVOLVING (cycle {cycle})"
         log(f"\n{'='*50}")
-        log(f"CYCLE {cycle} — {GENS_PER_CYCLE} generations")
+        log(f"CYCLE {cycle} — {GENS_PER_CYCLE} generations | Mut={mutation_rate:.4f}")
         log(f"{'='*50}")
         cycle_start = time.time()
 
@@ -1118,35 +1765,41 @@ def evolution_loop():
             live["generation"] = generation
             gen_start = time.time()
 
-            # ── FAST EVAL: all non-elites (elites keep their fitness) ──
+            # ── EVALUATE ALL ISLANDS ──
+            population = island_model.get_all_individuals()
             for i, ind in enumerate(population):
-                if i < ELITE_SIZE and ind.fitness.get("composite", 0) > 0:
-                    continue  # Skip re-eval of elites — already scored
+                # Skip re-eval of elites (per-island top ELITE_PER_ISLAND)
+                if ind.pareto_rank == 0 and ind.fitness.get("composite", 0) > 0:
+                    continue
                 evaluate(ind, X, y, N_SPLITS, fast=True)
 
-            # Sort by composite
-            population.sort(key=lambda x: x.fitness["composite"], reverse=True)
+            # ── NSGA-II PARETO RANKING (global) ──
+            population = nsga2_rank(population)
 
-            # ── FULL EVAL: top candidates get precise 3-fold on ALL data ──
+            # ── FULL EVAL: top FULL_EVAL_TOP get precise 3-fold on ALL data ──
             for ind in population[:FULL_EVAL_TOP]:
                 evaluate(ind, X, y, n_splits=3, fast=False)
 
-            # Re-sort after full eval
-            population.sort(key=lambda x: x.fitness["composite"], reverse=True)
+            # Re-rank after full eval
+            population = nsga2_rank(population)
             best = population[0]
+            pareto_front_size = sum(1 for ind in population if ind.pareto_rank == 0)
+
+            # ── Memory cleanup after full population eval ──
+            _gc_cleanup()
 
             # ── Update feature importance from top performers ──
             global _feature_importance
             if _feature_importance is None:
                 _feature_importance = np.zeros(n_feat)
             top_features = np.zeros(n_feat)
-            for ind in population[:10]:
+            for ind in population[:20]:  # Top 20 (was 10) — more signal with 500 pop
                 for idx in ind.selected_indices():
                     if idx < n_feat:
                         top_features[idx] += 1
-            _feature_importance = 0.7 * _feature_importance + 0.3 * (top_features / 10.0)
+            _feature_importance = 0.7 * _feature_importance + 0.3 * (top_features / 20.0)
 
-            # Track best
+            # Track best ever
             prev_brier = best_ever.fitness["brier"] if best_ever else 1.0
             if best_ever is None or best.fitness["composite"] > best_ever.fitness["composite"]:
                 best_ever = Individual.__new__(Individual)
@@ -1155,6 +1808,9 @@ def evolution_loop():
                 best_ever.fitness = dict(best.fitness)
                 best_ever.n_features = best.n_features
                 best_ever.generation = generation
+                best_ever.pareto_rank = best.pareto_rank
+                best_ever.crowding_dist = best.crowding_dist
+                best_ever.island_id = best.island_id
                 # Share for /api/predict
                 _evo_best = {
                     "features": best_ever.features[:],
@@ -1170,13 +1826,26 @@ def evolution_loop():
             else:
                 stagnation = 0
 
-            # Adaptive mutation — gentle escalation, capped to prevent chaos
+            # ── Adaptive mutation: decay over time, boost on stagnation ──
+            # Base decay: starts at 0.15, decays toward 0.05
+            mutation_rate *= MUT_DECAY_RATE
+            mutation_rate = max(MUT_FLOOR, mutation_rate)
+            # Stagnation boost (overrides decay temporarily)
             if stagnation >= 12:
-                mutation_rate = min(0.10, mutation_rate * 1.3)  # Hard cap at 10%
+                mutation_rate = min(0.20, mutation_rate * 1.5)
             elif stagnation >= 6:
-                mutation_rate = min(0.08, mutation_rate * 1.15)
-            elif stagnation == 0:
-                mutation_rate = max(BASE_MUT, mutation_rate * 0.90)
+                mutation_rate = min(0.15, mutation_rate * 1.2)
+
+            # ── Adaptive tournament size ──
+            tourney_size = _adaptive_tournament_size(population, TOURNAMENT_SIZE)
+
+            # ── Distribute population back to islands ──
+            island_model.set_all_individuals(population)
+
+            # ── MIGRATION between islands ──
+            migrated = island_model.migrate(generation)
+            if migrated:
+                log(f"  MIGRATION: {MIGRANTS_PER_ISLAND} individuals exchanged between {N_ISLANDS} islands")
 
             # Update live state
             live["best_brier"] = best_ever.fitness["brier"]
@@ -1186,9 +1855,12 @@ def evolution_loop():
             live["best_model_type"] = best_ever.hyperparams["model_type"]
             live["mutation_rate"] = round(mutation_rate, 4)
             live["stagnation"] = stagnation
+            live["pareto_front_size"] = pareto_front_size
+            live["island_sizes"] = [len(isl) for isl in island_model.islands]
             live["history"].append({
                 "gen": generation, "brier": best.fitness["brier"], "roi": best.fitness["roi"],
                 "composite": best.fitness["composite"], "features": best.n_features,
+                "pareto_front": pareto_front_size,
             })
             if len(live["history"]) > 500:
                 live["history"] = live["history"][-500:]
@@ -1196,10 +1868,10 @@ def evolution_loop():
             ge = time.time() - gen_start
             log(f"Gen {generation}: Brier={best.fitness['brier']:.4f} ROI={best.fitness['roi']:.1%} "
                 f"Sharpe={best.fitness['sharpe']:.2f} Feat={best.n_features} "
-                f"Pruned={best.fitness.get('features_pruned', 0)} "
-                f"Model={best.hyperparams['model_type']} Stag={stagnation} ({ge:.0f}s)")
+                f"Model={best.hyperparams['model_type']} Pareto={pareto_front_size} "
+                f"Mut={mutation_rate:.4f} Stag={stagnation} ({ge:.0f}s)")
 
-            # ── Supabase: log generation (direct psycopg2 — bypasses pool) ──
+            # ── Supabase: log generation ──
             try:
                 _db_url = os.environ.get("DATABASE_URL", "")
                 if _db_url:
@@ -1218,9 +1890,8 @@ def evolution_loop():
                          float(best.fitness["sharpe"]), float(best.fitness["composite"]),
                          int(best.n_features), str(best.hyperparams["model_type"]),
                          float(mutation_rate), avg_comp, pop_diversity, float(ge),
-                         bool(best_ever is not None and best.fitness["brier"] < best_ever.fitness["brier"] - 0.0001)))
+                         bool(stagnation == 0 and generation > 1)))
                     log(f"[SUPABASE] Gen {generation} logged OK")
-                    # Log top 10 evals
                     for rank, ind in enumerate(population[:10]):
                         _cur.execute("""INSERT INTO public.nba_evolution_evals
                             (generation, individual_rank, brier, roi, sharpe, composite, n_features, model_type)
@@ -1228,7 +1899,6 @@ def evolution_loop():
                             (generation, rank + 1, float(ind.fitness["brier"]), float(ind.fitness["roi"]),
                              float(ind.fitness["sharpe"]), float(ind.fitness["composite"]),
                              int(ind.n_features), str(ind.hyperparams["model_type"])))
-                    log(f"[SUPABASE] Top 10 evals logged OK")
                     _cur.close()
                     _dbconn.close()
             except Exception as e:
@@ -1246,15 +1916,11 @@ def evolution_loop():
                               "n_features": best.n_features, "model_type": best.hyperparams["model_type"]},
                         mutation_rate=mutation_rate, avg_composite=avg_comp,
                         pop_diversity=pop_diversity, duration_s=ge)
-
-                    # Log top 10 evals
                     top10 = [{"brier": ind.fitness["brier"], "roi": ind.fitness["roi"],
                               "sharpe": ind.fitness["sharpe"], "composite": ind.fitness["composite"],
                               "n_features": ind.n_features, "model_type": ind.hyperparams["model_type"]}
                              for ind in population[:10]]
                     run_logger.log_top_evals(generation, top10)
-
-                    # ── Auto-Cut check ──
                     engine_state = {
                         "mutation_rate": mutation_rate, "stagnation": stagnation,
                         "pop_size": len(population), "pop_diversity": float(pop_diversity),
@@ -1265,130 +1931,105 @@ def evolution_loop():
                         params = action.get("params", {})
                         if atype == "config":
                             remote_config["pending_params"].update(params)
-                            log(f"[AUTO-CUT] Config queued: {params}")
                         elif atype == "emergency_diversify":
                             remote_config["commands"].append("diversify")
-                            if "pop_size" in params:
-                                remote_config["pending_params"]["pop_size"] = params["pop_size"]
-                            if "mutation_rate" in params:
-                                remote_config["pending_params"]["mutation_rate"] = params["mutation_rate"]
-                            log(f"[AUTO-CUT] Emergency diversify: {params}")
-                        elif atype == "inject":
-                            count = params.get("count", 10)
-                            remote_config["commands"].append("diversify")
-                            log(f"[AUTO-CUT] Injecting {count} random individuals")
                         elif atype == "full_reset":
                             remote_config["pending_reset"] = True
-                            remote_config["pending_params"].update(params)
-                            log(f"[AUTO-CUT] FULL RESET triggered: {params}")
                         elif atype == "flag":
                             live["pause_betting"] = params.get("pause_betting", False)
-                            log(f"[AUTO-CUT] Flag set: {params}")
                 except Exception as e:
                     log(f"[RUN-LOGGER] Gen log error: {e}", "WARN")
 
-            # Next generation
-            new_pop = []
-            for i in range(ELITE_SIZE):
-                e = Individual.__new__(Individual)
-                e.features = population[i].features[:]; e.hyperparams = dict(population[i].hyperparams)
-                e.fitness = dict(population[i].fitness); e.n_features = population[i].n_features
-                e.generation = population[i].generation; new_pop.append(e)
+            # ── EVOLVE EACH ISLAND independently ──
+            for island_id in range(N_ISLANDS):
+                island = island_model.islands[island_id]
+                island.sort(key=lambda x: (x.pareto_rank, -x.crowding_dist))
 
-            if stagnation >= 10:
-                n_inject = POP_SIZE // 4  # 25% fresh blood
-                for _ in range(n_inject):
-                    new_pop.append(Individual(n_feat, TARGET_FEATURES))
-                log(f"  INJECTION: {n_inject} fresh individuals (25% population reset)")
+                new_island = []
+                # Elitism per island
+                for i in range(min(ELITE_PER_ISLAND, len(island))):
+                    e = Individual.__new__(Individual)
+                    e.features = island[i].features[:]; e.hyperparams = dict(island[i].hyperparams)
+                    e.fitness = dict(island[i].fitness); e.n_features = island[i].n_features
+                    e.generation = island[i].generation; e.island_id = island_id
+                    e.pareto_rank = island[i].pareto_rank; e.crowding_dist = island[i].crowding_dist
+                    new_island.append(e)
 
+                # Stagnation injection (per-island)
+                if stagnation >= 10:
+                    n_inject = ISLAND_SIZE // 4
+                    specialization = island_model.island_specializations[island_id]
+                    for _ in range(n_inject):
+                        fresh = Individual(n_feat, TARGET_FEATURES, model_type=random.choice(specialization))
+                        fresh.island_id = island_id
+                        new_island.append(fresh)
+
+                if stagnation >= DIVERSITY_RESTART:
+                    n_restart = ISLAND_SIZE // 2
+                    new_island = new_island[:ELITE_PER_ISLAND]
+                    specialization = island_model.island_specializations[island_id]
+                    for _ in range(n_restart):
+                        fresh = Individual(n_feat, TARGET_FEATURES, model_type=random.choice(specialization))
+                        fresh.island_id = island_id
+                        new_island.append(fresh)
+
+                # Fill with crossover + mutation (within island)
+                while len(new_island) < ISLAND_SIZE:
+                    cs = random.sample(island, min(tourney_size, len(island)))
+                    p1 = min(cs, key=lambda x: (x.pareto_rank, -x.crowding_dist))  # NSGA-II selection
+                    cs2 = random.sample(island, min(tourney_size, len(island)))
+                    p2 = min(cs2, key=lambda x: (x.pareto_rank, -x.crowding_dist))
+                    if random.random() < CROSSOVER_RATE:
+                        child = Individual.crossover(p1, p2)
+                    else:
+                        child = Individual.__new__(Individual)
+                        child.features = p1.features[:]; child.hyperparams = dict(p1.hyperparams)
+                        child.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
+                        child.n_features = p1.n_features; child.generation = generation
+                        child.pareto_rank = 999; child.crowding_dist = 0.0
+                    child.island_id = island_id
+                    child.mutate(mutation_rate, feature_importance=_feature_importance)
+                    new_island.append(child)
+
+                island_model.islands[island_id] = new_island[:ISLAND_SIZE]
+
+            # Reset stagnation after emergency restart
             if stagnation >= DIVERSITY_RESTART:
-                n_restart = POP_SIZE // 2  # 50% restart for extreme stagnation
-                new_pop = new_pop[:ELITE_SIZE]  # Keep only elite
-                for _ in range(n_restart):
-                    new_pop.append(Individual(n_feat, TARGET_FEATURES))
-                log(f"  EMERGENCY RESTART: {n_restart} fresh individuals (50% population)")
-                stagnation = 0  # Reset counter
+                stagnation = 0
 
-            # Anti-convergence: if top 5 all same model, force diversity
-            all_model_types = ["xgboost", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking", "mlp"]
-            top_models = [population[i].hyperparams["model_type"] for i in range(min(5, len(population)))]
-            if len(set(top_models)) == 1 and stagnation >= 3:
-                diverse_types = [t for t in all_model_types if t != top_models[0]]
-                for _ in range(3):
-                    fresh = Individual(n_feat, TARGET_FEATURES)
-                    fresh.hyperparams["model_type"] = random.choice(diverse_types)
-                    new_pop.append(fresh)
-                log(f"  ANTI-CONVERGENCE: injected 3 diverse models (all top5 were {top_models[0]})")
-
-            # Force model diversity: if >40% same model_type, force others to alternatives
-            # Good stacking requires diverse base models — CatBoost monoculture kills ensemble quality
-            pop_models = [ind.hyperparams["model_type"] for ind in new_pop]
-            model_counts = Counter(pop_models)
-            dominant_type, dominant_count = model_counts.most_common(1)[0]
-            if dominant_count > 0.40 * len(new_pop):
-                n_force = int(0.25 * len(new_pop))
-                alt_types = [t for t in all_model_types if t != dominant_type]
-                candidates = list(range(ELITE_SIZE, len(new_pop)))
-                random.shuffle(candidates)
-                forced = 0
-                for ci in candidates:
-                    if forced >= n_force:
-                        break
-                    if new_pop[ci].hyperparams["model_type"] == dominant_type:
-                        new_pop[ci].hyperparams["model_type"] = random.choice(alt_types)
-                        forced += 1
-                log(f"  MODEL DIVERSITY: forced {forced} individuals away from {dominant_type} (was {dominant_count}/{len(new_pop)})")
-
-            # Every 5 generations: inject 3 stacking individuals
-            if generation % 5 == 0:
-                for _ in range(3):
-                    stk = Individual(n_feat, TARGET_FEATURES)
-                    stk.hyperparams["model_type"] = "stacking"
-                    new_pop.append(stk)
-                log(f"  STACKING INJECTION: 3 stacking individuals added (gen {generation})")
-
-            while len(new_pop) < POP_SIZE:
-                cs = random.sample(population, min(TOURNAMENT_SIZE, len(population)))
-                p1 = max(cs, key=lambda x: x.fitness["composite"])
-                cs2 = random.sample(population, min(TOURNAMENT_SIZE, len(population)))
-                p2 = max(cs2, key=lambda x: x.fitness["composite"])
-                child = Individual.crossover(p1, p2) if random.random() < CROSSOVER_RATE else Individual.__new__(Individual)
-                if not hasattr(child, 'features') or child.features is None:
-                    child.features = p1.features[:]; child.hyperparams = dict(p1.hyperparams)
-                    child.fitness = dict(p1.fitness); child.n_features = p1.n_features; child.generation = generation
-                child.mutate(mutation_rate, feature_importance=_feature_importance)
-                new_pop.append(child)
-
-            population = new_pop
-
-        # Save state
+        # ── Save state ──
         live["status"] = "SAVING"
         try:
+            population = island_model.get_all_individuals()
             sel_names = [feature_names[i] for i in best_ever.selected_indices() if i < len(feature_names)] if best_ever else []
             state_data = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "generation": generation, "n_features": n_feat,
                 "stagnation_counter": stagnation, "mutation_rate": mutation_rate,
-                "population": [{"features": ind.features,
-                                "hyperparams": {k: (float(v) if isinstance(v, np.floating) else v) for k, v in ind.hyperparams.items()},
-                                "fitness": ind.fitness, "generation": ind.generation}
-                               for ind in population],
+                "island_model": island_model.to_state_dict(),
                 "best_ever": {"features": best_ever.features,
                               "hyperparams": {k: (float(v) if isinstance(v, np.floating) else v) for k, v in best_ever.hyperparams.items()},
-                              "fitness": best_ever.fitness, "generation": best_ever.generation} if best_ever else None,
+                              "fitness": best_ever.fitness, "generation": best_ever.generation,
+                              "island_id": getattr(best_ever, 'island_id', 0),
+                              "pareto_rank": getattr(best_ever, 'pareto_rank', 0)} if best_ever else None,
                 "history": live["history"][-200:],
             }
             (STATE_DIR / "population.json").write_text(json.dumps(state_data, default=str))
 
+            island_stats = island_model.get_island_stats()
             results = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "cycle": cycle, "generation": generation, "pop_size": POP_SIZE,
+                "n_islands": N_ISLANDS, "island_size": ISLAND_SIZE,
                 "mutation_rate": round(mutation_rate, 4), "stagnation": stagnation,
+                "pareto_front_size": sum(1 for ind in population if ind.pareto_rank == 0),
                 "best": {"brier": best_ever.fitness["brier"], "roi": best_ever.fitness["roi"],
                          "sharpe": best_ever.fitness["sharpe"], "n_features": best_ever.n_features,
                          "model_type": best_ever.hyperparams["model_type"],
+                         "pareto_rank": getattr(best_ever, 'pareto_rank', 0),
                          "selected_features": sel_names[:30]},
                 "top5": [ind.to_dict() for ind in sorted(population, key=lambda x: x.fitness["composite"], reverse=True)[:5]],
+                "island_stats": island_stats,
                 "history_last20": live["history"][-20:],
             }
             ts = datetime.now().strftime("%Y%m%d-%H%M")
@@ -1398,7 +2039,7 @@ def evolution_loop():
             live["top5"] = results["top5"]
             log(f"Results saved: evolution-{ts}.json")
 
-            # ── Supabase: log cycle (direct psycopg2) ──
+            # ── Supabase: log cycle ──
             try:
                 _db_url = os.environ.get("DATABASE_URL", "")
                 if _db_url:
@@ -1408,7 +2049,6 @@ def evolution_loop():
                     _cur = _dbconn.cursor()
                     pop_diversity = float(np.std([ind.fitness.get("composite", 0) for ind in population]))
                     avg_comp = float(np.mean([ind.fitness.get("composite", 0) for ind in population]))
-                    sel_features = [feature_names[i] for i in best_ever.selected_indices() if i < len(feature_names)] if best_ever else []
                     _cur.execute("""INSERT INTO public.nba_evolution_runs
                         (cycle, generation, best_brier, best_roi, best_sharpe, best_calibration,
                          best_composite, best_features, best_model_type, pop_size, mutation_rate,
@@ -1418,11 +2058,11 @@ def evolution_loop():
                         (cycle, generation, float(best_ever.fitness["brier"]), float(best_ever.fitness["roi"]),
                          float(best_ever.fitness["sharpe"]), float(best_ever.fitness.get("calibration", 0)),
                          float(best_ever.fitness["composite"]), int(best_ever.n_features),
-                         str(best_ever.hyperparams["model_type"]), len(population), float(mutation_rate),
+                         str(best_ever.hyperparams["model_type"]), POP_SIZE, float(mutation_rate),
                          float(CROSSOVER_RATE), stagnation, len(games), n_feat,
                          float(time.time() - cycle_start), avg_comp, pop_diversity,
                          json.dumps(results.get("top5", [])[:5], default=str),
-                         json.dumps(sel_features[:50], default=str)))
+                         json.dumps(sel_names[:50], default=str)))
                     _cur.close()
                     _dbconn.close()
                     log("[SUPABASE] Cycle logged OK")
@@ -1430,67 +2070,90 @@ def evolution_loop():
                 log(f"[SUPABASE] Cycle log FAILED: {e}", "ERROR")
         except Exception as e:
             log(f"Save error: {e}", "ERROR")
+            traceback.print_exc()
 
         # VM callback
         try:
             import urllib.request
             body = json.dumps({"generation": generation, "brier": best_ever.fitness["brier"],
-                               "roi": best_ever.fitness["roi"], "features": best_ever.n_features}, default=str).encode()
+                               "roi": best_ever.fitness["roi"], "features": best_ever.n_features,
+                               "pop_size": POP_SIZE, "n_islands": N_ISLANDS}, default=str).encode()
             req = urllib.request.Request(f"{VM_URL}/callback/evolution", data=body,
                                         headers={"Content-Type": "application/json"})
             urllib.request.urlopen(req, timeout=10)
             log("VM callback OK")
         except Exception:
-            pass  # Best-effort
+            pass
 
         # ── Check remote commands from OpenClaw ──
         if remote_config["pending_params"]:
             params = remote_config["pending_params"]
             log(f"REMOTE CONFIG UPDATE: {params}")
             if "pop_size" in params:
-                POP_SIZE_NEW = min(int(params["pop_size"]), 80)  # HARD CAP: too large = slow + no convergence
-                if POP_SIZE_NEW != len(population):
-                    # Resize population
-                    if POP_SIZE_NEW > len(population):
-                        while len(population) < POP_SIZE_NEW:
-                            population.append(Individual(n_feat, TARGET_FEATURES))
-                        log(f"Population expanded: {len(population)} → {POP_SIZE_NEW}")
-                    else:
-                        population = sorted(population, key=lambda x: x.fitness["composite"], reverse=True)[:POP_SIZE_NEW]
-                        log(f"Population reduced to top {POP_SIZE_NEW}")
-                    live["pop_size"] = len(population)
+                new_total = min(int(params["pop_size"]), 1000)  # Cap at 1000
+                new_island_size = new_total // N_ISLANDS
+                if new_island_size != ISLAND_SIZE:
+                    ISLAND_SIZE = new_island_size
+                    POP_SIZE = N_ISLANDS * ISLAND_SIZE
+                    # Resize each island
+                    for isl_idx in range(N_ISLANDS):
+                        isl = island_model.islands[isl_idx]
+                        if len(isl) < ISLAND_SIZE:
+                            spec = island_model.island_specializations[isl_idx]
+                            while len(isl) < ISLAND_SIZE:
+                                isl.append(Individual(n_feat, TARGET_FEATURES, model_type=random.choice(spec)))
+                        elif len(isl) > ISLAND_SIZE:
+                            isl.sort(key=lambda x: x.fitness.get("composite", 0), reverse=True)
+                            island_model.islands[isl_idx] = isl[:ISLAND_SIZE]
+                    island_model.island_size = ISLAND_SIZE
+                    live["pop_size"] = POP_SIZE
+                    log(f"Population resized: {N_ISLANDS} x {ISLAND_SIZE} = {POP_SIZE}")
+            if "n_islands" in params:
+                # Changing island count is complex — queue for next restart
+                log(f"n_islands change requested ({params['n_islands']}) — will take effect on restart")
             if "mutation_rate" in params:
-                mutation_rate = min(float(params["mutation_rate"]), 0.10)  # HARD CAP: never above 10%
+                mutation_rate = min(float(params["mutation_rate"]), 0.25)
                 log(f"Mutation rate set to {mutation_rate}")
             if "target_features" in params:
-                TARGET_FEATURES = min(int(params["target_features"]), 150)  # HARD CAP: prevent feature bloat
+                TARGET_FEATURES = min(int(params["target_features"]), 150)
                 log(f"Target features set to {TARGET_FEATURES}")
             if "crossover_rate" in params:
                 CROSSOVER_RATE = float(params["crossover_rate"])
             if "cooldown" in params:
                 COOLDOWN = int(params["cooldown"])
+            if "migration_interval" in params:
+                island_model.migration_interval = int(params["migration_interval"])
+                log(f"Migration interval set to {island_model.migration_interval}")
             remote_config["pending_params"] = {}
 
         if remote_config["pending_reset"]:
-            log("REMOTE RESET: Reinitializing 50% of population with fresh individuals")
-            n_keep = max(ELITE_SIZE, len(population) // 4)
-            population = sorted(population, key=lambda x: x.fitness["composite"], reverse=True)[:n_keep]
-            while len(population) < POP_SIZE:
-                population.append(Individual(n_feat, TARGET_FEATURES))
-            live["pop_size"] = len(population)
+            log("REMOTE RESET: Reinitializing 50% of each island with fresh individuals")
+            for isl_idx in range(N_ISLANDS):
+                isl = island_model.islands[isl_idx]
+                isl.sort(key=lambda x: x.fitness.get("composite", 0), reverse=True)
+                n_keep = max(ELITE_PER_ISLAND, ISLAND_SIZE // 4)
+                kept = isl[:n_keep]
+                spec = island_model.island_specializations[isl_idx]
+                while len(kept) < ISLAND_SIZE:
+                    kept.append(Individual(n_feat, TARGET_FEATURES, model_type=random.choice(spec)))
+                island_model.islands[isl_idx] = kept
             stagnation = 0
             mutation_rate = BASE_MUT
             remote_config["pending_reset"] = False
-            log(f"Reset complete: kept {n_keep} elites, {len(population)} total")
+            log(f"Reset complete: {N_ISLANDS} islands refreshed, {POP_SIZE} total")
 
         for cmd in remote_config.get("commands", []):
             if cmd == "diversify":
-                n_new = POP_SIZE // 3
-                worst = len(population) - n_new
-                population = sorted(population, key=lambda x: x.fitness["composite"], reverse=True)[:worst]
-                for _ in range(n_new):
-                    population.append(Individual(n_feat, TARGET_FEATURES))
-                log(f"REMOTE DIVERSIFY: replaced {n_new} worst with fresh individuals")
+                for isl_idx in range(N_ISLANDS):
+                    isl = island_model.islands[isl_idx]
+                    n_new = ISLAND_SIZE // 3
+                    isl.sort(key=lambda x: x.fitness.get("composite", 0), reverse=True)
+                    isl = isl[:ISLAND_SIZE - n_new]
+                    spec = island_model.island_specializations[isl_idx]
+                    for _ in range(n_new):
+                        isl.append(Individual(n_feat, TARGET_FEATURES, model_type=random.choice(spec)))
+                    island_model.islands[isl_idx] = isl
+                log(f"REMOTE DIVERSIFY: 1/3 of each island replaced")
             elif cmd == "boost_mutation":
                 mutation_rate = min(0.25, mutation_rate * 2)
                 log(f"REMOTE: mutation boosted to {mutation_rate}")
@@ -1510,8 +2173,11 @@ def evolution_loop():
             except Exception as e:
                 log(f"Refresh failed: {e}", "WARN")
 
+        # Memory cleanup between cycles
+        _gc_cleanup()
+
         ce = time.time() - cycle_start
-        log(f"\nCycle {cycle} done in {ce:.0f}s | Best: Brier={best_ever.fitness['brier']:.4f}")
+        log(f"\nCycle {cycle} done in {ce:.0f}s | Best: Brier={best_ever.fitness['brier']:.4f} | Pareto front: {live.get('pareto_front_size', 0)}")
         live["status"] = f"COOLDOWN ({COOLDOWN}s)"
         time.sleep(COOLDOWN)
 
@@ -1527,7 +2193,7 @@ def dash_status():
         last5 = live["history"][-5:]
         brier_trend = " -> ".join(f"{h['brier']:.4f}" for h in last5)
 
-    return f"""## NOMOS NBA QUANT — Genetic Evolution LIVE
+    return f"""## NOMOS NBA QUANT — Island Model GA (NSGA-II)
 
 | Metric | Value |
 |--------|-------|
@@ -1539,11 +2205,13 @@ def dash_status():
 | **Best Sharpe** | {live['best_sharpe']:.2f} |
 | **Best Features** | {live['best_features']} |
 | **Model Type** | {live['best_model_type']} |
-| **Population** | {live['pop_size']} |
+| **Population** | {live['pop_size']} ({live['n_islands']} islands) |
+| **Pareto Front** | {live.get('pareto_front_size', 0)} individuals |
 | **Mutation Rate** | {live['mutation_rate']:.4f} |
 | **Stagnation** | {live['stagnation']} gens |
 | **Games** | {live['games']:,} |
 | **Feature Candidates** | {live['feature_candidates']} |
+| **Island Sizes** | {live.get('island_sizes', [])} |
 | **Started** | {live['started_at'][:19]} |
 
 **Brier Trend**: {brier_trend}
@@ -1622,7 +2290,8 @@ async def api_config(request: Request):
     """Update GA parameters at runtime. OpenClaw calls this to apply improvements."""
     body = await request.json()
     allowed = {"pop_size", "mutation_rate", "target_features", "crossover_rate",
-               "cooldown", "elite_size", "tournament_size"}
+               "cooldown", "elite_size", "tournament_size", "n_islands",
+               "migration_interval", "migrants_per_island"}
     updates = {k: v for k, v in body.items() if k in allowed}
     if not updates:
         return JSONResponse({"error": "no valid params", "allowed": list(allowed)}, status_code=400)
@@ -2054,8 +2723,8 @@ async def api_predict(request: Request):
 
 
 with gr.Blocks(title="NOMOS NBA QUANT — Genetic Evolution", theme=gr.themes.Monochrome()) as app:
-    gr.Markdown("# NOMOS NBA QUANT AI — Real Genetic Evolution 24/7")
-    gr.Markdown("*Population of 60 individuals evolving feature selection + hyperparameters. Multi-objective: Brier + ROI + Sharpe + Calibration.*")
+    gr.Markdown("# NOMOS NBA QUANT AI — Island Model Genetic Evolution 24/7")
+    gr.Markdown("*500 individuals across 5 islands (NSGA-II Pareto ranking). 13 model types including neural nets. Multi-objective: Brier + ROI + Sharpe + Calibration.*")
 
     with gr.Row():
         with gr.Column(scale=2):
@@ -2110,280 +2779,9 @@ if __name__ == "__main__":
     uvicorn.run(gr_app, host="0.0.0.0", port=7860)
 
 
-### BEGIN Evolution Tuner addition (2026-03-20) ###
-# Island Model GA Implementation - RADICAL config
-from typing import List, Tuple
-import random
-import numpy as np
-from deap import base, creator, tools, algorithms
-
-# Create fitness and individual classes if not already created
-if not hasattr(creator, "Fitness"):
-    creator.create("Fitness", base.Fitness, weights=(-1.0,))
-if not hasattr(creator, "Individual"):
-    creator.create("Individual", list, fitness=creator.Fitness)
-
-def island_model_evolution(
-    toolbox,
-    num_islands: int = 4,
-    island_population: int = 50,
-    migration_rate: int = 2,
-    migration_interval: int = 5,
-    tournament_k: int = 7,
-    crossover_rate: float = 0.7,
-    mutation_rate: float = 0.03,
-    elitism: int = 5
-):
-    """Island model genetic algorithm with periodic migration"""
-    islands = []
-    for _ in range(num_islands):
-        population = toolbox.population(n=island_population)
-        islands.append(population)
-
-    # Initialize statistics
-    stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register("min", np.min)
-    stats.register("avg", np.mean)
-
-    # Evolution loop
-    for gen in range(migration_interval * 10):  # Run for 10 migration cycles
-        for island_idx, population in enumerate(islands):
-            # Evaluate fitness if not already evaluated
-            invalid_ind = [ind for ind in population if not ind.fitness.valid]
-            if invalid_ind:
-                fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-                for ind, fit in zip(invalid_ind, fitnesses):
-                    ind.fitness.values = fit
-
-            # Select and clone for next generation
-            offspring = toolbox.select(population, len(population))
-            offspring = list(map(toolbox.clone, offspring))
-
-            # Apply crossover and mutation
-            for child1, child2 in zip(offspring[::2], offspring[1::2]):
-                if random.random() < crossover_rate:
-                    toolbox.mate(child1, child2)
-                    del child1.fitness.values
-                    del child2.fitness.values
-
-            for mutant in offspring:
-                if random.random() < mutation_rate:
-                    toolbox.mutate(mutant)
-                    del mutant.fitness.values
-
-            # Apply elitism
-            if elitism > 0:
-                elite = tools.selBest(population, elitism)
-                offspring = tools.selBest(offspring, len(offspring) - elitism) + elite
-
-            islands[island_idx] = offspring
-
-        # Migration phase
-        if (gen + 1) % migration_interval == 0:
-            # Extract best individuals from each island
-            best_per_island = [tools.selBest(pop, migration_rate) for pop in islands]
-            # Flatten and redistribute
-            migrants = [ind for sublist in best_per_island for ind in sublist]
-            random.shuffle(migrants)
-            for idx, pop in enumerate(islands):
-                worst = tools.selWorst(pop, migration_rate)
-                for i in range(migration_rate):
-                    pop[pop.index(worst[i])] = migrants.pop()
-
-        # Log stats every migration interval
-        if (gen + 1) % migration_interval == 0:
-            all_inds = [ind for pop in islands for ind in pop]
-            fits = [ind.fitness.values[0] for ind in all_inds]
-            print(f"Gen {gen+1}: Min={min(fits):.4f}, Avg={np.mean(fits):.4f}")
-
-    # Return the best individual across all islands
-    all_inds = [ind for pop in islands for ind in pop]
-    return tools.selBest(all_inds, 1)[0]
-### END Evolution Tuner addition ###
+# ── Legacy DEAP-based island model stubs removed ──
+# The island model is now natively implemented in the IslandModel class above.
+# See: IslandModel, nsga2_rank, evolution_loop()
 
 
-### BEGIN Evolution Tuner addition (2026-03-20) ###
-# Island Model GA Implementation - 4 isolated sub-populations with migration
-from deap import tools, base, creator
-import random
-import numpy as np
-
-def island_model_evolution(pop_size, cxpb, mutpb, ngen, stats, halloffame, logbook, island_model_config):
-    """
-    Island model genetic algorithm with 4 isolated sub-populations
-    """
-    num_islands = island_model_config['num_islands']
-    island_population = island_model_config['island_population']
-    migration_interval = island_model_config['migration_interval']
-    migrants_per_exchange = island_model_config['migrants_per_exchange']
-    selection_per_island = island_model_config['selection_per_island']
-
-    # Create toolbox with island-specific selection operators
-    toolbox = base.Toolbox()
-    toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
-    toolbox.register("evaluate", evaluate_model)  # Assume this exists
-
-    # Initialize islands with different selection strategies
-    islands = []
-    for island_idx in range(num_islands):
-        island_toolbox = base.Toolbox()
-        island_toolbox.register("mate", tools.cxTwoPoint)
-        island_toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
-        island_toolbox.register("evaluate", evaluate_model)
-
-        # Register island-specific selection
-        if selection_per_island[island_idx] == "tournament":
-            island_toolbox.register("select", tools.selTournament, tournsize=3)
-        elif selection_per_island[island_idx] == "rank":
-            island_toolbox.register("select", tools.selRank)
-        elif selection_per_island[island_idx] == "sus":
-            island_toolbox.register("select", tools.selSUS)
-        elif selection_per_island[island_idx] == "boltzmann":
-            island_toolbox.register("select", tools.selBoltzmann, temperature=1.0)
-
-        # Initialize population
-        island_pop = [create_individual() for _ in range(island_population)]
-        islands.append(island_pop)
-
-    # Evolution loop
-    for gen in range(ngen):
-        for island_idx, population in enumerate(islands):
-            # Evaluate fitness if needed
-            invalid_ind = [ind for ind in population if not ind.fitness.valid]
-            if invalid_ind:
-                fitnesses = map(toolbox.evaluate, invalid_ind)
-                for ind, fit in zip(invalid_ind, fitnesses):
-                    ind.fitness.values = (fit,)
-
-            # Select and clone for next generation
-            offspring = island_toolbox.select(population, len(population))
-            offspring = list(map(toolbox.clone, offspring))
-
-            # Apply crossover and mutation
-            for child1, child2 in zip(offspring[::2], offspring[1::::2]):
-                if random.random() < cxpb:
-                    island_toolbox.mate(child1, child2)
-                    del child1.fitness.values
-                    del child2.fitness.values
-
-            for mutant in offspring:
-                if random.random() < mutpb:
-                    island_toolbox.mutate(mutant)
-                    del mutant.fitness.values
-
-            # Apply elitism (1 best individual preserved)
-            elite = tools.selBest(population, 1)
-            offspring = tools.selBest(offspring, len(offspring) - 1) + elite
-
-            islands[island_idx] = offspring
-
-        # Migration phase
-        if (gen + 1) % migration_interval == 0:
-            # Extract best individuals from each island
-            best_per_island = [tools.selBest(pop, migrants_per_exchange) for pop in islands]
-            migrants = [ind for sublist in best_per_island for ind in sublist]
-            random.shuffle(migrants)
-            for idx, pop in enumerate(islands):
-                worst = tools.selWorst(pop, migrants_per_exchange)
-                for i in range(migrants_per_exchange):
-                    pop[pop.index(worst[i])] = migrants.pop()
-
-        # Log stats every migration interval
-        if (gen + 1) % migration_interval == 0:
-            all_inds = [ind for pop in islands for ind in pop]
-            fits = [ind.fitness.values[0] for ind in all_inds if ind.fitness.valid]
-            if fits:
-                print(f"Gen {gen+1}: Min={min(fits):.4f}, Avg={np.mean(fits):.4f}")
-
-    # Return the best individual across all islands
-    all_inds = [ind for pop in islands for ind in pop]
-    return tools.selBest(all_inds, 1)[0]
-### END Evolution Tuner addition ###
-
-
-### BEGIN Evolution Tuner addition (2026-03-20) ###
-# Island Model GA with diverse selection strategies
-import random
-import numpy as np
-from deap import tools, base, creator
-
-def island_model_ga(toolbox, population_size, num_islands, island_pop, migration_interval, migration_size, island_selections, tournament_k, selection_pressure, elitism, cxpb, mutpb, ngen, stats=None, halloffame=None, verbose=__debug__):
-    """
-    Island model genetic algorithm with 4 islands using different selection strategies.
-    Migration occurs every 10 generations to maintain diversity.
-    """
-    # Create islands with different selection strategies
-    islands = []
-    island_toolboxes = []
-
-    for i in range(num_islands):
-        # Create island population
-        pop = toolbox.population(n=island_pop)
-
-        # Create island-specific toolbox
-        island_tb = base.Toolbox()
-        island_tb.register("mate", toolbox.mate)
-        island_tb.register("mutate", toolbox.mutate)
-        island_tb.register("evaluate", toolbox.evaluate)
-
-        # Register island-specific selection
-        if island_selections[i] == "tournament":
-            k = tournament_k[i]
-            island_tb.register("select", tools.selTournament, k=k)
-        elif island_selections[i] == "sus":
-            island_tb.register("select", tools.selStochasticUniversalSampling)
-        elif island_selections[i] == "rank":
-            pressure = selection_pressure[i]
-            island_tb.register("select", tools.selRank, pressure=pressure)
-
-        islands.append(pop)
-        island_toolboxes.append(island_tb)
-
-    # Main evolution loop
-    for gen in range(ngen):
-        for island_idx, (population, island_toolbox) in enumerate(zip(islands, island_toolboxes)):
-            # Select and clone for next generation
-            offspring = island_toolbox.select(population, len(population))
-            offspring = list(map(toolbox.clone, offspring))
-
-            # Apply crossover and mutation
-            for child1, child2 in zip(offspring[::2], offspring[1::2]):
-                if random.random() < cxpb:
-                    island_toolbox.mate(child1, child2)
-                    del child1.fitness.values
-                    del child2.fitness.values
-
-            for mutant in offspring:
-                if random.random() < mutpb:
-                    island_toolbox.mutate(mutant)
-                    del mutant.fitness.values
-
-            # Apply elitism
-            elite = tools.selBest(population, elitism)
-            offspring = tools.selBest(offspring, len(offspring) - elitism) + elite
-
-            islands[island_idx] = offspring
-
-        # Migration phase
-        if (gen + 1) % migration_interval == 0:
-            # Extract best individuals from each island
-            best_per_island = [tools.selBest(pop, migration_size) for pop in islands]
-            migrants = [ind for sublist in best_per_island for ind in sublist]
-            random.shuffle(migrants)
-            for idx, pop in enumerate(islands):
-                worst = tools.selWorst(pop, migration_size)
-                for i in range(migration_size):
-                    pop[pop.index(worst[i])] = migrants.pop()
-
-        # Log stats every migration interval
-        if (gen + 1) % migration_interval == 0:
-            all_inds = [ind for pop in islands for ind in pop]
-            fits = [ind.fitness.values[0] for ind in all_inds if ind.fitness.valid]
-            if fits:
-                print(f"Gen {gen+1}: Min={min(fits):.4f}, Avg={np.mean(fits):.4f}")
-
-    # Return the best individual across all islands
-    all_inds = [ind for pop in islands for ind in pop]
-    return tools.selBest(all_inds, 1)[0]
-### END Evolution Tuner addition ###
+# (Legacy DEAP island model stubs have been removed — now using native IslandModel class)

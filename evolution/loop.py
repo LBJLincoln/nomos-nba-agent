@@ -37,34 +37,47 @@ from features.engine import NBAFeatureEngine, genetic_feature_selection
 
 class EvolutionConfig:
     """Configuration for evolution loop."""
-    POPULATION_SIZE = 50        # Number of model configurations
+    POPULATION_SIZE = 500       # 5 islands x 100 individuals
+    N_ISLANDS = 5               # Number of sub-populations
+    ISLAND_SIZE = 100            # Individuals per island
     N_GENERATIONS = 100         # Generations per cycle
-    MUTATION_RATE = 0.03        # Feature flip probability
-    CROSSOVER_RATE = 0.7        # Crossover probability
-    ELITE_SIZE = 5              # Top N survive unchanged
+    MUTATION_RATE = 0.15        # Start high, decay to 0.05
+    MUT_DECAY_RATE = 0.995      # Per-generation decay
+    MUT_FLOOR = 0.05            # Minimum mutation rate
+    CROSSOVER_RATE = 0.85       # Constant high recombination
+    ELITE_SIZE = 25             # Top 5% survive unchanged
     TARGET_FEATURES = 200       # Target feature count
     MIN_FEATURES = 50           # Minimum features
     MAX_FEATURES = 350          # Maximum features
     BACKTEST_SEASONS = 3        # Walk-forward test seasons
+    MIGRATION_INTERVAL = 10     # Migrate between islands every N gens
+    MIGRANTS_PER_ISLAND = 5     # Best N individuals migrate
     FITNESS_WEIGHTS = {
         "brier": 0.4,           # Prediction accuracy
-        "roi": 0.3,             # Return on investment
+        "roi": 0.25,            # Return on investment
         "sharpe": 0.2,          # Risk-adjusted return
-        "calibration": 0.1,     # Probability calibration
+        "calibration": 0.15,    # Probability calibration
     }
     RESEARCH_INTERVAL = 10      # Run research every N generations
     DIAGNOSTIC_INTERVAL = 5     # Self-diagnostic every N generations
+    # Model types the GA can evolve
+    MODEL_TYPES = [
+        "xgboost", "lightgbm", "catboost", "rf", "logistic",
+        "lstm", "transformer", "tabnet", "ft_transformer",
+        "deep_ensemble", "autogluon",
+    ]
 
 
 class Individual:
     """One model configuration in the population."""
 
-    def __init__(self, n_features, target=200):
+    def __init__(self, n_features, target=200, model_type=None):
         # Feature selection mask
         prob = target / n_features
         self.features = [1 if random.random() < prob else 0 for _ in range(n_features)]
 
         # Hyperparameters (evolved)
+        model_types = EvolutionConfig.MODEL_TYPES
         self.hyperparams = {
             "n_estimators": random.randint(100, 600),
             "max_depth": random.randint(3, 10),
@@ -74,9 +87,14 @@ class Individual:
             "min_child_weight": random.randint(1, 15),
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
-            "model_type": random.choice(["xgboost", "lightgbm", "catboost"]),
+            "model_type": model_type or random.choice(model_types),
             "calibration": random.choice(["isotonic", "sigmoid", "none"]),
             "stacking": random.choice([True, False]),
+            # Neural net hyperparams
+            "nn_hidden_dims": random.choice([64, 128, 256]),
+            "nn_n_layers": random.randint(2, 4),
+            "nn_dropout": random.uniform(0.1, 0.5),
+            "nn_epochs": random.randint(20, 100),
         }
 
         # Fitness scores
@@ -87,6 +105,9 @@ class Individual:
             "calibration": 1.0,
             "composite": 0.0,
         }
+        self.pareto_rank = 999
+        self.crowding_dist = 0.0
+        self.island_id = -1
         self.generation = 0
         self.n_features = sum(self.features)
 
@@ -139,16 +160,22 @@ class Individual:
                 self.features[i] = 1 - self.features[i]
 
         # Hyperparameter mutations
+        model_types = EvolutionConfig.MODEL_TYPES
         if random.random() < 0.1:
             self.hyperparams["n_estimators"] = max(50, self.hyperparams["n_estimators"] + random.randint(-100, 100))
         if random.random() < 0.1:
             self.hyperparams["max_depth"] = max(2, min(12, self.hyperparams["max_depth"] + random.randint(-2, 2)))
         if random.random() < 0.1:
             self.hyperparams["learning_rate"] *= 10 ** random.uniform(-0.3, 0.3)
-        if random.random() < 0.05:
-            self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm", "catboost"])
+        if random.random() < 0.08:
+            self.hyperparams["model_type"] = random.choice(model_types)
         if random.random() < 0.05:
             self.hyperparams["calibration"] = random.choice(["isotonic", "sigmoid", "none"])
+        # Neural net hyperparams
+        if random.random() < 0.10:
+            self.hyperparams["nn_hidden_dims"] = random.choice([64, 128, 256, 512])
+        if random.random() < 0.10:
+            self.hyperparams["nn_n_layers"] = max(1, min(6, self.hyperparams.get("nn_n_layers", 2) + random.randint(-1, 1)))
 
         self.n_features = sum(self.features)
 

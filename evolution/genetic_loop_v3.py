@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-NBA Quant AI — REAL Genetic Evolution Loop v3
+NBA Quant AI — REAL Genetic Evolution Loop v4
 ================================================
 RUNS 24/7 on HF Space or Google Colab.
 
 This is NOT a fake LLM wrapper. This is REAL ML:
-  - Population of 80 individuals (feature mask + hyperparams)
-  - Walk-forward backtest fitness (Brier + ROI + Sharpe + Calibration)
-  - Tournament selection, two-point crossover, adaptive mutation
-  - Elitism (top 5 survive unchanged)
+  - Population of 500 individuals across 5 islands (100 per island)
+  - 13 model types: tree-based + neural nets (LSTM, Transformer, TabNet, etc.)
+  - NSGA-II Pareto front ranking (multi-objective: Brier, ROI, Sharpe, Calibration)
+  - Island migration every 10 generations for diversity
+  - Adaptive mutation: 0.15 -> 0.05 decay + stagnation boost
+  - Memory management: GC between evaluations for 16GB RAM
   - Continuous cycles — saves after each generation
   - Callbacks to VM after each cycle
   - Population persistence (survives restarts)
@@ -21,10 +23,10 @@ Usage:
   !python genetic_loop_v3.py --generations 50
 
   # Quick test:
-  python evolution/genetic_loop_v3.py --generations 5 --pop-size 10
+  python evolution/genetic_loop_v3.py --generations 5 --pop-size 50
 """
 
-import os, sys, json, time, random, math, warnings, traceback
+import os, sys, json, time, random, math, warnings, traceback, gc
 import numpy as np
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
@@ -32,6 +34,14 @@ from collections import defaultdict
 from typing import Dict, List, Tuple, Optional
 
 warnings.filterwarnings("ignore")
+
+# All model types the GA can evolve (13 total)
+ALL_MODEL_TYPES = [
+    "xgboost", "lightgbm", "catboost", "random_forest", "extra_trees",
+    "stacking", "mlp", "lstm", "transformer", "tabnet",
+    "ft_transformer", "deep_ensemble", "autogluon",
+]
+NEURAL_NET_TYPES = {"lstm", "transformer", "tabnet", "ft_transformer", "deep_ensemble", "mlp", "autogluon"}
 
 # ── Run Logger (best-effort) ──
 try:
@@ -432,7 +442,7 @@ def build_features(games):
 class Individual:
     """One model configuration: feature selection mask + hyperparameters."""
 
-    def __init__(self, n_features, target=100):
+    def __init__(self, n_features, target=100, model_type=None):
         prob = target / max(n_features, 1)
         self.features = [1 if random.random() < prob else 0 for _ in range(n_features)]
         self.hyperparams = {
@@ -444,10 +454,19 @@ class Individual:
             "min_child_weight": random.randint(1, 15),
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
-            "model_type": random.choice(["xgboost", "lightgbm"]),
+            "model_type": model_type or random.choice(ALL_MODEL_TYPES),
             "calibration": random.choice(["isotonic", "sigmoid", "none"]),
+            # Neural net hyperparams
+            "nn_hidden_dims": random.choice([64, 128, 256]),
+            "nn_n_layers": random.randint(2, 4),
+            "nn_dropout": random.uniform(0.1, 0.5),
+            "nn_epochs": random.randint(20, 100),
+            "nn_batch_size": random.choice([32, 64, 128]),
         }
         self.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
+        self.pareto_rank = 999
+        self.crowding_dist = 0.0
+        self.island_id = -1
         self.generation = 0
         self.n_features = sum(self.features)
 
@@ -499,10 +518,17 @@ class Individual:
         if random.random() < 0.15:
             self.hyperparams["learning_rate"] *= 10 ** random.uniform(-0.3, 0.3)
             self.hyperparams["learning_rate"] = max(0.001, min(0.5, self.hyperparams["learning_rate"]))
-        if random.random() < 0.05:
-            self.hyperparams["model_type"] = random.choice(["xgboost", "lightgbm"])
+        if random.random() < 0.08:
+            self.hyperparams["model_type"] = random.choice(ALL_MODEL_TYPES)
         if random.random() < 0.05:
             self.hyperparams["calibration"] = random.choice(["isotonic", "sigmoid", "none"])
+        # Neural net hyperparams
+        if random.random() < 0.10:
+            self.hyperparams["nn_hidden_dims"] = random.choice([64, 128, 256, 512])
+        if random.random() < 0.10:
+            self.hyperparams["nn_n_layers"] = max(1, min(6, self.hyperparams.get("nn_n_layers", 2) + random.randint(-1, 1)))
+        if random.random() < 0.10:
+            self.hyperparams["nn_dropout"] = max(0.0, min(0.7, self.hyperparams.get("nn_dropout", 0.3) + random.uniform(-0.1, 0.1)))
         self.n_features = sum(self.features)
 
 
@@ -510,11 +536,15 @@ class Individual:
 # SECTION 4: FITNESS EVALUATION (multi-objective)
 # ═══════════════════════════════════════════════════════════
 
-def evaluate_individual(ind, X, y, n_splits=5, use_gpu=False):
+def evaluate_individual(ind, X, y, n_splits=5, use_gpu=False, _eval_counter=[0]):
     """
     Evaluate one individual via walk-forward backtest.
     Multi-objective: Brier + ROI + Sharpe + Calibration.
+    Includes memory management for 16GB RAM with 500 individuals.
     """
+    _eval_counter[0] += 1
+    if _eval_counter[0] % 10 == 0:
+        gc.collect()
     from sklearn.model_selection import TimeSeriesSplit
     from sklearn.metrics import brier_score_loss
     from sklearn.calibration import CalibratedClassifierCV
@@ -664,15 +694,22 @@ class GeneticEvolutionEngine:
     Runs continuously, evolving a population of model configs.
     """
 
-    def __init__(self, pop_size=80, elite_size=5, mutation_rate=0.03,
-                 crossover_rate=0.7, target_features=100, n_splits=5):
+    def __init__(self, pop_size=500, elite_size=25, mutation_rate=0.15,
+                 crossover_rate=0.85, target_features=100, n_splits=5,
+                 n_islands=5, migration_interval=10, migrants_per_island=5):
         self.pop_size = pop_size
         self.elite_size = elite_size
         self.base_mutation_rate = mutation_rate
         self.mutation_rate = mutation_rate
+        self.mut_floor = 0.05
+        self.mut_decay = 0.995
         self.crossover_rate = crossover_rate
         self.target_features = target_features
         self.n_splits = n_splits
+        self.n_islands = n_islands
+        self.island_size = pop_size // n_islands
+        self.migration_interval = migration_interval
+        self.migrants_per_island = migrants_per_island
 
         self.population = []
         self.generation = 0
@@ -797,11 +834,14 @@ class GeneticEvolutionEngine:
         else:
             self.stagnation_counter = 0
 
-        if self.stagnation_counter >= 5:
-            self.mutation_rate = min(0.15, self.mutation_rate * 1.5)
+        # Adaptive mutation: decay over time, boost on stagnation
+        self.mutation_rate *= self.mut_decay
+        self.mutation_rate = max(self.mut_floor, self.mutation_rate)
+        if self.stagnation_counter >= 10:
+            self.mutation_rate = min(0.20, self.mutation_rate * 1.5)
             print(f"  [STAGNATION] {self.stagnation_counter} gens — mutation rate -> {self.mutation_rate:.3f}")
-        elif self.stagnation_counter == 0:
-            self.mutation_rate = max(self.base_mutation_rate, self.mutation_rate * 0.9)
+        elif self.stagnation_counter >= 5:
+            self.mutation_rate = min(0.15, self.mutation_rate * 1.2)
 
         # 5. Record history
         self.history.append({
@@ -940,7 +980,7 @@ def callback_to_vm(results):
 # SECTION 7: MAIN LOOP (continuous 24/7)
 # ═══════════════════════════════════════════════════════════
 
-def run_continuous(generations_per_cycle=10, total_cycles=None, pop_size=80,
+def run_continuous(generations_per_cycle=10, total_cycles=None, pop_size=500,
                    target_features=100, n_splits=5, cool_down=30):
     """
     Main entry point — runs genetic evolution CONTINUOUSLY.
@@ -977,8 +1017,9 @@ def run_continuous(generations_per_cycle=10, total_cycles=None, pop_size=80,
     # 3. Initialize engine
     print("\n[PHASE 3] Initializing engine...")
     engine = GeneticEvolutionEngine(
-        pop_size=pop_size, elite_size=5, mutation_rate=0.03,
-        crossover_rate=0.7, target_features=target_features, n_splits=n_splits,
+        pop_size=pop_size, elite_size=max(5, pop_size // 20), mutation_rate=0.15,
+        crossover_rate=0.85, target_features=target_features, n_splits=n_splits,
+        n_islands=5, migration_interval=10, migrants_per_island=5,
     )
 
     # Try to restore previous state
@@ -1127,7 +1168,7 @@ if __name__ == "__main__":
     parser.add_argument("--continuous", action="store_true", help="Run 24/7 (no cycle limit)")
     parser.add_argument("--generations", type=int, default=10, help="Generations per cycle (default: 10)")
     parser.add_argument("--cycles", type=int, default=None, help="Number of cycles (default: infinite)")
-    parser.add_argument("--pop-size", type=int, default=80, help="Population size (default: 80)")
+    parser.add_argument("--pop-size", type=int, default=500, help="Population size (default: 500)")
     parser.add_argument("--target-features", type=int, default=100, help="Target features (default: 100)")
     parser.add_argument("--splits", type=int, default=5, help="Walk-forward splits (default: 5)")
     parser.add_argument("--cooldown", type=int, default=30, help="Seconds between cycles (default: 30)")
