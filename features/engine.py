@@ -1759,9 +1759,212 @@ class NBAFeatureEngine:
             a_pyth = (a_pts_s ** _e) / ((a_pts_s ** _e) + (a_opp_s ** _e)) if a_pts_s > 0 else 0.5
             row.append(h_pyth - a_pyth)
 
-            # 19-23: Placeholder zeros
-            _n_cats_19_23 = self._cat_bounds.get(24, _cat25_start) - self._cat_bounds.get(19, _cat25_start)
-            row.extend([0.0] * _n_cats_19_23)
+            # ═══════════════════════════════════════════════════════════
+            # CATEGORIES 19-23: REAL COMPUTATION (replacing zeros)
+            # ═══════════════════════════════════════════════════════════
+            _cat19_start = len(row)
+
+            # 19. LINEUP & ROTATION (66 features) — zeros (needs player data)
+            row.extend([0.0] * 66)
+
+            # 20. GAME THEORY & META (50 features) — zeros (needs model history)
+            row.extend([0.0] * 50)
+
+            # ──────────────────────────────────────────────────────
+            # 21. ENVIRONMENTAL & EXTERNAL (44 features) — COMPUTED
+            # ──────────────────────────────────────────────────────
+            for _pfx21, _tr21, _tk21 in [("h", hr_, home), ("a", ar_, away)]:
+                _ngp21 = len(_tr21)
+                _wp21 = self._wp(_tr21, _ngp21)
+
+                # Conference standings
+                _conf21 = self._conference(_tk21)
+                _conf_wps21 = []
+                for _t21, _r21 in team_results.items():
+                    if _r21 and self._conference(_t21) == _conf21:
+                        _conf_wps21.append((_t21, self._wp(_r21, len(_r21))))
+                _conf_wps21.sort(key=lambda x: x[1], reverse=True)
+
+                _rank21 = 15
+                for _ir21, (_t21, _) in enumerate(_conf_wps21):
+                    if _t21 == _tk21:
+                        _rank21 = _ir21 + 1
+                        break
+
+                row.append(_rank21 / 15.0)                              # conf_standing_pct
+                row.append(self._division(_tk21))                       # div_standing_pct
+                row.append(max(0, (15 - _rank21)) / 15.0)             # lottery_odds_proxy
+                row.append(1.0 if _rank21 >= 12 and _wp21 < 0.35 else 0.0)  # tank_indicator
+
+                # Playoff urgency
+                _urg = 0.0
+                if 6 <= _rank21 <= 12:
+                    _urg = 1.0 - abs(_rank21 - 9) / 6.0
+                elif _rank21 <= 5:
+                    _urg = 0.3
+                row.append(_urg)                                        # playoff_urgency
+
+                # Revenge game
+                _opp21 = away if _pfx21 == "h" else home
+                _h2h21 = h2h_results.get((_tk21, _opp21), []) + h2h_results.get((_opp21, _tk21), [])
+                _rev = 0.0
+                _rev_m = 0.0
+                if _h2h21:
+                    _last_h2h = _h2h21[-1]
+                    _m_for_team = _last_h2h[2] if _last_h2h[4].get("team") == _tk21 else -_last_h2h[2]
+                    if _m_for_team <= -15:
+                        _rev = 1.0
+                        _rev_m = abs(_m_for_team) / 30.0
+                row.append(_rev)                                        # revenge_game
+                row.append(_rev_m)                                      # revenge_intensity
+
+                # Coach/roster/media data not available (9 features)
+                row.extend([0.0] * 9)
+
+            # Game-level environmental (12 features)
+            _hrank_g = 15
+            _arank_g = 15
+            for _conf_g in [self._conference(home), self._conference(away)]:
+                _cwps_g = []
+                for _t, _recs in team_results.items():
+                    if _recs and self._conference(_t) == _conf_g:
+                        _cwps_g.append((_t, self._wp(_recs, len(_recs))))
+                _cwps_g.sort(key=lambda x: x[1], reverse=True)
+                for _ir, (_t, _) in enumerate(_cwps_g):
+                    if _t == home and self._conference(home) == _conf_g:
+                        _hrank_g = _ir + 1
+                    if _t == away and self._conference(away) == _conf_g:
+                        _arank_g = _ir + 1
+
+            row.append((_hrank_g - _arank_g) / 15.0)                   # conf_standing_diff
+            row.append(self._division(home) - self._division(away))    # div_standing_diff
+            row.append(1.0 if _hrank_g <= 10 and _arank_g <= 10 else 0.0)  # both_playoff_contenders
+            _hwp_g = self._wp(hr_, len(hr_))
+            _awp_g = self._wp(ar_, len(ar_))
+            row.append(1.0 if (_hrank_g >= 12 and _hwp_g < 0.35 and
+                               _arank_g >= 12 and _awp_g < 0.35) else 0.0)  # both_tanking
+            _fav = max(_hwp_g, _awp_g)
+            _dog = min(_hwp_g, _awp_g)
+            row.append(_dog / max(_fav, 0.01))                          # upset_potential
+            _rival21 = 1.0 if self._division(home) == self._division(away) else 0.0
+            _h2h_ct = len(h2h_results.get((home, away), []) + h2h_results.get((away, home), []))
+            row.append(_rival21 * 0.5 + min(_h2h_ct / 10.0, 0.5))    # rivalry_intensity
+            row.extend([0.0, 0.0])                                      # public_side_home, contrarian (no data)
+            row.append(sp * self._travel_dist(hr_, home) / 3000.0)     # weather_travel_factor
+            row.append((ARENA_ALTITUDE.get(home, 500) - ARENA_ALTITUDE.get(away, 500)) *
+                       self._travel_dist(ar_, away) / max(5280 * 3000, 1))  # altitude_fatigue_compound
+            _tz_sh = abs(TIMEZONE_ET.get(away, 0) - TIMEZONE_ET.get(self._last_location(ar_), 0))
+            row.append(_tz_sh * (1.0 if a_rest <= 1 else 0.3))        # timezone_circadian_impact
+            row.append(0.0)                                              # arena_noise_factor (no data)
+
+            # ──────────────────────────────────────────────────────
+            # 22. CROSS-WINDOW MOMENTUM (630 features) — COMPUTED
+            # ──────────────────────────────────────────────────────
+            _cw_stats = ["wp", "ppg", "margin", "ortg", "drtg",
+                         "efg", "ts", "pace", "papg", "pd"]
+            _cw_pairs = [
+                (3, 5), (3, 7), (3, 10), (3, 15), (3, 20),
+                (5, 7), (5, 10), (5, 15), (5, 20),
+                (7, 10), (7, 15), (7, 20),
+                (10, 15), (10, 20),
+                (15, 20),
+            ]
+            _cw_windows = [3, 5, 7, 10, 15, 20]
+            _CW_FN = {
+                "wp": self._wp, "ppg": self._ppg, "margin": self._avg_margin,
+                "ortg": self._ortg, "drtg": self._drtg, "efg": self._efg,
+                "ts": self._ts, "pace": self._pace, "papg": self._papg,
+                "pd": self._pd,
+            }
+
+            # Pre-compute all stat values at all windows for both teams
+            _cw_cache = {}
+            for _pfx22, _tr22 in [("h", hr_), ("a", ar_)]:
+                _sv22 = {}
+                for _s in _cw_stats:
+                    _fn = _CW_FN[_s]
+                    for _w in _cw_windows:
+                        _sv22[(_s, _w)] = _fn(_tr22, _w)
+                _cw_cache[_pfx22] = _sv22
+
+            # Delta/acceleration features (order: h then a, matching feature names)
+            for _pfx22 in ["h", "a"]:
+                _sv22 = _cw_cache[_pfx22]
+                for _s in _cw_stats:
+                    for _w1, _w2 in _cw_pairs:
+                        _d = _sv22[(_s, _w1)] - _sv22[(_s, _w2)]
+                        row.append(_d)                                  # delta
+                        row.append(_d / max(_w2 - _w1, 1))            # acceleration
+
+            # Composite features (15 per team, order: h then a)
+            for _pfx22 in ["h", "a"]:
+                _sv22 = _cw_cache[_pfx22]
+
+                # Collect deltas by stat
+                _wp_d22 = [(_w1, _w2, _sv22[("wp", _w1)] - _sv22[("wp", _w2)]) for _w1, _w2 in _cw_pairs]
+                _margin_d22 = [_sv22[("margin", _w1)] - _sv22[("margin", _w2)] for _w1, _w2 in _cw_pairs]
+                _ortg_d22 = [_sv22[("ortg", _w1)] - _sv22[("ortg", _w2)] for _w1, _w2 in _cw_pairs]
+                _drtg_d22 = [_sv22[("drtg", _w1)] - _sv22[("drtg", _w2)] for _w1, _w2 in _cw_pairs]
+                _wp_vals = [d for _, _, d in _wp_d22]
+                _short_wp = [d for w1, _, d in _wp_d22 if w1 <= 5]
+                _long_wp = [d for _, w2, d in _wp_d22 if w2 >= 15]
+
+                # 1. shortterm_trend
+                row.append(sum(_short_wp) / max(len(_short_wp), 1))
+                # 2. longterm_trend
+                row.append(sum(_long_wp) / max(len(_long_wp), 1))
+                # 3. margin_volatility_trend
+                _md_m = sum(_margin_d22) / max(len(_margin_d22), 1)
+                _md_s = (sum((_d - _md_m)**2 for _d in _margin_d22) / max(len(_margin_d22), 1)) ** 0.5
+                row.append(_md_s / 10.0)
+                # 4. ortg_improvement_rate
+                row.append(sum(_ortg_d22) / max(len(_ortg_d22), 1) / 5.0)
+                # 5. drtg_improvement_rate (negative = improving defense)
+                row.append(-sum(_drtg_d22) / max(len(_drtg_d22), 1) / 5.0)
+                # 6. overall_trajectory
+                _wp_avg = sum(_wp_vals) / max(len(_wp_vals), 1)
+                _mg_avg = sum(_margin_d22) / max(len(_margin_d22), 1)
+                _or_avg = sum(_ortg_d22) / max(len(_ortg_d22), 1)
+                row.append(0.4 * _wp_avg + 0.3 * _mg_avg / 10.0 + 0.3 * _or_avg / 5.0)
+                # 7. form_acceleration
+                _vshort = [d for w1, _, d in _wp_d22 if w1 == 3]
+                _med22 = [d for w1, _, d in _wp_d22 if w1 == 7]
+                row.append(sum(_vshort) / max(len(_vshort), 1) -
+                          sum(_med22) / max(len(_med22), 1))
+                # 8. peak_window
+                _wp_at = [_sv22[("wp", _w)] for _w in _cw_windows]
+                row.append(_wp_at.index(max(_wp_at)) / 5.0)
+                # 9. trough_window
+                row.append(_wp_at.index(min(_wp_at)) / 5.0)
+                # 10. consistency_across_windows
+                _wm22 = sum(_wp_at) / len(_wp_at)
+                row.append((sum((_v - _wm22)**2 for _v in _wp_at) / len(_wp_at)) ** 0.5)
+                # 11. trend_agreement
+                _signs = [1 if d > 0.01 else (-1 if d < -0.01 else 0) for d in _wp_vals]
+                _nz = [s for s in _signs if s != 0]
+                row.append(abs(sum(_nz)) / max(len(_nz), 1) if _nz else 0.0)
+                # 12. breakout_signal
+                _sh_a = sum(_short_wp) / max(len(_short_wp), 1)
+                _lg_a = sum(_long_wp) / max(len(_long_wp), 1)
+                row.append(max(0, _sh_a - _lg_a) * 5.0)
+                # 13. decline_signal
+                row.append(max(0, _lg_a - _sh_a) * 5.0)
+                # 14. mean_reversion_signal
+                row.append(abs(_sv22[("wp", 5)] - 0.5) - abs(_sv22[("wp", 20)] - 0.5))
+                # 15. momentum_strength
+                row.append(abs(_sv22[("wp", 3)] - _sv22[("wp", 20)]))
+
+            # 23. MARKET II (62 features if market) — zeros (needs multi-book data)
+            if self.include_market:
+                row.extend([0.0] * 62)
+
+            # Safety: pad/truncate to match expected cat 19-23 count
+            _expected_19_23 = self._cat_bounds.get(24, _cat25_start) - self._cat_bounds.get(19, _cat25_start)
+            _actual_19_23 = len(row) - _cat19_start
+            if _actual_19_23 < _expected_19_23:
+                row.extend([0.0] * (_expected_19_23 - _actual_19_23))
+            elif _actual_19_23 > _expected_19_23:
+                del row[_cat19_start + _expected_19_23:]
 
             # ================================================================
             # 24. POWER RATING COMPOSITES (64 features) — REAL COMPUTATION
