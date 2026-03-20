@@ -1132,3 +1132,125 @@ def run_exp(exp, X, y, feature_names):
 
 ### END Research Scholar addition ###
 ### END Model Architect addition ###
+
+
+### BEGIN Calibrator addition (2026-03-20) ###
+```python
+# Add to imports section
+from sklearn.calibration import CalibratedClassifierCV
+from scipy.special import softmax
+import numpy as np
+from datetime import datetime, timedelta
+
+# Add new calibration method
+def run_calibrated_temperature_scaling(exp, X, y, feature_names, dates):
+    """
+    Temperature Scaling with Time-Decay Weighting
+    Applies temperature scaling T=0.8 with exponential decay weighting by recency
+    """
+    # Parse params
+    T = exp['params'].get('T', 0.8)
+    decay_lambda = exp['params'].get('decay_lambda', 0.02)
+    fit_on = exp['params'].get('fit_on', 'last_2_seasons_weighted')
+
+    # Convert to torch tensors
+    X_tensor = torch.tensor(X, dtype=torch.float32)
+    y_tensor = torch.tensor(y, dtype=torch.float32).view(-1, 1)
+
+    # Create dataset and dataloader
+    dataset = TensorDataset(X_tensor, y_tensor)
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+    # Model definition (same as FT-Transformer)
+    model = nn.Sequential(
+        nn.Linear(X.shape[1], 128),
+        nn.ReLU(),
+        nn.Linear(128, 64),
+        nn.ReLU(),
+        nn.Linear(64, 1),
+        nn.Sigmoid()
+    )
+
+    # Training
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.BCELoss()
+    epochs = 100
+
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0
+        for xb, yb in dataloader:
+            optimizer.zero_grad()
+            preds = model(xb.float())
+            loss = criterion(preds, yb)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
+
+    # Temperature scaling calibration
+    model.eval()
+    with torch.no_grad():
+        logits = model(X_tensor.float())
+
+    # Apply temperature scaling
+    scaled_logits = logits / T
+    calibrated_probs = torch.sigmoid(scaled_logits).numpy().flatten()
+
+    # Time-decay weighting for calibration fit
+    if fit_on == 'last_2_seasons_weighted' and dates is not None:
+        # Calculate weights based on exponential decay
+        end_date = datetime.strptime(dates[-1], '%Y-%m-%d')
+        weights = []
+        for date_str in dates:
+            game_date = datetime.strptime(date_str, '%Y-%m-%d')
+            days_old = (end_date - game_date).days
+            weight = np.exp(-decay_lambda * days_old)
+            weights.append(weight)
+
+        weights = np.array(weights)
+        weights /= weights.sum()  # Normalize
+
+        # Fit calibration with weighted data
+        calibrator = CalibratedClassifierCV(
+            method='sigmoid',
+            cv=5,
+            ensemble=True
+        )
+        calibrator.fit(logits.numpy(), y, sample_weight=weights)
+        calibrated_probs = calibrator.predict_proba(logits.numpy())[:, 1]
+    else:
+        # Standard temperature scaling without weighting
+        calibrated_probs = torch.sigmoid(scaled_logits).numpy().flatten()
+
+    # Evaluation
+    brier = np.mean((calibrated_probs - y)**2)
+    accuracy = np.mean((calibrated_probs > 0.5) == y)
+
+    # Save results
+    result = {
+        'brier_score': brier,
+        'accuracy': accuracy,
+        'predictions': calibrated_probs.tolist(),
+        'model_type': 'calibrated_temperature_scaling',
+        'calibration_params': {
+            'T': T,
+            'decay_lambda': decay_lambda,
+            'fit_on': fit_on
+        }
+    }
+    save_results(exp, result)
+    print(f"✓ Calibrated Temperature Scaling complete: Brier={brier:.4f}, Acc={accuracy:.4f}")
+
+# Add to run_exp dispatch
+def run_exp(exp, X, y, feature_names, dates=None):
+    """Dispatch to appropriate model runner"""
+    model_type = exp['params']['model_type']
+    if model_type == 'ft_transformer':
+        run_ft_transformer(exp, X, y, feature_names)
+    elif model_type == 'calibrated_temperature_scaling':
+        run_calibrated_temperature_scaling(exp, X, y, feature_names, dates)
+    else:
+        # Existing model runners...
+        pass
+```
+### END Calibrator addition ###
