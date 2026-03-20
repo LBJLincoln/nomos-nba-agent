@@ -965,3 +965,170 @@ def run_exp(exp, X, y, feature_names):
         # Existing model runners...
         pass
 ### END Research Scholar addition ###
+
+
+### BEGIN Model Architect addition (2026-03-20) ###
+### Research Scholar addition: XGBoost Deep Trees with Low Learning Rate ###
+# Implements: Extreme Gradient Boosting - Depth 12, LR 0.005
+# Hypothesis: Very deep trees with tiny learning rate will capture complex interactions without overfitting
+
+import xgboost as xgb
+from sklearn.model_selection import cross_val_predict, StratifiedKFold
+from sklearn.metrics import brier_score_loss, accuracy_score, log_loss
+import numpy as np
+import json
+import os
+from datetime import datetime
+
+
+def run_xgboost_deep_lr(exp, X, y, feature_names):
+    """
+    Run XGBoost with deep trees (max_depth=12) and very low learning rate (0.005).
+    Uses aggressive regularization to prevent overfitting despite depth.
+    """
+    params = exp['params']
+    print(f"\n{'='*60}")
+    print(f"Running XGBoost Deep-LR Experiment: {exp['name']}")
+    print(f"Config: max_depth={params.get('max_depth', 12)}, "
+          f"learning_rate={params.get('learning_rate', 0.005)}, "
+          f"n_estimators={params.get('n_estimators', 2000)}")
+    print(f"{'='*60}")
+    
+    # Ensure numpy arrays
+    X = np.array(X)
+    y = np.array(y).ravel()
+    
+    # XGBoost parameters - deep trees with strong regularization
+    xgb_params = {
+        'max_depth': params.get('max_depth', 12),
+        'learning_rate': params.get('learning_rate', 0.005),
+        'n_estimators': params.get('n_estimators', 2000),
+        'subsample': params.get('subsample', 0.8),
+        'colsample_bytree': params.get('colsample_bytree', 0.8),
+        'reg_alpha': params.get('reg_alpha', 1),      # L1 regularization
+        'reg_lambda': params.get('reg_lambda', 5),    # L2 regularization (strong)
+        'booster': params.get('booster', 'gbtree'),
+        'min_child_weight': params.get('min_child_weight', 1),
+        'gamma': params.get('gamma', 0.1),            # Min loss reduction for split
+        'objective': 'binary:logistic',
+        'eval_metric': 'logloss',
+        'random_state': 42,
+        'n_jobs': -1,
+        'verbosity': 0
+    }
+    
+    # Use early stopping with validation set to prevent overfitting
+    # Split for early stopping validation
+    np.random.seed(42)
+    n_samples = len(y)
+    val_size = int(0.15 * n_samples)
+    indices = np.random.permutation(n_samples)
+    train_idx, val_idx = indices[val_size:], indices[:val_size]
+    
+    X_train, X_val = X[train_idx], X[val_idx]
+    y_train, y_val = y[train_idx], y[val_idx]
+    
+    print(f"Training samples: {len(y_train)}, Validation samples: {len(y_val)}")
+    
+    # Initialize model
+    model = xgb.XGBClassifier(**xgb_params)
+    
+    # Fit with early stopping
+    model.fit(
+        X_train, y_train,
+        eval_set=[(X_val, y_val)],
+        early_stopping_rounds=100,
+        verbose=False
+    )
+    
+    best_iteration = model.best_iteration if hasattr(model, 'best_iteration') else xgb_params['n_estimators']
+    print(f"Best iteration: {best_iteration}/{xgb_params['n_estimators']}")
+    
+    # Cross-validation for robust evaluation (time-series aware if dates available)
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    
+    # Get out-of-fold predictions
+    cv_preds = cross_val_predict(
+        xgb.XGBClassifier(**{**xgb_params, 'n_estimators': best_iteration}),
+        X, y,
+        cv=cv,
+        method='predict_proba',
+        n_jobs=-1
+    )[:, 1]
+    
+    # Calculate metrics
+    brier = brier_score_loss(y, cv_preds)
+    accuracy = accuracy_score(y, cv_preds > 0.5)
+    logloss = log_loss(y, cv_preds)
+    
+    # Feature importance
+    importance = model.feature_importances_
+    feature_importance = {
+        name: float(imp) 
+        for name, imp in zip(feature_names, importance)
+    }
+    top_features = sorted(feature_importance.items(), key=lambda x: x[1], reverse=True)[:10]
+    
+    print(f"\nResults:")
+    print(f"  Brier Score: {brier:.6f}")
+    print(f"  Accuracy: {accuracy:.4f}")
+    print(f"  Log Loss: {logloss:.4f}")
+    print(f"\nTop 10 Important Features:")
+    for name, imp in top_features:
+        print(f"  {name}: {imp:.4f}")
+    
+    # Calibration check
+    from sklearn.calibration import calibration_curve
+    prob_true, prob_pred = calibration_curve(y, cv_preds, n_bins=10)
+    calibration_error = np.mean(np.abs(prob_true - prob_pred))
+    print(f"  Expected Calibration Error: {calibration_error:.4f}")
+    
+    # Save results
+    result = {
+        'brier_score': float(brier),
+        'accuracy': float(accuracy),
+        'log_loss': float(logloss),
+        'calibration_error': float(calibration_error),
+        'best_iteration': int(best_iteration),
+        'n_features': int(X.shape[1]),
+        'n_samples': int(len(y)),
+        'predictions': cv_preds.tolist(),
+        'feature_importance': feature_importance,
+        'top_features': top_features,
+        'model_type': 'xgboost_deep_lr',
+        'params_used': {k: v for k, v in xgb_params.items() if k not in ['verbosity']}
+    }
+    
+    save_results(exp, result)
+    
+    # Save model for potential ensemble use
+    model_dir = os.path.dirname(exp.get('output_path', 'results/'))
+    os.makedirs(model_dir, exist_ok=True)
+    model_path = os.path.join(model_dir, f"xgb_deep_lr_{exp['name']}.json")
+    model.save_model(model_path)
+    print(f"✓ Model saved to: {model_path}")
+    
+    print(f"\n✓ XGBoost Deep-LR complete: Brier={brier:.6f}, Acc={accuracy:.4f}")
+    
+    return result
+
+
+# Update run_exp dispatch to include new model
+_original_run_exp = run_exp  # Store reference if needed
+
+def run_exp(exp, X, y, feature_names):
+    """Dispatch to appropriate model runner"""
+    model_type = exp['params'].get('model_type', '')
+    
+    if model_type == 'xgboost' and exp['params'].get('max_depth', 6) >= 10:
+        # Deep XGBoost with low learning rate
+        run_xgboost_deep_lr(exp, X, y, feature_names)
+    elif model_type == 'ft_transformer':
+        run_ft_transformer(exp, X, y, feature_names)
+    else:
+        # Existing model runners - call original or raise informative error
+        raise NotImplementedError(f"Model type '{model_type}' not implemented. "
+                                f"Available: 'xgboost' (deep), 'ft_transformer'")
+
+### END Research Scholar addition ###
+### END Model Architect addition ###
