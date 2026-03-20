@@ -104,27 +104,78 @@ def _reconnect_pg():
 _get_pg()
 
 # ═══════════════════════════════════════════════
-# DATA LOADING
+# DATA LOADING — GitHub raw files (game data NOT in Supabase)
 # ═══════════════════════════════════════════════
 
-def load_games_from_supabase(limit=15000) -> List[dict]:
-    for table in ["nba_games", "nba_historical_games", "games"]:
-        rows = _exec_sql(f"SELECT data FROM public.{table} ORDER BY id ASC LIMIT %s",
-                         (limit,))
-        if rows and rows is not True and len(rows) > 0:
-            games = [r[0] if isinstance(r[0], dict) else json.loads(r[0]) for r in rows]
-            print(f"Loaded {len(games)} games from {table}")
-            return games
-    rows = _exec_sql("""SELECT game_date, home_team, away_team, home_pts, away_pts,
-        home_stats, away_stats FROM public.nba_game_results ORDER BY game_date ASC
-        LIMIT %s""", (limit,))
-    if rows and rows is not True and len(rows) > 0:
-        games = [{"game_date": str(r[0]), "home_team": r[1], "away_team": r[2],
-                  "home": {"team_name": r[1], "pts": r[3], **(r[5] or {})},
-                  "away": {"team_name": r[2], "pts": r[4], **(r[6] or {})}} for r in rows]
-        print(f"Loaded {len(games)} games from nba_game_results")
+GITHUB_RAW = "https://raw.githubusercontent.com/LBJLincoln/nomos-nba-agent/main/data/historical"
+SEASONS = ["2018-19","2019-20","2020-21","2021-22","2022-23","2023-24","2024-25","2025-26"]
+
+def load_games() -> List[dict]:
+    """Load game data from GitHub repo (primary) or local files (fallback)."""
+    import urllib.request
+    games = []
+
+    # Try GitHub raw files first (works on Kaggle/Colab with internet)
+    for season in SEASONS:
+        url = f"{GITHUB_RAW}/games-{season}.json"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "NomoS42/1.0"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode())
+                if isinstance(data, list):
+                    games.extend(data)
+                    print(f"  {season}: {len(data)} games (GitHub)")
+        except Exception as e:
+            print(f"  {season}: GitHub failed ({e})")
+
+    if games:
+        games.sort(key=lambda g: g.get("game_date", g.get("date", "")))
+        print(f"Loaded {len(games)} total games from GitHub")
         return games
-    print("[WARN] No games found"); return []
+
+    # Fallback: local files (if cloned repo)
+    from pathlib import Path
+    for hist_dir in [Path("data/historical"), Path("../data/historical"), Path("/kaggle/working/data/historical")]:
+        if hist_dir.exists():
+            for f in sorted(hist_dir.glob("games-*.json")):
+                data = json.loads(f.read_text())
+                games.extend(data if isinstance(data, list) else data.get("games", []))
+            if games:
+                games.sort(key=lambda g: g.get("game_date", g.get("date", "")))
+                print(f"Loaded {len(games)} games from {hist_dir}")
+                return games
+
+    # Last resort: nba_api
+    try:
+        from nba_api.stats.endpoints import leaguegamefinder
+        for season in SEASONS[-3:]:
+            time.sleep(2)
+            finder = leaguegamefinder.LeagueGameFinder(
+                season_nullable=season, league_id_nullable="00",
+                season_type_nullable="Regular Season", timeout=20)
+            df = finder.get_data_frames()[0]
+            pairs = {}
+            for _, row in df.iterrows():
+                gid = row["GAME_ID"]
+                if gid not in pairs: pairs[gid] = []
+                pairs[gid].append(row)
+            for gid, teams in pairs.items():
+                if len(teams) != 2: continue
+                home = next((t for t in teams if " vs. " in str(t.get("MATCHUP",""))), None)
+                away = next((t for t in teams if " @ " in str(t.get("MATCHUP",""))), None)
+                if home is not None and away is not None:
+                    games.append({"game_date": home.get("GAME_DATE",""),
+                                  "home_team": home["TEAM_NAME"], "away_team": away["TEAM_NAME"],
+                                  "home": {"team_name": home["TEAM_NAME"], "pts": int(home["PTS"])},
+                                  "away": {"team_name": away["TEAM_NAME"], "pts": int(away["PTS"])}})
+        if games:
+            games.sort(key=lambda g: g.get("game_date",""))
+            print(f"Loaded {len(games)} games from NBA API")
+            return games
+    except Exception as e:
+        print(f"[WARN] nba_api fallback failed: {e}")
+
+    print("[ERROR] No games found from any source"); return []
 
 # ═══════════════════════════════════════════════
 # FEATURE ENGINE (~160 features)
@@ -726,7 +777,7 @@ if torch.cuda.is_available(): print(f"GPU: {torch.cuda.get_device_name(0)}")
 print(f"{'='*60}")
 
 print("\n[1/3] Loading games from Supabase...")
-games = load_games_from_supabase()
+games = load_games()
 if len(games) < 100:
     print(f"ERROR: Only {len(games)} games. Need 100+."); sys.exit(1)
 
