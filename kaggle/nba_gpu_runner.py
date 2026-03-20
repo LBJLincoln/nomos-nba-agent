@@ -833,3 +833,20 @@ import torch # Assuming torch is already imported for GPU checks
 # This function encapsulates the training logic for a generic XGBoost model,
 # allowing `run_exp
 ### END Model Architect addition ###
+
+
+### BEGIN Calibrator addition (2026-03-20) ###
+===CODE: kaggle/nba_gpu_runner.py===
+# New calibration method: Temperature Scaling + Isotonic Regression Ensemble
+# Addresses both global over/under-confidence and local non-monotonicity.
+
+import numpy as np
+import torch
+from sklearn.isotonic import IsotonicRegression
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import log_loss
+from scipy.optimize import minimize
+import warnings
+
+# Suppress specific
+### END Calibrator addition ###
