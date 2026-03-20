@@ -1107,3 +1107,135 @@ def run_exp(exp, X, y, feature_names, X_val=None, y_val=None):
         pass
 ### END Model Architect addition ###
 ### END Model Architect addition ###
+
+
+### BEGIN Research Scholar addition (2026-03-20) ###
+```python
+# FT-Transformer with Brier loss + Focal loss ensemble implementation
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.metrics import brier_score_loss
+from sklearn.model_selection import train_test_split
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+import numpy as np
+
+class FTTransformerEnsemble(BaseEstimator, ClassifierMixin):
+    def __init__(self, params):
+        self.params = params
+        self.model = None
+        self.feature_tokenization = params["feature_tokenization"]
+        self.attention_heads = params["attention_heads"]
+        self.brier_loss_weight = params["brier_loss_weight"]
+        self.focal_loss_weight = params["focal_loss_weight"]
+        self.focal_gamma = params["focal_gamma"]
+        self.max_depth = params["max_depth"]
+        self.learning_rate = params["learning_rate"]
+        self.epochs = params["epochs"]
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    def build_model(self, input_dim):
+        class FTTransformer(nn.Module):
+            def __init__(self, input_dim, attention_heads, max_depth):
+                super().__init__()
+                self.token_embedding = nn.Linear(input_dim, 64) if self.feature_tokenization else nn.Identity()
+                self.positional_encoding = nn.Embedding(max_depth, 64)
+                self.transformer_blocks = nn.ModuleList([
+                    nn.TransformerEncoderLayer(d_model=64, nhead=attention_heads, batch_first=True)
+                    for _ in range(max_depth)
+                ])
+                self.fc = nn.Linear(64, 1)
+
+            def forward(self, x):
+                if self.feature_tokenization:
+                    x = self.token_embedding(x)
+                positional_enc = self.positional_encoding(torch.arange(x.size(1), device=x.device).unsqueeze(0))
+                x = x + positional_enc
+                for block in self.transformer_blocks:
+                    x = block(x)
+                x = self.fc(x.mean(dim=1))
+                return torch.sigmoid(x)
+
+        return FTTransformer(input_dim, self.attention_heads, self.max_depth).to(self.device)
+
+    def brier_loss(self, y_true, y_pred):
+        return torch.mean((y_true - y_pred) ** 2)
+
+    def focal_loss(self, y_true, y_pred, gamma=2):
+        epsilon = 1e-7
+        y_pred = torch.clamp(y_pred, epsilon, 1 - epsilon)
+        pt = torch.where(y_true == 1, y_pred, 1 - y_pred)
+        return torch.mean((1 - pt) ** gamma * torch.log(pt))
+
+    def fit(self, X, y):
+        X_tensor = torch.FloatTensor(X).to(self.device)
+        y_tensor = torch.FloatTensor(y).to(self.device).unsqueeze(1)
+
+        self.model = self.build_model(X.shape[1])
+        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=10, factor=0.5)
+
+        dataset = TensorDataset(X_tensor, y_tensor)
+        dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+        for epoch in range(self.epochs):
+            self.model.train()
+            total_loss = 0
+            for batch_X, batch_y in dataloader:
+                optimizer.zero_grad()
+                y_pred = self.model(batch_X).squeeze()
+                loss = (self.brier_loss_weight * self.brier_loss(batch_y, y_pred) +
+                        self.focal_loss_weight * self.focal_loss(batch_y, y_pred, self.focal_gamma))
+                loss.backward()
+                optimizer.step()
+                total_loss += loss.item()
+
+            scheduler.step(total_loss)
+
+    def predict_proba(self, X):
+        self.model.eval()
+        with torch.no_grad():
+            X_tensor = torch.FloatTensor(X).to(self.device)
+            y_pred = self.model(X_tensor).squeeze().cpu().numpy()
+        return y_pred
+
+    def evaluate(self, X, y):
+        y_pred = self.predict_proba(X)
+        return brier_score_loss(y, y_pred)
+
+def run_ft_transformer_ensemble_exp(exp, X, y, feature_names):
+    """
+    Run FT-Transformer with Brier loss + Focal loss ensemble experiment
+    """
+    params = {
+        "model_type": "ft_transformer",
+        "feature_tokenization": True,
+        "attention_heads": 8,
+        "brier_loss_weight": 0.7,
+        "focal_loss_weight": 0.3,
+        "focal_gamma": 2,
+        "max_depth": 6,
+        "learning_rate": 0.001,
+        "epochs": 200,
+        "ensemble_method": "weighted_average",
+        "weights": [0.5, 0.5],
+        "cv_folds": 5
+    }
+    model = FTTransformerEnsemble(params)
+    model.fit(X, y)
+    y_pred = model.predict_proba(X)
+    brier_loss = model.evaluate(X, y)
+    print(f"FT-Transformer Ensemble Brier Loss: {brier_loss:.4f}")
+
+# Add this to the experiment loop
+def run_exp(exp, X, y, feature_names):
+    if exp['model_type'] == 'platt_temperature_scaling_ensemble':
+        run_platt_temperature_scaling_ensemble_exp(exp, X, y, feature_names)
+    elif exp['model_type'] == 'ft_transformer':
+        run_ft_transformer_ensemble_exp(exp, X, y, feature_names)
+    else:
+        # existing experiment code
+        pass
+```
+### END Research Scholar addition ###
