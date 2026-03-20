@@ -819,3 +819,17 @@ print(f"\n{'='*60}\nKAGGLE SESSION COMPLETE: {completed} done, {failed} failed")
 if torch.cuda.is_available(): print(f"GPU: {torch.cuda.get_device_name(0)}")
 print(f"{'='*60}")
 
+
+
+### BEGIN Model Architect addition (2026-03-20) ###
+===CODE: kaggle/nba_gpu_runner.py===
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import brier_score_loss
+import numpy as np
+import torch # Assuming torch is already imported for GPU checks
+
+# --- New Model Training Function: XGBoost DART Extreme Depth ---
+# This function encapsulates the training logic for a generic XGBoost model,
+# allowing `run_exp
+### END Model Architect addition ###
