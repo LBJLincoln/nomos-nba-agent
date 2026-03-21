@@ -97,37 +97,91 @@ def http_get(url, headers=None, timeout=30):
 # ODDS FETCHING
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _fetch_bovada_as_odds_api_format():
+    """Fetch from Bovada free API and convert to Odds API compatible format."""
+    url = "https://www.bovada.lv/services/sports/event/coupon/events/A/description/basketball/nba?marketFilterId=def&lang=en"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
+    resp = urllib.request.urlopen(req, timeout=15)
+    raw = json.loads(resp.read().decode())
+    games = []
+    for group in raw:
+        for ev in group.get("events", []):
+            parts = ev.get("description", "").split(" @ ")
+            if len(parts) != 2:
+                continue
+            game = {
+                "id": ev.get("id"),
+                "home_team": parts[1].strip(),
+                "away_team": parts[0].strip(),
+                "commence_time": ev.get("startTime"),
+                "bookmakers": [],
+            }
+            markets = []
+            for dg in ev.get("displayGroups", []):
+                for mkt in dg.get("markets", []):
+                    mtype = mkt.get("description", "").lower()
+                    outcomes = []
+                    for oc in mkt.get("outcomes", []):
+                        o = {"name": oc.get("description", ""),
+                             "price": float(oc.get("price", {}).get("decimal", "2.0") or "2.0")}
+                        if oc.get("price", {}).get("handicap"):
+                            o["point"] = float(oc["price"]["handicap"])
+                        outcomes.append(o)
+                    if "spread" in mtype:
+                        markets.append({"key": "spreads", "outcomes": outcomes})
+                    elif "moneyline" in mtype or "money" in mtype:
+                        markets.append({"key": "h2h", "outcomes": outcomes})
+                    elif "total" in mtype:
+                        markets.append({"key": "totals", "outcomes": outcomes})
+            if markets:
+                game["bookmakers"] = [{"key": "bovada", "title": "Bovada", "markets": markets}]
+            games.append(game)
+    return games
+
+
 def fetch_live_odds(markets="h2h,spreads,totals", regions="us,eu,uk,au"):
     """
-    Fetch live NBA odds from The Odds API.
-
-    Returns list of games with all bookmaker odds.
+    Fetch live NBA odds. Bovada primary (FREE), The Odds API fallback.
+    Returns list of games with bookmaker odds in Odds API format.
     """
-    if not ODDS_API_KEY:
-        print("[ODDS] Pas de ODDS_API_KEY configure — utilisation donnees simulees")
-        return _simulate_odds()
+    # 1. Try Bovada first (free, no key needed)
+    try:
+        games = _fetch_bovada_as_odds_api_format()
+        if games:
+            print(f"[ODDS] Bovada: {len(games)} games fetched (FREE)")
+            return games
+    except Exception as e:
+        print(f"[ODDS] Bovada failed: {e}")
 
-    url = (
-        f"{ODDS_API_BASE}/sports/basketball_nba/odds/"
-        f"?apiKey={ODDS_API_KEY}"
-        f"&regions={regions}"
-        f"&markets={markets}"
-        f"&oddsFormat=decimal"
-        f"&dateFormat=iso"
-    )
+    # 2. Try The Odds API (needs key with credits)
+    if ODDS_API_KEY:
+        url = (
+            f"{ODDS_API_BASE}/sports/basketball_nba/odds/"
+            f"?apiKey={ODDS_API_KEY}"
+            f"&regions={regions}"
+            f"&markets={markets}"
+            f"&oddsFormat=decimal"
+            f"&dateFormat=iso"
+        )
+        data, status = http_get(url, timeout=15)
+        if isinstance(data, list) and data:
+            print(f"[ODDS] The Odds API: {len(data)} games fetched")
+            return data
 
-    data, status = http_get(url, timeout=15)
+    # 3. Try cached odds from data/odds/latest.json
+    cached = ROOT / "data" / "odds" / "latest.json"
+    if cached.exists():
+        try:
+            snapshot = json.loads(cached.read_text())
+            if snapshot.get("games"):
+                print(f"[ODDS] Using cached odds ({snapshot.get('timestamp', 'unknown')})")
+                return snapshot["games"]
+        except Exception:
+            pass
 
-    if isinstance(data, dict) and "error" in data:
-        print(f"[ODDS] API Error: {data['error']}")
-        return _simulate_odds()
-
-    if not isinstance(data, list):
-        print(f"[ODDS] Unexpected response format")
-        return _simulate_odds()
-
-    print(f"[ODDS] Fetched {len(data)} games with live odds")
-    return data
+    # 4. Fall back to simulated odds
+    print("[ODDS] No live odds available — using simulated odds")
+    return _simulate_odds()
 
 
 def _simulate_odds():
