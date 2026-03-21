@@ -184,3 +184,4 @@ def compute_rest_impact_features(games: pd.DataFrame, team_id: int, current_game
 # })
 # current_game = {'game_date': '2024-01-15', 'location': 'Chicago', 'timezone': -6}
 # rest_features = compute_rest_impact_features(games, team_id=1, current_game=current_game)
+
