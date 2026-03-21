@@ -70,14 +70,70 @@ def _load_latest_ai_analysis():
 
 
 def _fetch_live_odds():
-    """Fetch real live odds from The Odds API."""
+    """Fetch real live odds from multiple sources (Bovada primary, The Odds API fallback)."""
     import urllib.request
-    url = f"https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?apiKey={ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american"
+
+    # Source 1: Bovada public API (FREE, no key needed)
     try:
-        resp = urllib.request.urlopen(url, timeout=30)
-        return json.loads(resp.read().decode())
+        url = "https://www.bovada.lv/services/sports/event/coupon/events/A/description/basketball/nba?marketFilterId=def&lang=en"
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        resp = urllib.request.urlopen(req, timeout=15)
+        raw = json.loads(resp.read().decode())
+        games = []
+        for group in raw:
+            for ev in group.get("events", []):
+                game = {
+                    "id": ev.get("id"),
+                    "description": ev.get("description", ""),
+                    "start_time": ev.get("startTime"),
+                    "source": "bovada",
+                    "markets": {},
+                }
+                # Parse team names from description "Away @ Home"
+                parts = ev.get("description", "").split(" @ ")
+                if len(parts) == 2:
+                    game["away_team"] = parts[0].strip()
+                    game["home_team"] = parts[1].strip()
+                # Extract markets
+                for dg in ev.get("displayGroups", []):
+                    for mkt in dg.get("markets", []):
+                        mtype = mkt.get("description", "").lower()
+                        outcomes = []
+                        for oc in mkt.get("outcomes", []):
+                            outcomes.append({
+                                "name": oc.get("description", ""),
+                                "american": oc.get("price", {}).get("american", ""),
+                                "decimal": oc.get("price", {}).get("decimal", ""),
+                                "handicap": oc.get("price", {}).get("handicap", ""),
+                            })
+                        if "spread" in mtype:
+                            game["markets"]["spread"] = outcomes
+                        elif "moneyline" in mtype or "money" in mtype:
+                            game["markets"]["moneyline"] = outcomes
+                        elif "total" in mtype:
+                            game["markets"]["total"] = outcomes
+                games.append(game)
+        if games:
+            # Save snapshot
+            ts = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M")
+            snapshot_dir = DATA_DIR / "odds"
+            snapshot_dir.mkdir(parents=True, exist_ok=True)
+            (snapshot_dir / f"snapshot-{ts}.json").write_text(
+                json.dumps({"source": "bovada", "timestamp": ts, "games": games}, indent=2))
+            return games
     except Exception as e:
-        return {"error": str(e)}
+        print(f"[Market] Bovada fetch failed: {e}")
+
+    # Source 2: The Odds API (needs valid key with credits)
+    if ODDS_API_KEY:
+        try:
+            url = f"https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?apiKey={ODDS_API_KEY}&regions=us&markets=h2h,spreads,totals&oddsFormat=american"
+            resp = urllib.request.urlopen(url, timeout=30)
+            return json.loads(resp.read().decode())
+        except Exception as e:
+            print(f"[Market] The Odds API failed: {e}")
+
+    return {"error": "All odds sources failed"}
 
 
 # ══════════════════════════════════════════════
@@ -150,21 +206,44 @@ def run_market_agent():
     """
     rotator = get_rotator()
 
-    # Fetch real odds
+    # Fetch real odds (Bovada primary, The Odds API fallback)
     odds_data = _fetch_live_odds()
     odds_summary = ""
+    raw_odds_snapshot = odds_data
     if isinstance(odds_data, list) and odds_data:
-        odds_summary = f"{len(odds_data)} games with odds:\n"
-        for game in odds_data[:5]:
+        odds_summary = f"{len(odds_data)} games with odds (source: {odds_data[0].get('source', 'unknown')}):\n"
+        for game in odds_data[:8]:
             home = game.get("home_team", "?")
             away = game.get("away_team", "?")
-            n_books = len(game.get("bookmakers", []))
-            odds_summary += f"  {away} @ {home} ({n_books} books)\n"
-        odds_summary += f"  ... and {len(odds_data) - 5} more games\n" if len(odds_data) > 5 else ""
+            mkts = game.get("markets", {})
+            # Format spread
+            spread_info = ""
+            if mkts.get("spread"):
+                for oc in mkts["spread"]:
+                    if oc.get("handicap"):
+                        spread_info = f"spread={oc['handicap']}"
+                        break
+            # Format moneyline
+            ml_info = ""
+            if mkts.get("moneyline"):
+                mls = [f"{oc['name'][:3]}={oc['american']}" for oc in mkts["moneyline"][:2]]
+                ml_info = " ".join(mls)
+            # Format total
+            total_info = ""
+            if mkts.get("total"):
+                for oc in mkts["total"]:
+                    if oc.get("handicap"):
+                        total_info = f"O/U={oc['handicap']}"
+                        break
+            odds_summary += f"  {away} @ {home} | {spread_info} | {ml_info} | {total_info}\n"
+        if len(odds_data) > 8:
+            odds_summary += f"  ... and {len(odds_data) - 8} more games\n"
     elif isinstance(odds_data, dict) and "error" in odds_data:
-        odds_summary = f"Odds API error: {odds_data['error']}"
+        odds_summary = f"Odds fetch error: {odds_data['error']}"
+        raw_odds_snapshot = odds_data
     else:
         odds_summary = "No odds data available"
+        raw_odds_snapshot = {}
 
     response = call_llm(
         rotator,
