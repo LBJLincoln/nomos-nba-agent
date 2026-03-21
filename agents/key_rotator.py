@@ -100,7 +100,9 @@ class KeyRotator:
                     key=key,
                     name=f"groq-{name}",
                     base_url="https://api.groq.com/openai/v1",
-                    models=["llama-3.3-70b-versatile", "mixtral-8x7b-32768"],
+                    models=["llama-3.3-70b-versatile", "moonshotai/kimi-k2-instruct",
+                            "meta-llama/llama-4-scout-17b-16e-instruct",
+                            "openai/gpt-oss-120b", "qwen/qwen3-32b", "llama-3.1-8b-instant"],
                 ))
 
         # Kimi/Moonshot
@@ -205,7 +207,7 @@ class KeyRotator:
 
     def get_any_key(self, preferred_providers=None) -> Optional[APIKey]:
         """Get a key from ANY provider, trying preferred ones first."""
-        providers = preferred_providers or ["openrouter", "groq", "litellm", "kimi", "openai", "xai", "google"]
+        providers = preferred_providers or ["groq", "openrouter", "litellm", "kimi", "openai", "xai", "google"]
         for provider in providers:
             key = self.get_key(provider)
             if key:
@@ -273,8 +275,8 @@ def call_llm(rotator: KeyRotator, system_prompt: str, user_prompt: str,
     import urllib.request
 
     providers_to_try = [provider]
-    # Add fallback providers
-    all_providers = ["openrouter", "groq", "litellm", "kimi", "openai", "xai"]
+    # Add fallback providers — Groq FIRST (free, working, has Kimi K2)
+    all_providers = ["groq", "openrouter", "litellm", "kimi", "openai", "xai"]
     for p in all_providers:
         if p not in providers_to_try:
             providers_to_try.append(p)
@@ -289,7 +291,11 @@ def call_llm(rotator: KeyRotator, system_prompt: str, user_prompt: str,
             # Resolve model for this provider
             actual_model = model
             if attempt_provider == "groq":
-                actual_model = "llama-3.3-70b-versatile"
+                # Use Kimi K2 on Groq for smart tasks, Llama for fast
+                if model in ("healer-alpha", "hunter-alpha", "smart"):
+                    actual_model = "moonshotai/kimi-k2-instruct"
+                else:
+                    actual_model = "llama-3.3-70b-versatile"
             elif attempt_provider == "kimi":
                 actual_model = "moonshot-v1-8k"
             elif attempt_provider == "openai":
