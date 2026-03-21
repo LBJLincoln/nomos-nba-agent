@@ -1137,27 +1137,28 @@ def _build_model(hp, use_gpu=False):
 def _simulate_betting(probs, actuals, edge=0.05, vig=0.045):
     """Simulate flat betting with realistic market odds (including vig).
 
-    Uses market-implied odds with vig instead of fair value (1/prob).
-    Standard US sportsbook vig ~4.5% (e.g., -110/-110 on spreads).
-    This gives a realistic ROI estimate vs the previous overoptimistic version.
+    Market line estimated as midpoint between our model and 50/50 (conservative).
+    Payout at market decimal odds with vig baked in.
+    This gives a realistic ROI vs the old fair-value (1/prob) approach.
     """
     stake = 10
     profit = 0
     n_bets = 0
     for prob, actual in zip(probs, actuals):
+        # Market prob ~ halfway between our model and 50/50
+        market_prob = 0.5 + (prob - 0.5) * 0.5
         if prob > 0.5 + edge:
-            # Market odds for home win: fair_odds / (1 + vig)
-            # Fair decimal odds = 1/market_implied_prob, market adds vig
-            market_implied = 0.5  # baseline market line
-            market_decimal = 1.0 / (market_implied * (1 + vig))
+            # Bet home: market pays at their (less favorable) odds with vig
+            market_decimal = 1.0 / (market_prob * (1 + vig / 2))
             n_bets += 1
             if actual == 1:
                 profit += stake * (market_decimal - 1)
             else:
                 profit -= stake
         elif prob < 0.5 - edge:
-            market_implied = 0.5
-            market_decimal = 1.0 / (market_implied * (1 + vig))
+            # Bet away
+            away_market = 1.0 - market_prob
+            market_decimal = 1.0 / (away_market * (1 + vig / 2))
             n_bets += 1
             if actual == 0:
                 profit += stake * (market_decimal - 1)
