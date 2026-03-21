@@ -262,9 +262,9 @@ def compute_advanced_performance_metrics(df: pd.DataFrame) -> pd.DataFrame:
 #     'rest_days': [2, 1, 3, 0],
 #     'travel_distance': [0, 200, 500, 300],
 #     'game_date': pd.date_range('2024-01-01', periods=4),
-#     'opponent_strength': [0.9, 1.1, 0.8, 1.2]
+#     'team_strength': [1.2, 1.1, 0.9, 1.0],
+#     'opponent_strength': [0.9, 1.0, 1.1, 0.8]
 # })
 # 
 # complete_features = generate_complete_feature_set(df)
 # complete_features = compute_advanced_performance_metrics(complete_features)
-
