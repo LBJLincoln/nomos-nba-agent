@@ -101,7 +101,7 @@ def create_team_strength_interactions(df: pd.DataFrame, team_strength_col: str, 
     df['strength_ratio'] = df[team_strength_col] / df['opponent_strength_col']
     
     # Interaction term
-    df['strength_interaction'] = df[team_strength_col] * df[opponent_strength_col]
+    df['strength_interaction'] = df[team_strength_col] * df['opponent_strength_col']
     
     # Strength dominance indicator
     df['strength_dominant'] = (df[team_strength_col] > df['opponent_strength_col']).astype(int)
