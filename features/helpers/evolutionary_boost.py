@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 from scipy.stats import zscore
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
-from typing import Dict, List
+from typing import Dict, List, Tuple
+import random
 
 def adaptive_mutation_rate(current_brier: float, target_brier: float, generation: int, max_generations: int) -> float:
     """
