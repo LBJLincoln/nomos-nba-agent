@@ -3,6 +3,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
+from sklearn.preprocessing import StandardScaler
 
 def load_game_data(data_path: str = 'data/games.csv') -> pd.DataFrame:
     """
@@ -46,8 +47,13 @@ def compute_feature_correlations(df: pd.DataFrame, feature_columns: list) -> pd.
     # Select only numeric features
     numeric_features = df[feature_columns].select_dtypes(include=[np.number])
     
+    # Standardize features for better correlation analysis
+    scaler = StandardScaler()
+    standardized = scaler.fit_transform(numeric_features)
+    standardized_df = pd.DataFrame(standardized, columns=numeric_features.columns)
+    
     # Compute correlation matrix
-    corr_matrix = numeric_features.corr()
+    corr_matrix = standardized_df.corr()
     
     return corr_matrix
 
