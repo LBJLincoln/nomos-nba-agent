@@ -108,94 +108,32 @@ def create_team_strength_interactions(df: pd.DataFrame, team_strength_col: str, 
     
     return df
 
-def compute_advanced_momentum_features(df: pd.DataFrame, team_id_col: str, metric_cols: List[str], n_windows: List[int]) -> pd.DataFrame:
+def compute_advanced_performance_metrics(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Compute advanced momentum features with multiple time windows.
+    Compute advanced performance metrics for model training.
     
     Parameters:
-    df (pd.DataFrame): Input data with datetime index
-    team_id_col (str): Column for team ID
-    metric_cols (List[str]): List of metric columns to analyze
-    n_windows (List[int]): List of window sizes to compute
+    df (pd.DataFrame): Game data with basic statistics
     
     Returns:
-    pd.DataFrame: DataFrame with advanced momentum features
-    """
-    df = df.sort_index()
-    momentum_features = []
-    
-    for window in n_windows:
-        window_features = df.groupby(team_id_col)[metric_cols].rolling(window=window).agg([
-            ('mean', 'mean'),
-            ('std', 'std'),
-            ('skew', lambda x: x.skew()),
-            ('kurt', lambda x: x.kurtosis()),
-            ('trend', lambda x: np.polyfit(np.arange(len(x)), x, 1)[0] if len(x) > 1 else 0)
-        ]).reset_index()
-        
-        window_features.columns = [team_id_col, 'date'] + [f'{col}_win{window}_{agg}' for col in metric_cols for agg in ['mean', 'std', 'skew', 'kurt', 'trend']]
-        
-        momentum_features.append(window_features)
-    
-    # Merge all window features
-    result = momentum_features[0]
-    for wf in momentum_features[1:]:
-        result = result.merge(wf, on=[team_id_col, 'date'], how='left')
-    
-    return result
-
-def create_rest_travel_interaction_features(df: pd.DataFrame, rest_col: str, travel_col: str) -> pd.DataFrame:
-    """
-    Create interaction features between rest and travel factors.
-    
-    Parameters:
-    df (pd.DataFrame): Input data
-    rest_col (str): Column name for rest days
-    travel_col (str): Column name for travel distance
-    
-    Returns:
-    pd.DataFrame: DataFrame with rest-travel interaction features
+    pd.DataFrame: DataFrame with advanced performance metrics
     """
     df = df.copy()
     
-    # Rest-travel interaction
-    df['rest_travel_interaction'] = df[rest_col] * df[travel_col]
+    # Efficiency metrics
+    df['offensive_efficiency'] = df['points'] / (df['pace'] / 100)
+    df['defensive_efficiency'] = df['opponent_points'] / (df['pace'] / 100)
+    df['net_efficiency'] = df['offensive_efficiency'] - df['defensive_efficiency']
     
-    # Rest categories
-    df['rest_category'] = pd.cut(df[rest_col], bins=[-1, 0, 1, 2, 3, 4, np.inf], 
-                                 labels=['no_rest', 'minimal', 'short', 'medium', 'long', 'extended'])
+    # True shooting percentage
+    df['true_shooting'] = df['points'] / (2 * (df['fga'] + 0.44 * df['fta']))
     
-    # Travel categories
-    df['travel_category'] = pd.cut(df[travel_col], bins=[0, 100, 500, 1000, 2000, np.inf],
-                                   labels=['local', 'regional', 'national', 'cross_country', 'international'])
+    # Rebound percentage
+    df['total_rebounds'] = df['orb'] + df['drb']
+    df['rebounding_percentage'] = df['total_rebounds'] / (df['total_rebounds'] + df['opponent_total_rebounds'])
     
-    # Rest-travel category interaction
-    df['rest_travel_category'] = df['rest_category'].astype(str) + '_' + df['travel_category'].astype(str)
-    
-    return df
-
-def generate_team_performance_profiles(df: pd.DataFrame, team_id_col: str, metric_cols: List[str], n_quantiles: int = 5) -> pd.DataFrame:
-    """
-    Generate team performance profiles based on quantile analysis.
-    
-    Parameters:
-    df (pd.DataFrame): Input data
-    team_id_col (str): Column for team ID
-    metric_cols (List[str]): List of metric columns to profile
-    n_quantiles (int): Number of quantiles to create
-    
-    Returns:
-    pd.DataFrame: DataFrame with team performance profiles
-    """
-    df = df.copy()
-    
-    for col in metric_cols:
-        # Calculate quantiles
-        df[f'{col}_quantile'] = df.groupby(team_id_col)[col].transform(lambda x: pd.qcut(x, q=n_quantiles, labels=False, duplicates='drop'))
-        
-        # Performance profile indicators
-        df[f'{col}_is_top_quantile'] = (df[f'{col}_quantile'] >= n_quantiles - 1).astype(int)
-        df[f'{col}_is_bottom_quantile'] = (df[f'{col}_quantile'] <= 0).astype(int)
+    # Turnover ratio
+    df['turnover_ratio'] = df['tov'] / (df['fga'] + 0.44 * df['fta'] + df['tov'])
     
     return df
 
@@ -228,44 +166,8 @@ def create_advanced_feature_engineering_pipeline(df: pd.DataFrame, team_id_col: 
     # Team strength interactions
     df = create_team_strength_interactions(df, 'team_strength', 'opponent_strength')
     
-    # Advanced momentum features
-    momentum_features = compute_advanced_momentum_features(df, team_id_col, metric_cols, n_windows=[3, 5, 10])
-    df = df.merge(momentum_features, on=[team_id_col, 'date'], how='left')
-    
-    # Rest-travel interactions
-    df = create_rest_travel_interaction_features(df, rest_col, travel_col)
-    
-    # Team performance profiles
-    df = generate_team_performance_profiles(df, team_id_col, metric_cols, n_quantiles=5)
-    
-    return df
-
-def compute_advanced_performance_metrics(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Compute advanced performance metrics for model training.
-    
-    Parameters:
-    df (pd.DataFrame): Game data with basic statistics
-    
-    Returns:
-    pd.DataFrame: DataFrame with advanced performance metrics
-    """
-    df = df.copy()
-    
-    # Efficiency metrics
-    df['offensive_efficiency'] = df['points'] / (df['pace'] / 100)
-    df['defensive_efficiency'] = df['opponent_points'] / (df['pace'] / 100)
-    df['net_efficiency'] = df['offensive_efficiency'] - df['defensive_efficiency']
-    
-    # True shooting percentage
-    df['true_shooting'] = df['points'] / (2 * (df['fga'] + 0.44 * df['fta']))
-    
-    # Rebound percentage
-    df['total_rebounds'] = df['orb'] + df['drb']
-    df['rebounding_percentage'] = df['total_rebounds'] / (df['total_rebounds'] + df['opponent_total_rebounds'])
-    
-    # Turnover ratio
-    df['turnover_ratio'] = df['tov'] / (df['fga'] + 0.44 * df['fta'] + df['tov'])
+    # Advanced performance metrics
+    df = compute_advanced_performance_metrics(df)
     
     return df
 
@@ -291,4 +193,3 @@ def compute_advanced_performance_metrics(df: pd.DataFrame) -> pd.DataFrame:
 #     rest_col='rest_days', 
 #     travel_col='travel_distance'
 # )
-# advanced_df = compute_advanced_performance_metrics(advanced_df)
