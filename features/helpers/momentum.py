@@ -157,6 +157,7 @@ def compute_momentum_features(games: pd.DataFrame, team_id: int) -> dict:
 #     'opponent_id': [2,3,4,5,6],
 #     'points': [100,110,120,95,105],
 #     'opponent_points': [90,105,115,100,95],
-#     'opponent_strength': [0.8,1.2,1.1,0.9,1.3]
+#     'opponent_strength': [0.8,1.2,1.1,0.9,1.3],
+#     'result': [1,1,0,1,1]
 # })
 # momentum = compute_momentum_features(games, team_id=1)
