@@ -1,0 +1,2 @@
+# Submit GPU Experiment
+Create a new experiment in the Supabase nba_experiments table. Choose a model type (ft_transformer, node, saint, mc_dropout_rnn, tabnet). Set status='pending', target_space='gpu'. Use DATABASE_URL from env.
