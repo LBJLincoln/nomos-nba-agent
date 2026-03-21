@@ -77,35 +77,3 @@ def compute_clutch_time_statistics(df: pd.DataFrame, threshold_minutes: int = 5)
     df['clutch_pressure_score'] = df['clutch_pressure'] * df['clutch_efficiency']
     
     return df
-
-def compute_advanced_opponent_metrics(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Create advanced opponent metrics combining strength and clutch factors.
-    
-    Parameters:
-    df (pd.DataFrame): Game data with opponent strength and clutch features
-    
-    Returns:
-    pd.DataFrame: Original dataframe with advanced opponent metrics
-    """
-    df = df.copy()
-    
-    # Opponent strength interaction with clutch
-    df['opp_strength_clutch_interaction'] = df['opponent_strength'] * df['clutch_pressure']
-    df['opp_strength_pressure_ratio'] = df['opponent_strength'] / (df['clutch_pressure'] + 1)
-    
-    # Strength-adjusted clutch performance
-    df['clutch_strength_adjusted'] = df['clutch_pressure_score'] * df['strength_ratio']
-    
-    # Opponent dominance indicators
-    df['opp_dominance_level'] = pd.cut(df['opponent_strength'], 
-                                       bins=[0, 0.5, 0.8, 1.0, 1.2, np.inf],
-                                       labels=['very_weak', 'weak', 'average', 'strong', 'elite'])
-    
-    # Strength-clutch category interactions
-    df['strength_clutch_category'] = df['strength_category'].astype(str) + '_' + \
-                                     pd.cut(df['clutch_pressure'], 
-                                            bins=[0, 5, 15, 30, np.inf],
-                                            labels=['low', 'medium', 'high', 'extreme']).astype(str)
-    
-    return df
