@@ -504,6 +504,41 @@ def build_features(games):
                 "clutch_compete_interaction",
             ])
 
+        # ── CROSS-WINDOW MOMENTUM + INTERACTIONS (v3 — Adam/Evolution Agent) ──
+        for prefix, tr in [("h", hr_), ("a", ar_)]:
+            wp_accel_v = wp(tr, 3) - 2 * wp(tr, 10) + wp(tr, 20) if len(tr) >= 20 else 0.0
+            pts_for = sum(x[4] for x in tr[-20:]) if len(tr) >= 5 else 100
+            pts_against = sum(x[5] for x in tr[-20:]) if len(tr) >= 5 else 100
+            pyth = pts_for ** 13.91 / max(1, pts_for ** 13.91 + pts_against ** 13.91) if pts_for > 0 else 0.5
+            pts_l = [x[4] for x in tr[-10:]] if len(tr) >= 5 else [100]
+            p_vol = (sum((p - sum(pts_l)/len(pts_l))**2 for p in pts_l) / len(pts_l)) ** 0.5 if len(pts_l) > 1 else 0
+            recent_w = [x for x in tr[-10:] if x[1]]
+            w_qual = sum(wp(team_results[x[3]], 82) for x in recent_w) / max(len(recent_w), 1) if recent_w else 0.5
+            margins_10 = [x[2] for x in tr[-10:]] if len(tr) >= 5 else [0]
+            if len(margins_10) >= 3:
+                xv = list(range(len(margins_10))); xm = sum(xv)/len(xv); ym = sum(margins_10)/len(margins_10)
+                m_slope = sum((x-xm)*(y-ym) for x,y in zip(xv,margins_10)) / max(sum((x-xm)**2 for x in xv), 1e-9)
+            else:
+                m_slope = 0.0
+            row.extend([wp_accel_v, pyth, p_vol / 10.0, w_qual, m_slope,
+                         ppg(tr, 3) / max(ppg(tr, 20), 1), papg(tr, 3) / max(papg(tr, 20), 1)])
+            if first:
+                names.extend([f"{prefix}_wp_accel", f"{prefix}_pyth_exp", f"{prefix}_pts_vol",
+                              f"{prefix}_win_quality", f"{prefix}_margin_slope",
+                              f"{prefix}_off_ratio", f"{prefix}_def_ratio"])
+        # Key interaction features
+        elo_d = team_elo[home] - team_elo[away] + 50
+        rest_adv = h_rest - a_rest
+        wp_d = wp(hr_, 10) - wp(ar_, 10)
+        row.extend([
+            elo_d * rest_adv / 10.0, wp_d ** 2, elo_d ** 2 / 10000.0,
+            h_netrtg * a_netrtg / 100.0,
+            float(h_wp82 > 0.6 and a_wp82 < 0.4), float(h_rest >= 3 and a_rest <= 1),
+        ])
+        if first:
+            names.extend(["elo_rest_x", "wp_diff_sq", "elo_diff_sq",
+                          "netrtg_product", "mismatch_flag", "rest_mismatch_flag"])
+
         X.append(row); y.append(1 if hs > as_ else 0)
         if first: feature_names = names; first = False
         team_results[home].append((gd, hs > as_, hs - as_, away, hs, as_))
@@ -1820,20 +1855,27 @@ def evolution_loop():
                     "n_features": best_ever.n_features,
                 }
 
-            # Stagnation detection
-            if abs(best.fitness["brier"] - prev_brier) < 0.0005:
+            # Stagnation detection — track BOTH Brier and composite
+            prev_best_composite = best_ever.fitness["composite"] if best_ever else 0.0
+            brier_stagnant = abs(best.fitness["brier"] - prev_brier) < 0.0005
+            composite_stagnant = abs(best.fitness["composite"] - prev_best_composite) < 0.001
+            if brier_stagnant and composite_stagnant:
                 stagnation += 1
+            elif not brier_stagnant:
+                stagnation = max(0, stagnation - 2)  # Partial reset on real improvement
             else:
-                stagnation = 0
+                stagnation = max(0, stagnation - 1)
 
             # ── Adaptive mutation: decay over time, boost on stagnation ──
             # Base decay: starts at 0.15, decays toward 0.05
             mutation_rate *= MUT_DECAY_RATE
             mutation_rate = max(MUT_FLOOR, mutation_rate)
             # Stagnation boost (overrides decay temporarily)
-            if stagnation >= 12:
+            if stagnation >= 10:
+                mutation_rate = min(0.25, mutation_rate * 1.8)
+            elif stagnation >= 7:
                 mutation_rate = min(0.20, mutation_rate * 1.5)
-            elif stagnation >= 6:
+            elif stagnation >= 3:
                 mutation_rate = min(0.15, mutation_rate * 1.2)
 
             # ── Adaptive tournament size ──
@@ -1955,9 +1997,35 @@ def evolution_loop():
                     e.pareto_rank = island[i].pareto_rank; e.crowding_dist = island[i].crowding_dist
                     new_island.append(e)
 
-                # Stagnation injection (per-island)
-                if stagnation >= 10:
-                    n_inject = ISLAND_SIZE // 4
+                # Stagnation injection (per-island) — earlier and smarter
+                if stagnation >= 7:
+                    n_inject = ISLAND_SIZE // 3
+                    specialization = island_model.island_specializations[island_id]
+                    n_random = n_inject // 2
+                    n_mutant = n_inject - n_random
+                    # Half random fresh individuals
+                    for _ in range(n_random):
+                        fresh = Individual(n_feat, TARGET_FEATURES, model_type=random.choice(specialization))
+                        fresh.island_id = island_id
+                        new_island.append(fresh)
+                    # Half targeted mutants of island's best
+                    if island:
+                        island_best = min(island, key=lambda x: x.fitness.get("brier", 1.0))
+                        for _ in range(n_mutant):
+                            mutant = Individual.__new__(Individual)
+                            mutant.features = island_best.features[:]
+                            mutant.hyperparams = dict(island_best.hyperparams)
+                            mutant.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
+                            mutant.n_features = island_best.n_features
+                            mutant.generation = generation
+                            mutant.island_id = island_id
+                            mutant.pareto_rank = 999
+                            mutant.crowding_dist = 0.0
+                            mutant.mutate(0.25)  # Heavy mutation
+                            new_island.append(mutant)
+                elif stagnation >= 3:
+                    # Mild injection: 10% fresh per island
+                    n_inject = max(2, ISLAND_SIZE // 10)
                     specialization = island_model.island_specializations[island_id]
                     for _ in range(n_inject):
                         fresh = Individual(n_feat, TARGET_FEATURES, model_type=random.choice(specialization))
