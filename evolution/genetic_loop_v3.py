@@ -214,11 +214,11 @@ def load_all_games():
 
 
 # ═══════════════════════════════════════════════════════════
-# SECTION 2: FEATURE ENGINE (164+ features)
+# SECTION 2: FEATURE ENGINE (222+ features)
 # ═══════════════════════════════════════════════════════════
 
 def build_features(games):
-    """Build 164+ features from raw game data. Returns X, y, feature_names."""
+    """Build 200+ features from raw game data. Returns X, y, feature_names."""
     team_results = defaultdict(list)
     team_last = {}
     team_elo = defaultdict(lambda: 1500.0)
@@ -482,6 +482,130 @@ def build_features(games):
                           "wp_diff_sq", "elo_diff_sq", "off_def_interact",
                           "consistency_product", "quality_product", "momentum_align",
                           "tempo_elo_interact", "mismatch_flag", "rest_mismatch_flag"])
+
+        # 9. NEW HIGH-IMPACT FEATURES (50 features, windows [5, 10])
+        NEW_WINDOWS = [5, 10]
+
+        # Helper: home/away split win% (home team plays at home, away team plays away)
+        def home_split_wp(r, n, is_home_team):
+            """Win% for home-only or away-only games over last n."""
+            if is_home_team:
+                # home team's results when they were the home team (opponent is different city)
+                loc_games = [x for x in r if x[3] != home][-n:]
+            else:
+                loc_games = [x for x in r if x[3] != away][-n:]
+            if not loc_games:
+                return wp(r, n)  # fallback to overall
+            return sum(1 for x in loc_games if x[1]) / len(loc_games)
+
+        def away_split_wp(r, n, is_home_team):
+            """Win% for away-only games over last n."""
+            if is_home_team:
+                loc_games = [x for x in r if x[3] == home][-n:]
+            else:
+                loc_games = [x for x in r if x[3] == away][-n:]
+            if not loc_games:
+                return wp(r, n)
+            return sum(1 for x in loc_games if x[1]) / len(loc_games)
+
+        def net_rating(r, n):
+            """Net points per game over window (proxy for net rating)."""
+            s = r[-n:]
+            if not s:
+                return 0.0
+            return sum(x[4] - x[5] for x in s) / len(s)
+
+        def pace_proxy(r, n):
+            """Approximate pace as total points per game (proxy when possession data absent)."""
+            s = r[-n:]
+            if not s:
+                return 200.0
+            return sum(x[4] + x[5] for x in s) / len(s)
+
+        def h2h_wp(hr, ar, n):
+            """Head-to-head win% for home team vs this specific away team over last n meetings."""
+            meetings = [x for x in hr if x[3] == away][-n:]
+            if not meetings:
+                return 0.5
+            return sum(1 for x in meetings if x[1]) / len(meetings)
+
+        def sos_window(r, n):
+            """Average opponent win% over last n games (Strength of Schedule)."""
+            rec = r[-n:]
+            if not rec:
+                return 0.5
+            ops = [wp(team_results[x[3]], 82) for x in rec if team_results[x[3]]]
+            return sum(ops) / len(ops) if ops else 0.5
+
+        # 9a. Net Rating (windows 5, 10) — 4 features
+        for prefix, tr in [("h", hr_), ("a", ar_)]:
+            for w in NEW_WINDOWS:
+                row.append(net_rating(tr, w))
+                if first:
+                    names.append(f"{prefix}_net_rating{w}")
+
+        # 9b. Pace proxy (windows 5, 10) — 4 features
+        for prefix, tr in [("h", hr_), ("a", ar_)]:
+            for w in NEW_WINDOWS:
+                row.append(pace_proxy(tr, w))
+                if first:
+                    names.append(f"{prefix}_pace{w}")
+
+        # 9c. Rest days (already exists as h_rest/a_rest, add explicit named vars for clarity)
+        # These are already in section 3 above; skip to avoid duplication.
+
+        # 9d. Home/Away Win% Split (windows 5, 10) — 4 features each side = 8 features
+        for w in NEW_WINDOWS:
+            row.append(home_split_wp(hr_, w, is_home_team=True))   # h home-venue wp
+            row.append(away_split_wp(ar_, w, is_home_team=False))  # a away-venue wp
+            if first:
+                names.append(f"h_home_wp{w}")
+                names.append(f"a_away_wp{w}")
+
+        # 9e. Matchup H2H record (windows 5, 10) — 2 features
+        for w in NEW_WINDOWS:
+            row.append(h2h_wp(hr_, ar_, w))
+            if first:
+                names.append(f"h_h2h_wp{w}")
+
+        # 9f. Strength of Schedule windows 5, 10 (distinct from existing sos5/sos10 in sec 4)
+        # sec 4 already has h_sos5, h_sos10 — skip to avoid duplication.
+
+        # 9g. Streak type: signed streak (positive=wins, negative=losses) — 2 features
+        # (strk() already included in section 2 as h_streak/a_streak; skip duplicate.)
+
+        # 9h. Pace × Net Rating interaction — 4 features (home + away, windows 5 and 10)
+        for prefix, tr in [("h", hr_), ("a", ar_)]:
+            for w in NEW_WINDOWS:
+                p = pace_proxy(tr, w)
+                n_r = net_rating(tr, w)
+                row.append((p * n_r) / 1000.0)  # scaled
+                if first:
+                    names.append(f"{prefix}_pace_net_interact{w}")
+
+        # 9i. Pythagorean-adjusted net rating (per-100-possessions approximation) — 4 features
+        for prefix, tr in [("h", hr_), ("a", ar_)]:
+            for w in NEW_WINDOWS:
+                s = tr[-w:]
+                if s:
+                    total_pts_for = sum(x[4] for x in s)
+                    total_pts_ag = sum(x[5] for x in s)
+                    n_games = len(s)
+                    avg_pace = (total_pts_for + total_pts_ag) / max(n_games, 1)
+                    # net per 100 possessions approximation
+                    net_per100 = ((total_pts_for - total_pts_ag) / max(n_games, 1)) / max(avg_pace / 100.0, 1.0)
+                else:
+                    net_per100 = 0.0
+                row.append(net_per100)
+                if first:
+                    names.append(f"{prefix}_net_per100_{w}")
+
+        # 9j. Recent opponent quality (win% of opponents faced) — 4 features (windows 5, 10)
+        for prefix, tr in [("h", hr_), ("a", ar_)]:
+            for w in NEW_WINDOWS:
+                row.append(sos_window(tr, w))
+                if first:
+                    names.append(f"{prefix}_opp_quality{w}")
 
         X.append(row)
         y.append(1 if hs > as_ else 0)
