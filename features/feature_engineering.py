@@ -1,137 +1,120 @@
 import numpy as np
-from typing import List, Dict, Optional
+import pandas as pd
+from datetime import datetime, timedelta
+from models.power_ratings import (
+    get_team, get_rest_adjustment, get_travel_adjustment,
+    get_altitude_adjustment, get_injury_adjustment
+)
 
-def compute_advanced_stats(team_stats: Dict) -> Dict:
-    """
-    Compute advanced basketball statistics from raw team data
-    """
-    stats = {}
-    
-    # Offensive efficiency
-    fga = team_stats.get('FGA', 1)
-    stats['off_eff'] = (team_stats.get('PTS', 0) / fga) if fga > 0 else 0
-    
-    # Defensive efficiency
-    opp_fga = team_stats.get('opp_FGA', 1)
-    stats['def_eff'] = (team_stats.get('opp_PTS', 0) / opp_fga) if opp_fga > 0 else 0
-    
-    # True shooting percentage
-    fta = team_stats.get('FTA', 1)
-    stats['ts_pct'] = team_stats.get('PTS', 0) / (2 * (team_stats.get('FGA', 0) + 0.44 * fta))
-    
-    # Rebound rate
-    oreb = team_stats.get('OREB', 1)
-    stats['oreb_pct'] = oreb / (oreb + team_stats.get('opp_DREB', 0))
-    
-    # Turnover rate
-    stats['tov_pct'] = team_stats.get('TOV', 0) / (team_stats.get('FGA', 0) + 0.44 * fta + team_stats.get('TOV', 0))
-    
-    # Pace estimate
-    stats['pace'] = team_stats.get('FGA', 0) + team_stats.get('FTA', 0) + team_stats.get('TOV', 0) + team_stats.get('OREB', 0) + team_stats.get('opp_DREB', 0)
-    
-    return stats
+class FeatureEngineer:
+    def __init__(self, decay=0.95):
+        self.decay = decay
+        self.team_stats = {}
+        self.power_cache = {}
 
-def compute_matchup_features(home_stats: Dict, away_stats: Dict) -> Dict:
-    """
-    Compute differential features between home and away teams
-    """
-    features = {}
-    
-    # Efficiency differentials
-    features['off_eff_diff'] = home_stats.get('off_eff', 0) - away_stats.get('off_eff', 0)
-    features['def_eff_diff'] = home_stats.get('def_eff', 0) - away_stats.get('def_eff', 0)
-    
-    # Shooting differentials
-    features['ts_pct_diff'] = home_stats.get('ts_pct', 0) - away_stats.get('ts_pct', 0)
-    
-    # Rebounding differential
-    features['oreb_pct_diff'] = home_stats.get('oreb_pct', 0) - away_stats.get('oreb_pct', 0)
-    
-    # Turnover differential
-    features['tov_pct_diff'] = home_stats.get('tov_pct', 0) - away_stats.get('tov_pct', 0)
-    
-    # Pace differential
-    features['pace_diff'] = home_stats.get('pace', 0) - away_stats.get('pace', 0)
-    
-    # Rest differential
-    features['rest_diff'] = home_stats.get('rest_days', 0) - away_stats.get('rest_days', 0)
-    
-    # Travel differential (in miles)
-    features['travel_diff'] = home_stats.get('travel_miles', 0) - away_stats.get('travel_miles', 0)
-    
-    return features
+    def update_team_stats(self, game):
+        """Update rolling statistics for each team"""
+        home = game['home_team']
+        away = game['away_team']
 
-def compute_rest_travel_features(team_info: Dict) -> Dict:
-    """
-    Compute rest and travel features for a team
-    """
-    features = {}
-    
-    # Rest days (0 = back-to-back, 1 = single day rest, etc.)
-    features['rest_days'] = team_info.get('rest_days', 0)
-    
-    # Travel distance in miles (0 = no travel, higher = longer trips)
-    features['travel_miles'] = team_info.get('travel_miles', 0)
-    
-    # Travel direction (1 = east, -1 = west, 0 = same region)
-    features['travel_direction'] = team_info.get('travel_direction', 0)
-    
-    # Altitude change (in feet)
-    features['altitude_change'] = team_info.get('altitude_change', 0)
-    
-    return features
+        # Initialize if not exists
+        if home not in self.team_stats:
+            self.team_stats[home] = self._init_team_stats()
+        if away not in self.team_stats:
+            self.team_stats[away] = self._init_team_stats()
 
-def compute_injury_impact_features(injuries: List[Dict]) -> Dict:
-    """
-    Compute injury impact features
-    """
-    features = {
-        'injury_count': 0,
-        'star_injury_count': 0,
-        'total_impact': 0.0
-    }
-    
-    for injury in injuries:
-        impact = injury.get('impact', 0.0)
-        features['injury_count'] += 1
-        features['total_impact'] += impact
-        
-        # Star player threshold (arbitrary but reasonable)
-        if impact > 0.15:
-            features['star_injury_count'] += 1
-    
-    return features
+        # Update with game results
+        self._update_stats(home, game['home_score'], game['away_score'], game['home_win'])
+        self._update_stats(away, game['away_score'], game['home_score'], not game['home_win'])
 
-def compute_recent_performance_features(recent_games: List[Dict], window: int = 5) -> Dict:
-    """
-    Compute recent performance metrics
-    """
-    if len(recent_games) == 0:
-        return {}
-    
-    # Use last 'window' games or all available
-    recent = recent_games[-window:]
-    
-    features = {
-        'recent_games': len(recent),
-        'recent_win_pct': 0.0,
-        'recent_pts_avg': 0.0,
-        'recent_opp_pts_avg': 0.0,
-        'recent_off_eff': 0.0,
-        'recent_def_eff': 0.0
-    }
-    
-    wins = sum(1 for g in recent if g.get('win', False))
-    features['recent_win_pct'] = wins / len(recent)
-    
-    if len(recent) > 0:
-        features['recent_pts_avg'] = sum(g.get('pts', 0) for g in recent) / len(recent)
-        features['recent_opp_pts_avg'] = sum(g.get('opp_pts', 0) for g in recent) / len(recent)
-        
-        fga_sum = sum(g.get('fga', 1) for g in recent)
-        features['recent_off_eff'] = sum(g.get('pts', 0) for g in recent) / fga_sum if fga_sum > 0 else 0
-        
-        opp_fga_sum = sum(g.get('opp_fga', 1) for g in recent)
-        features['recent_def_eff'] = sum(g.get('opp_pts', 0) for g in recent) / opp_fga_sum if opp_fga_sum > 0 else 0
-    
-    return features
+    def _init_team_stats(self):
+        return {
+            'games': 0,
+            'pts': 0,
+            'opp_pts': 0,
+            'wins': 0,
+            'pace': 100,
+            'off_rtg': 110,
+            'def_rtg': 110,
+            'last_10': []
+        }
+
+    def _update_stats(self, team, pts, opp_pts, win):
+        stats = self.team_stats[team]
+        stats['games'] += 1
+        stats['pts'] += pts
+        stats['opp_pts'] += opp_pts
+        stats['wins'] += 1 if win else 0
+        stats['last_10'].append(pts)
+        if len(stats['last_10']) > 10:
+            stats['last_10'].pop(0)
+
+        # Update pace and ratings with decay
+        games = stats['games']
+        if games > 1:
+            stats['pace'] = self.decay * stats['pace'] + (1 - self.decay) * (pts + opp_pts) / 2 * 100 / 48
+            stats['off_rtg'] = self.decay * stats['off_rtg'] + (1 - self.decay) * pts * 100 / ((pts + opp_pts) / 2)
+            stats['def_rtg'] = self.decay * stats['def_rtg'] + (1 - self.decay) * opp_pts * 100 / ((pts + opp_pts) / 2)
+
+    def build_features(self, game):
+        """Create comprehensive feature vector for a game"""
+        home = game['home_team']
+        away = game['away_team']
+
+        # Basic stats
+        home_stats = self.team_stats.get(home, self._init_team_stats())
+        away_stats = self.team_stats.get(away, self._init_team_stats())
+
+        # Power ratings
+        home_pr = self._get_power_rating(home, game['date'])
+        away_pr = self._get_power_rating(away, game['date'])
+
+        # Situational factors
+        rest_adj = get_rest_adjustment(game['home_rest_days'] - game['away_rest_days'])
+        travel_adj = get_travel_adjustment(
+            game['away_city'], game['home_city']
+        )
+        altitude_adj = get_altitude_adjustment(
+            game['home_city'], game['away_city']
+        )
+
+        # Recent performance
+        home_10_avg = np.mean(home_stats['last_10']) if home_stats['last_10'] else home_stats['pts']
+        away_10_avg = np.mean(away_stats['last_10']) if away_stats['last_10'] else away_stats['pts']
+
+        # Feature vector
+        features = [
+            # Power ratings
+            home_pr['offensive'], home_pr['defensive'], home_pr['overall'],
+            away_pr['offensive'], away_pr['defensive'], away_pr['overall'],
+
+            # Recent performance
+            home_stats['off_rtg'], home_stats['def_rtg'], home_10_avg,
+            away_stats['off_rtg'], away_stats['def_rtg'], away_10_avg,
+
+            # Situational
+            rest_adj, travel_adj, altitude_adj,
+
+            # Meta
+            home_stats['wins'] / max(home_stats['games'], 1),
+            away_stats['wins'] / max(away_stats['games'], 1)
+        ]
+
+        return np.array(features)
+
+    def _get_power_rating(self, team, date):
+        """Get cached or calculate power rating"""
+        if team not in self.power_cache:
+            self.power_cache[team] = get_team(team)
+        return self.power_cache[team]
+
+    def get_feature_names(self):
+        """Return feature names for interpretation"""
+        return [
+            'home_off_rtg', 'home_def_rtg', 'home_overall',
+            'away_off_rtg', 'away_def_rtg', 'away_overall',
+            'home_recent_off', 'home_recent_def', 'home_recent_score',
+            'away_recent_off', 'away_recent_def', 'away_recent_score',
+            'rest_adj', 'travel_adj', 'altitude_adj',
+            'home_win_pct', 'away_win_pct'
+        ]
