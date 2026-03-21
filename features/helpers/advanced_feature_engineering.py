@@ -98,7 +98,7 @@ def create_team_strength_interactions(df: pd.DataFrame, team_strength_col: str, 
     df['strength_diff'] = df[team_strength_col] - df[opponent_strength_col]
     
     # Strength ratio
-    df['strength_ratio'] = df[team_strength_col] / df[opponent_strength_col]
+    df['strength_ratio'] = df[team_strength_col] / df['opponent_strength_col']
     
     # Interaction term
     df['strength_interaction'] = df[team_strength_col] * df[opponent_strength_col]
@@ -170,26 +170,3 @@ def create_advanced_feature_engineering_pipeline(df: pd.DataFrame, team_id_col: 
     df = compute_advanced_performance_metrics(df)
     
     return df
-
-# Example usage:
-# df = pd.DataFrame({
-#     'team_id': [1,1,2,2],
-#     'opponent_id': [2,2,1,1],
-#     'points': [100, 110, 95, 105],
-#     'opponent_points': [90, 100, 105, 95],
-#     'pace': [100, 105, 95, 100],
-#     'rest_days': [2, 1, 3, 0],
-#     'travel_distance': [0, 200, 500, 300],
-#     'game_date': pd.date_range('2024-01-01', periods=4),
-#     'team_strength': [1.2, 1.1, 0.9, 1.0],
-#     'opponent_strength': [0.9, 1.0, 1.1, 0.8]
-# })
-# 
-# advanced_df = create_advanced_feature_engineering_pipeline(
-#     df, 
-#     team_id_col='team_id', 
-#     opponent_id_col='opponent_id', 
-#     metric_cols=['points', 'opponent_points'], 
-#     rest_col='rest_days', 
-#     travel_col='travel_distance'
-# )
