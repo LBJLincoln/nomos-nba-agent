@@ -415,6 +415,74 @@ def build_features(games):
                           "day_of_week", "is_weekend", "h_games_pct", "a_games_pct",
                           "combined_wp", "wp_diff", "playoff_race", "expected_total"])
 
+        # 7. CROSS-WINDOW MOMENTUM (20 features) — trend acceleration
+        for prefix, tr in [("h", hr_), ("a", ar_)]:
+            # Short vs long momentum (5 vs 20)
+            wp_accel = wp(tr, 3) - 2 * wp(tr, 10) + wp(tr, 20) if len(tr) >= 20 else 0.0
+            pd_accel = pd(tr, 3) - 2 * pd(tr, 10) + pd(tr, 20) if len(tr) >= 20 else 0.0
+            # Pythagorean expected win rate (Bill James)
+            pts_for = sum(x[4] for x in tr[-20:]) if len(tr) >= 5 else 100
+            pts_against = sum(x[5] for x in tr[-20:]) if len(tr) >= 5 else 100
+            pyth_exp = pts_for ** 13.91 / max(1, pts_for ** 13.91 + pts_against ** 13.91) if pts_for > 0 else 0.5
+            # Scoring volatility
+            pts_list = [x[4] for x in tr[-10:]] if len(tr) >= 5 else [100]
+            pts_vol = (sum((p - sum(pts_list)/len(pts_list))**2 for p in pts_list) / len(pts_list)) ** 0.5 if len(pts_list) > 1 else 0
+            # Home/away specific win rates
+            home_games = [x for x in tr if x[3] != home] if prefix == "h" else [x for x in tr if x[3] != away]
+            ha_wp = sum(1 for x in home_games[-20:] if x[1]) / max(len(home_games[-20:]), 1)
+            # Opponent quality of recent wins
+            recent_wins = [x for x in tr[-10:] if x[1]]
+            win_quality = sum(wp(team_results[x[3]], 82) for x in recent_wins) / max(len(recent_wins), 1) if recent_wins else 0.5
+            # Margin trend (linear slope over last 10 games)
+            margins_10 = [x[2] for x in tr[-10:]] if len(tr) >= 5 else [0]
+            if len(margins_10) >= 3:
+                x_vals = list(range(len(margins_10)))
+                x_mean = sum(x_vals) / len(x_vals)
+                y_mean = sum(margins_10) / len(margins_10)
+                num = sum((x - x_mean) * (y - y_mean) for x, y in zip(x_vals, margins_10))
+                den = sum((x - x_mean) ** 2 for x in x_vals)
+                margin_slope = num / den if den > 0 else 0.0
+            else:
+                margin_slope = 0.0
+            row.extend([
+                wp(tr, 5) - wp(tr, 20) if len(tr) >= 20 else 0.0,
+                wp_accel, pd_accel, pyth_exp,
+                pts_vol / 10.0,  # normalized
+                ha_wp, win_quality,
+                margin_slope,
+                ppg(tr, 3) / max(ppg(tr, 20), 1),  # recent scoring ratio
+                papg(tr, 3) / max(papg(tr, 20), 1),  # recent defense ratio
+            ])
+            if first:
+                names.extend([f"{prefix}_wp5v20", f"{prefix}_wp_accel", f"{prefix}_pd_accel",
+                              f"{prefix}_pyth_exp", f"{prefix}_pts_vol",
+                              f"{prefix}_location_wp", f"{prefix}_win_quality",
+                              f"{prefix}_margin_slope", f"{prefix}_off_ratio", f"{prefix}_def_ratio"])
+
+        # 8. INTERACTION FEATURES (12 features) — key cross-terms
+        elo_d = team_elo[home] - team_elo[away] + 50
+        rest_adv = h_rest - a_rest
+        wp_d = wp(hr_, 10) - wp(ar_, 10)
+        row.extend([
+            elo_d * rest_adv / 10.0,          # elo × rest interaction
+            wp_d * rest_adv / 3.0,             # form × rest interaction
+            elo_d * (1 if h_rest <= 1 else 0), # elo × b2b penalty
+            wp_d ** 2,                          # squared wp diff (nonlinearity)
+            elo_d ** 2 / 10000.0,               # squared elo diff
+            (ppg(hr_, 10) - papg(ar_, 10)) * (ppg(ar_, 10) - papg(hr_, 10)),  # off×def interaction
+            consistency(hr_, 10) * consistency(ar_, 10) / 100.0,  # consistency product
+            wp(hr_, 82) * wp(ar_, 82),          # season quality product
+            (wp(hr_, 5) - wp(hr_, 20)) * (wp(ar_, 5) - wp(ar_, 20)),  # momentum alignment
+            abs(ppg(hr_, 10) + papg(hr_, 10) - ppg(ar_, 10) - papg(ar_, 10)) * elo_d / 1000.0,  # tempo×elo
+            (1.0 if wp(hr_, 82) > 0.6 else 0.0) * (1.0 if wp(ar_, 82) < 0.4 else 0.0),  # mismatch flag
+            float(h_rest >= 3 and a_rest <= 1),  # rest mismatch flag
+        ])
+        if first:
+            names.extend(["elo_rest_interact", "form_rest_interact", "elo_b2b_penalty",
+                          "wp_diff_sq", "elo_diff_sq", "off_def_interact",
+                          "consistency_product", "quality_product", "momentum_align",
+                          "tempo_elo_interact", "mismatch_flag", "rest_mismatch_flag"])
+
         X.append(row)
         y.append(1 if hs > as_ else 0)
         if first:
@@ -468,6 +536,7 @@ class Individual:
         self.crowding_dist = 0.0
         self.island_id = -1
         self.generation = 0
+        self.birth_generation = 0
         self.n_features = sum(self.features)
 
     def selected_indices(self):
@@ -503,6 +572,7 @@ class Individual:
 
         child.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
         child.generation = max(p1.generation, p2.generation) + 1
+        child.birth_generation = child.generation
         child.n_features = sum(child.features)
         return child
 
@@ -606,8 +676,9 @@ def evaluate_individual(ind, X, y, n_splits=5, use_gpu=False, _eval_counter=[0])
 
 def _build_model(hp, use_gpu=False):
     """Build ML model from hyperparameters."""
+    mt = hp["model_type"]
     try:
-        if hp["model_type"] == "xgboost":
+        if mt == "xgboost":
             import xgboost as xgb
             params = {
                 "n_estimators": hp["n_estimators"],
@@ -626,7 +697,7 @@ def _build_model(hp, use_gpu=False):
             if use_gpu:
                 params["device"] = "cuda"
             return xgb.XGBClassifier(**params)
-        elif hp["model_type"] == "lightgbm":
+        elif mt == "lightgbm":
             import lightgbm as lgbm
             return lgbm.LGBMClassifier(
                 n_estimators=hp["n_estimators"],
@@ -637,6 +708,63 @@ def _build_model(hp, use_gpu=False):
                 reg_alpha=hp["reg_alpha"],
                 reg_lambda=hp["reg_lambda"],
                 verbose=-1, random_state=42, n_jobs=-1,
+            )
+        elif mt == "catboost":
+            from catboost import CatBoostClassifier
+            return CatBoostClassifier(
+                iterations=hp["n_estimators"],
+                depth=min(hp["max_depth"], 10),
+                learning_rate=hp["learning_rate"],
+                l2_leaf_reg=hp["reg_lambda"],
+                verbose=0, random_state=42,
+            )
+        elif mt == "random_forest":
+            from sklearn.ensemble import RandomForestClassifier
+            return RandomForestClassifier(
+                n_estimators=hp["n_estimators"],
+                max_depth=hp["max_depth"],
+                min_samples_leaf=max(1, hp["min_child_weight"]),
+                random_state=42, n_jobs=-1,
+            )
+        elif mt == "extra_trees":
+            from sklearn.ensemble import ExtraTreesClassifier
+            return ExtraTreesClassifier(
+                n_estimators=hp["n_estimators"],
+                max_depth=hp["max_depth"],
+                min_samples_leaf=max(1, hp["min_child_weight"]),
+                random_state=42, n_jobs=-1,
+            )
+        elif mt == "stacking":
+            from sklearn.ensemble import StackingClassifier, RandomForestClassifier, GradientBoostingClassifier
+            from sklearn.linear_model import LogisticRegression
+            estimators = [
+                ("rf", RandomForestClassifier(n_estimators=100, max_depth=hp["max_depth"], random_state=42, n_jobs=-1)),
+                ("gb", GradientBoostingClassifier(n_estimators=100, max_depth=min(hp["max_depth"], 6), learning_rate=hp["learning_rate"], random_state=42)),
+            ]
+            try:
+                import xgboost as xgb
+                estimators.append(("xgb", xgb.XGBClassifier(n_estimators=100, max_depth=hp["max_depth"], learning_rate=hp["learning_rate"], eval_metric="logloss", random_state=42, n_jobs=-1)))
+            except ImportError:
+                pass
+            return StackingClassifier(estimators=estimators, final_estimator=LogisticRegression(max_iter=500), cv=3, n_jobs=-1)
+        elif mt == "mlp":
+            from sklearn.neural_network import MLPClassifier
+            hidden = tuple([hp.get("nn_hidden_dims", 128)] * hp.get("nn_n_layers", 2))
+            return MLPClassifier(
+                hidden_layer_sizes=hidden,
+                learning_rate_init=hp["learning_rate"],
+                max_iter=hp.get("nn_epochs", 50),
+                alpha=hp["reg_alpha"],
+                random_state=42,
+            )
+        else:
+            # Fallback for unknown types (lstm, transformer, tabnet, etc.) — use GBM
+            from sklearn.ensemble import GradientBoostingClassifier
+            return GradientBoostingClassifier(
+                n_estimators=min(hp["n_estimators"], 200),
+                max_depth=hp["max_depth"],
+                learning_rate=hp["learning_rate"],
+                random_state=42,
             )
     except ImportError:
         from sklearn.ensemble import GradientBoostingClassifier
@@ -755,6 +883,7 @@ class GeneticEvolutionEngine:
                 ind.hyperparams = ind_data["hyperparams"]
                 ind.fitness = ind_data["fitness"]
                 ind.generation = ind_data.get("generation", 0)
+                ind.birth_generation = ind_data.get("birth_generation", ind.generation)
                 ind.n_features = sum(ind.features)
                 self.population.append(ind)
 
@@ -774,6 +903,29 @@ class GeneticEvolutionEngine:
             print(f"[RESTORE] Failed: {e}")
             return False
 
+    def resize_population_features(self, new_n_features):
+        """Resize feature masks if feature count changed (e.g., new features added)."""
+        old_n = self.n_features
+        if old_n == new_n_features:
+            return
+        delta = new_n_features - old_n
+        print(f"[RESIZE] Feature count changed: {old_n} -> {new_n_features} (delta={delta})")
+        self.n_features = new_n_features
+        for ind in self.population:
+            if len(ind.features) < new_n_features:
+                # Extend with random activation for new features (50% chance each)
+                ind.features.extend([1 if random.random() < 0.3 else 0 for _ in range(new_n_features - len(ind.features))])
+            elif len(ind.features) > new_n_features:
+                ind.features = ind.features[:new_n_features]
+            ind.n_features = sum(ind.features)
+        if self.best_ever:
+            if len(self.best_ever.features) < new_n_features:
+                self.best_ever.features.extend([0] * (new_n_features - len(self.best_ever.features)))
+            elif len(self.best_ever.features) > new_n_features:
+                self.best_ever.features = self.best_ever.features[:new_n_features]
+            self.best_ever.n_features = sum(self.best_ever.features)
+        print(f"[RESIZE] All {len(self.population)} individuals resized")
+
     def save_state(self):
         """Save population state to survive restarts."""
         state = {
@@ -789,6 +941,7 @@ class GeneticEvolutionEngine:
                                     for k, v in ind.hyperparams.items()},
                     "fitness": ind.fitness,
                     "generation": ind.generation,
+                    "birth_generation": getattr(ind, 'birth_generation', ind.generation),
                 }
                 for ind in self.population
             ],
@@ -828,19 +981,27 @@ class GeneticEvolutionEngine:
             self.best_ever.n_features = best.n_features
             self.best_ever.generation = self.generation
 
-        # 4. Stagnation detection + adaptive mutation
-        if abs(best.fitness["brier"] - prev_best_brier) < 0.0005:
+        # 4. Stagnation detection — track BOTH Brier and composite
+        prev_best_composite = self.best_ever.fitness["composite"] if self.best_ever and hasattr(self.best_ever, 'fitness') else 0.0
+        brier_stagnant = abs(best.fitness["brier"] - prev_best_brier) < 0.0005
+        composite_stagnant = abs(best.fitness["composite"] - prev_best_composite) < 0.001
+        if brier_stagnant and composite_stagnant:
             self.stagnation_counter += 1
+        elif not brier_stagnant:
+            self.stagnation_counter = max(0, self.stagnation_counter - 2)  # Partial reset
         else:
-            self.stagnation_counter = 0
+            self.stagnation_counter = max(0, self.stagnation_counter - 1)
 
         # Adaptive mutation: decay over time, boost on stagnation
         self.mutation_rate *= self.mut_decay
         self.mutation_rate = max(self.mut_floor, self.mutation_rate)
         if self.stagnation_counter >= 10:
+            self.mutation_rate = min(0.25, self.mutation_rate * 1.8)
+            print(f"  [STAGNATION-CRITICAL] {self.stagnation_counter} gens — mutation rate -> {self.mutation_rate:.3f}")
+        elif self.stagnation_counter >= 7:
             self.mutation_rate = min(0.20, self.mutation_rate * 1.5)
             print(f"  [STAGNATION] {self.stagnation_counter} gens — mutation rate -> {self.mutation_rate:.3f}")
-        elif self.stagnation_counter >= 5:
+        elif self.stagnation_counter >= 3:
             self.mutation_rate = min(0.15, self.mutation_rate * 1.2)
 
         # 5. Record history
@@ -874,20 +1035,58 @@ class GeneticEvolutionEngine:
             elite.fitness = dict(self.population[i].fitness)
             elite.n_features = self.population[i].n_features
             elite.generation = self.population[i].generation
+            elite.birth_generation = getattr(self.population[i], 'birth_generation', self.population[i].generation)
             new_pop.append(elite)
 
-        # Injection: if stagnating badly, inject fresh random individuals
+        # Aging: remove individuals that have survived > 15 generations without improvement
+        MAX_AGE = 15
+        aged_out = 0
+        for i in range(len(new_pop) - 1, self.elite_size - 1, -1):
+            if i < len(new_pop):
+                age = self.generation - getattr(new_pop[i], 'birth_generation', 0)
+                if age > MAX_AGE and new_pop[i].fitness["composite"] < new_pop[0].fitness["composite"] * 0.95:
+                    new_pop.pop(i)
+                    aged_out += 1
+        if aged_out > 0:
+            print(f"  [AGING] {aged_out} stale individuals removed")
+
+        # Injection: smarter — at stagnation >= 7 inject targeted mutants of best, not just random
         n_inject = 0
-        if self.stagnation_counter >= 10:
-            n_inject = self.pop_size // 5
+        if self.stagnation_counter >= 7:
+            n_inject = self.pop_size // 4
+            # Half random, half targeted mutations of best individual
+            n_random = n_inject // 2
+            n_mutant = n_inject - n_random
+            for _ in range(n_random):
+                new_pop.append(Individual(self.n_features, self.target_features))
+            # Targeted mutants: take best, apply heavy mutation
+            for _ in range(n_mutant):
+                mutant = Individual.__new__(Individual)
+                mutant.features = self.population[0].features[:]
+                mutant.hyperparams = dict(self.population[0].hyperparams)
+                mutant.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
+                mutant.birth_generation = self.generation
+                mutant.n_features = self.population[0].n_features
+                mutant.generation = self.generation
+                mutant.mutate(0.25)  # Heavy mutation
+                new_pop.append(mutant)
+            print(f"  [INJECTION] {n_random} random + {n_mutant} targeted mutants (stagnation={self.stagnation_counter})")
+        elif self.stagnation_counter >= 3:
+            # Mild injection: 10% fresh individuals
+            n_inject = self.pop_size // 10
             for _ in range(n_inject):
                 new_pop.append(Individual(self.n_features, self.target_features))
-            print(f"  [INJECTION] {n_inject} fresh individuals added")
+            print(f"  [INJECTION-MILD] {n_inject} fresh individuals (stagnation={self.stagnation_counter})")
 
         # Fill with crossover + mutation
         while len(new_pop) < self.pop_size:
-            p1 = self._tournament_select(7)
-            p2 = self._tournament_select(7)
+            # Diversity-aware tournament: 80% fitness-based, 20% diversity-based
+            if random.random() < 0.2:
+                p1 = self._diversity_select(7)
+                p2 = self._tournament_select(7)
+            else:
+                p1 = self._tournament_select(7)
+                p2 = self._tournament_select(7)
             if random.random() < self.crossover_rate:
                 child = Individual.crossover(p1, p2)
             else:
@@ -897,16 +1096,41 @@ class GeneticEvolutionEngine:
                 child.fitness = dict(p1.fitness)
                 child.n_features = p1.n_features
                 child.generation = self.generation
+                child.birth_generation = self.generation
             child.mutate(self.mutation_rate)
             new_pop.append(child)
 
-        self.population = new_pop
+        self.population = new_pop[:self.pop_size]
         return best
 
     def _tournament_select(self, k=7):
         """Tournament selection."""
         contestants = random.sample(self.population, min(k, len(self.population)))
         return max(contestants, key=lambda x: x.fitness["composite"])
+
+    def _diversity_select(self, k=7):
+        """Diversity-preserving selection: pick the most unique individual from k random."""
+        contestants = random.sample(self.population, min(k, len(self.population)))
+        if not self.population:
+            return contestants[0]
+        # Measure uniqueness: how different is this individual's feature set from the elite?
+        elite_features = set()
+        for i, ind in enumerate(self.population[:self.elite_size]):
+            elite_features.update(ind.selected_indices())
+        best_diversity = -1
+        best_ind = contestants[0]
+        for c in contestants:
+            c_features = set(c.selected_indices())
+            if not c_features:
+                continue
+            overlap = len(c_features & elite_features) / max(len(c_features), 1)
+            diversity = 1.0 - overlap
+            # Weight by fitness to avoid picking terrible individuals
+            score = diversity * 0.6 + max(0, c.fitness["composite"]) * 0.4
+            if score > best_diversity:
+                best_diversity = score
+                best_ind = c
+        return best_ind
 
     def save_cycle_results(self, feature_names):
         """Save results after a cycle of generations."""
@@ -1025,6 +1249,9 @@ def run_continuous(generations_per_cycle=10, total_cycles=None, pop_size=500,
     # Try to restore previous state
     if not engine.restore_state():
         engine.initialize(X.shape[1])
+    else:
+        # Resize population if feature count changed (new features added)
+        engine.resize_population_features(X.shape[1])
 
     # ── Supabase Run Logger + Auto-Cut ──
     run_logger = None
