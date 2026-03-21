@@ -1,5 +1,7 @@
+# Add feature engineering import
 """
 Nomos NBA Quantitative Models — Tony Bloom / Starlizard inspired
 Power ratings, Kelly criterion, odds analysis, prediction engine, bankroll management,
-Graph Neural Networks (GCN/GAT for relational prediction)
+Graph Neural Networks (GCN/GAT for relational prediction),
+Feature Engineering for improved signal quality
 """
