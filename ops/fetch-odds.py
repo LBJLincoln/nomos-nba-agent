@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 """
-NBA Odds Fetcher — Multi-source (Bovada primary, The Odds API fallback)
-========================================================================
+NBA Odds Fetcher — Multi-source (Bovada → DraftKings → TheRundown → odds-api.io → The Odds API)
+================================================================================================
 Fetches live NBA odds and saves to data/odds/ as JSON snapshots.
 
 Sources:
-  1. Bovada public API (FREE, no key needed)
-  2. The Odds API (needs ODDS_API_KEY with credits)
+  1. Bovada public API       (FREE, no key needed)
+  2. DraftKings public API   (FREE, no key needed — Nash mobile API)
+  3. TheRundown              (FREE tier via RapidAPI key — 20k points/day free)
+                              Set THERUNDOWN_API_KEY in .env.local
+  4. odds-api.io             (FREE tier — 100 req/hr, register at odds-api.io)
+                              Set ODDS_API_IO_KEY in .env.local
+  5. The Odds API            (needs ODDS_API_KEY with credits)
 
 Usage:
     python3 ops/fetch-odds.py              # One-shot fetch
@@ -52,6 +57,8 @@ if _env.exists():
             os.environ.setdefault(k.strip(), v.strip("'\""))
 
 ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
+THERUNDOWN_API_KEY = os.environ.get("THERUNDOWN_API_KEY", "")  # Free tier at therundown.io
+ODDS_API_IO_KEY = os.environ.get("ODDS_API_IO_KEY", "")        # Free tier at odds-api.io
 
 TEAM_ABBREV = {
     "Oklahoma City Thunder": "OKC", "Boston Celtics": "BOS", "Cleveland Cavaliers": "CLE",
@@ -112,6 +119,239 @@ def fetch_bovada():
     return games
 
 
+def fetch_draftkings():
+    """Fetch NBA odds from DraftKings public Nash API (FREE, no key needed).
+
+    Uses DraftKings' undocumented mobile sportsbook API (sportsbook-nash.draftkings.com).
+    The .json suffix with a mobile User-Agent bypasses the JS challenge on the main
+    sportsbook.draftkings.com domain. NBA league ID = 42648.
+    """
+    url = "https://sportsbook-nash.draftkings.com/api/sportscontent/dkusnj/v1/leagues/42648.json"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "DraftKings/15.2 iOS/17.0",
+            "Accept": "application/json",
+            "Accept-Encoding": "identity",
+        },
+    )
+    resp = urllib.request.urlopen(req, timeout=15)
+    raw = json.loads(resp.read().decode())
+
+    # Index selections by marketId
+    sel_by_market = {}
+    for sel in raw.get("selections", []):
+        mid = sel.get("marketId", "")
+        sel_by_market.setdefault(mid, []).append(sel)
+
+    # Index events by id
+    events = {e["id"]: e for e in raw.get("events", [])}
+
+    # Group markets by eventId
+    mkt_by_event = {}
+    for mkt in raw.get("markets", []):
+        eid = mkt.get("eventId", "")
+        mkt_by_event.setdefault(eid, []).append(mkt)
+
+    # DK uses short team names like "WAS Wizards"; map to full names where known
+    _DK_TEAM_MAP = {
+        "WAS Wizards": "Washington Wizards", "OKC Thunder": "Oklahoma City Thunder",
+        "LA Lakers": "Los Angeles Lakers",   "LA Clippers": "Los Angeles Clippers",
+        "GS Warriors": "Golden State Warriors", "NO Pelicans": "New Orleans Pelicans",
+        "CLE Cavaliers": "Cleveland Cavaliers", "MEM Grizzlies": "Memphis Grizzlies",
+        "SA Spurs": "San Antonio Spurs",     "MIA Heat": "Miami Heat",
+        "PHI 76ers": "Philadelphia 76ers",   "MIL Bucks": "Milwaukee Bucks",
+        "PHO Suns": "Phoenix Suns",          "CHA Hornets": "Charlotte Hornets",
+        "IND Pacers": "Indiana Pacers",      "ORL Magic": "Orlando Magic",
+        "ATL Hawks": "Atlanta Hawks",        "DET Pistons": "Detroit Pistons",
+        "BKN Nets": "Brooklyn Nets",         "NYK Knicks": "New York Knicks",
+        "BOS Celtics": "Boston Celtics",     "TOR Raptors": "Toronto Raptors",
+        "DEN Nuggets": "Denver Nuggets",     "MIN Timberwolves": "Minnesota Timberwolves",
+        "POR Trail Blazers": "Portland Trail Blazers", "UTA Jazz": "Utah Jazz",
+        "SAC Kings": "Sacramento Kings",     "HOU Rockets": "Houston Rockets",
+        "DAL Mavericks": "Dallas Mavericks", "CHI Bulls": "Chicago Bulls",
+    }
+
+    games = []
+    for eid, ev in events.items():
+        parts = ev.get("participants", [])
+        home_p = next((p for p in parts if p.get("venueRole") == "Home"), {})
+        away_p = next((p for p in parts if p.get("venueRole") == "Away"), {})
+        _home_raw = home_p.get("name", "")
+        _away_raw = away_p.get("name", "")
+        home_team = _DK_TEAM_MAP.get(_home_raw, _home_raw)
+        away_team = _DK_TEAM_MAP.get(_away_raw, _away_raw)
+
+        game = {
+            "home_team": home_team,
+            "away_team": away_team,
+            "home_abbr": home_p.get("metadata", {}).get("shortName", ""),
+            "away_abbr": away_p.get("metadata", {}).get("shortName", ""),
+            "start_time": ev.get("startEventDate", ""),
+            "source": "draftkings",
+            "markets": {},
+        }
+
+        for mkt in mkt_by_event.get(eid, []):
+            mkt_id = mkt.get("id", "")
+            mkt_name = mkt.get("name", "").lower()
+            sels = sel_by_market.get(mkt_id, [])
+            outcomes = []
+            for sel in sels:
+                display_odds = sel.get("displayOdds", {})
+                # DK uses Unicode minus (U+2212) — normalize to ASCII hyphen
+                american = display_odds.get("american", "").replace("\u2212", "-")
+                outcomes.append({
+                    "name": sel.get("label", ""),
+                    "american": american,
+                    "decimal": str(sel.get("trueOdds", "")),
+                    "handicap": str(sel.get("points", "")) if sel.get("points") != "" else "",
+                })
+            if "moneyline" in mkt_name:
+                game["markets"]["moneyline"] = outcomes
+            elif "spread" in mkt_name:
+                game["markets"]["spread"] = outcomes
+            elif "total" in mkt_name:
+                game["markets"]["total"] = outcomes
+
+        games.append(game)
+    return games
+
+
+def fetch_therundown():
+    """Fetch NBA odds from TheRundown via RapidAPI (FREE tier — 20k data points/day).
+
+    Requires THERUNDOWN_API_KEY in .env.local (free registration at therundown.io).
+    NBA sport ID = 4. Bookmaker ID 123 = Pinnacle (main sharp line).
+    Free tier docs: https://rapidapi.com/therundown/api/therundown
+    """
+    if not THERUNDOWN_API_KEY:
+        return []
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    url = f"https://therundown-therundown-v1.p.rapidapi.com/sports/4/events/{today}?offset=0&include=scores"
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json",
+            "x-rapidapi-host": "therundown-therundown-v1.p.rapidapi.com",
+            "x-rapidapi-key": THERUNDOWN_API_KEY,
+        },
+    )
+    resp = urllib.request.urlopen(req, timeout=20)
+    raw = json.loads(resp.read().decode())
+
+    games = []
+    for ev in raw.get("events", []):
+        teams = ev.get("teams", {})
+        away_info = teams.get("away", {})
+        home_info = teams.get("home", {})
+        game = {
+            "home_team": home_info.get("name", ""),
+            "away_team": away_info.get("name", ""),
+            "home_abbr": home_info.get("abbreviation", ""),
+            "away_abbr": away_info.get("abbreviation", ""),
+            "start_time": ev.get("event_date", ""),
+            "source": "therundown",
+            "markets": {},
+        }
+        # Lines are keyed by bookmaker_id. Take the first available book.
+        lines = ev.get("lines", {})
+        book_id = next(iter(lines), None)
+        if book_id:
+            line = lines[book_id]
+            ml = line.get("moneyline", {})
+            sp = line.get("spread", {})
+            tot = line.get("total", {})
+            if ml.get("moneyline_away") and ml.get("moneyline_home"):
+                game["markets"]["moneyline"] = [
+                    {"name": away_info.get("name", "Away"), "american": str(int(ml["moneyline_away"]))},
+                    {"name": home_info.get("name", "Home"), "american": str(int(ml["moneyline_home"]))},
+                ]
+            if sp.get("point_spread_away") is not None:
+                game["markets"]["spread"] = [
+                    {"name": away_info.get("name", "Away"),
+                     "american": str(int(sp.get("spread_away", -110))),
+                     "handicap": str(sp["point_spread_away"])},
+                    {"name": home_info.get("name", "Home"),
+                     "american": str(int(sp.get("spread_home", -110))),
+                     "handicap": str(sp.get("point_spread_home", -sp["point_spread_away"]))},
+                ]
+            if tot.get("total_over") is not None:
+                game["markets"]["total"] = [
+                    {"name": "Over",
+                     "american": str(int(tot.get("total_over_total", -110))),
+                     "handicap": str(tot["total_over"])},
+                    {"name": "Under",
+                     "american": str(int(tot.get("total_under_total", -110))),
+                     "handicap": str(tot.get("total_under", tot["total_over"]))},
+                ]
+        games.append(game)
+    return games
+
+
+def fetch_odds_api_io():
+    """Fetch NBA odds from odds-api.io (FREE tier — 100 req/hr, no credit card needed).
+
+    Requires ODDS_API_IO_KEY in .env.local (free registration at odds-api.io).
+    Free tier: 100 requests/hour, 2 bookmakers.
+    Docs: https://odds-api.io/docs
+    """
+    if not ODDS_API_IO_KEY:
+        return []
+
+    url = (
+        "https://api.odds-api.io/v3/odds"
+        f"?sport=basketball&league=nba&apiKey={ODDS_API_IO_KEY}"
+        "&markets=moneyline,spread,total&oddsFormat=american"
+    )
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json",
+        },
+    )
+    resp = urllib.request.urlopen(req, timeout=20)
+    raw = json.loads(resp.read().decode())
+
+    # odds-api.io returns a list of event objects
+    if isinstance(raw, dict) and "error" in raw:
+        print(f"[odds-api.io] Error: {raw.get('error', 'unknown')}")
+        return []
+
+    games = []
+    for ev in (raw if isinstance(raw, list) else raw.get("data", [])):
+        game = {
+            "home_team": ev.get("home_team", ev.get("homeTeam", "")),
+            "away_team": ev.get("away_team", ev.get("awayTeam", "")),
+            "start_time": ev.get("commence_time", ev.get("startTime", "")),
+            "source": "odds-api-io",
+            "markets": {},
+        }
+        # Normalize odds from first available bookmaker
+        bookmakers = ev.get("bookmakers", ev.get("books", []))
+        for bk in bookmakers[:1]:
+            for mkt in bk.get("markets", bk.get("odds", [])):
+                key = mkt.get("key", mkt.get("type", "")).lower()
+                outcomes = []
+                for o in mkt.get("outcomes", []):
+                    outcomes.append({
+                        "name": o.get("name", o.get("label", "")),
+                        "american": str(o.get("price", o.get("american", ""))),
+                        "handicap": str(o.get("point", o.get("handicap", ""))),
+                    })
+                if key in ("spreads", "spread"):
+                    game["markets"]["spread"] = outcomes
+                elif key in ("h2h", "moneyline"):
+                    game["markets"]["moneyline"] = outcomes
+                elif key in ("totals", "total"):
+                    game["markets"]["total"] = outcomes
+        games.append(game)
+    return games
+
+
 def fetch_odds_api():
     """Fetch from The Odds API (needs credits)."""
     if not ODDS_API_KEY:
@@ -148,8 +388,8 @@ def fetch_odds_api():
 
 
 def fetch_all():
-    """Fetch from all sources, Bovada first."""
-    # Try Bovada first (free, reliable)
+    """Fetch from all sources, cascading Bovada → DraftKings → TheRundown → odds-api.io → The Odds API."""
+    # 1. Try Bovada first (free, reliable)
     try:
         games = fetch_bovada()
         if games:
@@ -158,7 +398,34 @@ def fetch_all():
     except Exception as e:
         print(f"[Bovada] Failed: {e}")
 
-    # Fallback to The Odds API
+    # 2. DraftKings public Nash API (free, no key)
+    try:
+        games = fetch_draftkings()
+        if games:
+            print(f"[DraftKings] {len(games)} games fetched")
+            return games, "draftkings"
+    except Exception as e:
+        print(f"[DraftKings] Failed: {e}")
+
+    # 3. TheRundown (free tier, needs THERUNDOWN_API_KEY)
+    try:
+        games = fetch_therundown()
+        if games:
+            print(f"[TheRundown] {len(games)} games fetched")
+            return games, "therundown"
+    except Exception as e:
+        print(f"[TheRundown] Failed: {e}")
+
+    # 4. odds-api.io (free tier, needs ODDS_API_IO_KEY)
+    try:
+        games = fetch_odds_api_io()
+        if games:
+            print(f"[odds-api.io] {len(games)} games fetched")
+            return games, "odds-api-io"
+    except Exception as e:
+        print(f"[odds-api.io] Failed: {e}")
+
+    # 5. Fallback to The Odds API (paid)
     try:
         games = fetch_odds_api()
         if games:
