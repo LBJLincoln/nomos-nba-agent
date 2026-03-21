@@ -240,17 +240,47 @@ def create_advanced_feature_engineering_pipeline(df: pd.DataFrame, team_id_col: 
     
     return df
 
+def compute_advanced_performance_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Compute advanced performance metrics for model training.
+    
+    Parameters:
+    df (pd.DataFrame): Game data with basic statistics
+    
+    Returns:
+    pd.DataFrame: DataFrame with advanced performance metrics
+    """
+    df = df.copy()
+    
+    # Efficiency metrics
+    df['offensive_efficiency'] = df['points'] / (df['pace'] / 100)
+    df['defensive_efficiency'] = df['opponent_points'] / (df['pace'] / 100)
+    df['net_efficiency'] = df['offensive_efficiency'] - df['defensive_efficiency']
+    
+    # True shooting percentage
+    df['true_shooting'] = df['points'] / (2 * (df['fga'] + 0.44 * df['fta']))
+    
+    # Rebound percentage
+    df['total_rebounds'] = df['orb'] + df['drb']
+    df['rebounding_percentage'] = df['total_rebounds'] / (df['total_rebounds'] + df['opponent_total_rebounds'])
+    
+    # Turnover ratio
+    df['turnover_ratio'] = df['tov'] / (df['fga'] + 0.44 * df['fta'] + df['tov'])
+    
+    return df
+
 # Example usage:
 # df = pd.DataFrame({
-#     'team_id': [1,1,1,2,2,2],
-#     'opponent_id': [2,2,2,1,1,1],
-#     'date': pd.date_range('2024-01-01', periods=6),
-#     'points': [100, 110, 120, 95, 105, 115],
-#     'opponent_points': [90, 100, 110, 105, 95, 85],
-#     'team_strength': [1.2, 1.1, 1.3, 0.9, 1.0, 0.8],
-#     'opponent_strength': [0.9, 0.8, 1.0, 1.1, 1.2, 1.0],
-#     'rest_days': [2, 1, 3, 0, 2, 1],
-#     'travel_distance': [0, 200, 500, 300, 0, 150]
+#     'team_id': [1,1,2,2],
+#     'opponent_id': [2,2,1,1],
+#     'points': [100, 110, 95, 105],
+#     'opponent_points': [90, 100, 105, 95],
+#     'pace': [100, 105, 95, 100],
+#     'rest_days': [2, 1, 3, 0],
+#     'travel_distance': [0, 200, 500, 300],
+#     'game_date': pd.date_range('2024-01-01', periods=4),
+#     'team_strength': [1.2, 1.1, 0.9, 1.0],
+#     'opponent_strength': [0.9, 1.0, 1.1, 0.8]
 # })
 # 
 # advanced_df = create_advanced_feature_engineering_pipeline(
@@ -261,3 +291,4 @@ def create_advanced_feature_engineering_pipeline(df: pd.DataFrame, team_id_col: 
 #     rest_col='rest_days', 
 #     travel_col='travel_distance'
 # )
+# advanced_df = compute_advanced_performance_metrics(advanced_df)
