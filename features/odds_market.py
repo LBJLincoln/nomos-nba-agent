@@ -53,7 +53,7 @@ SSL_CTX.check_hostname = False
 SSL_CTX.verify_mode = ssl.CERT_NONE
 
 # ── API Config ───────────────────────────────────────────────────────────────
-ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "959eab3a6b0b731ef1766579e355f51d")
+ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
 ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 SPORT = "basketball_nba"
 

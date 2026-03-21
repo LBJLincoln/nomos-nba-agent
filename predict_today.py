@@ -69,7 +69,7 @@ from models.odds_analyzer import (
 )
 
 # ── Constants ────────────────────────────────────────────────────────────────
-ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "959eab3a6b0b731ef1766579e355f51d")
+ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
 ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 SSL_CTX = ssl.create_default_context()
 SSL_CTX.check_hostname = False
@@ -306,6 +306,54 @@ def _nba_api_team_name(team_id, scoreboard) -> Optional[str]:
         return NBA_TEAM_ID_MAP.get(team_id)
     except (ValueError, TypeError):
         return None
+
+
+def fetch_todays_games_bovada() -> List[Dict]:
+    """Fetch today's games from Bovada public API (FREE, no key needed)."""
+    import urllib.request
+    url = "https://www.bovada.lv/services/sports/event/coupon/events/A/description/basketball/nba?marketFilterId=def&lang=en"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
+        resp = urllib.request.urlopen(req, timeout=15)
+        raw = json.loads(resp.read().decode())
+        games = []
+        for group in raw:
+            for ev in group.get("events", []):
+                game = {"id": ev.get("id"), "source": "bovada",
+                        "commence_time": ev.get("startTime"),
+                        "home_team": "", "away_team": "", "bookmakers": []}
+                parts = ev.get("description", "").split(" @ ")
+                if len(parts) == 2:
+                    game["away_team"] = parts[0].strip()
+                    game["home_team"] = parts[1].strip()
+                # Convert Bovada format to Odds API format for compatibility
+                markets = []
+                for dg in ev.get("displayGroups", []):
+                    for mkt in dg.get("markets", []):
+                        mtype = mkt.get("description", "").lower()
+                        outcomes = []
+                        for oc in mkt.get("outcomes", []):
+                            o = {"name": oc.get("description", ""),
+                                 "price": float(oc.get("price", {}).get("decimal", "2.0") or "2.0")}
+                            if oc.get("price", {}).get("handicap"):
+                                o["point"] = float(oc["price"]["handicap"])
+                            outcomes.append(o)
+                        if "spread" in mtype:
+                            markets.append({"key": "spreads", "outcomes": outcomes})
+                        elif "moneyline" in mtype or "money" in mtype:
+                            markets.append({"key": "h2h", "outcomes": outcomes})
+                        elif "total" in mtype:
+                            markets.append({"key": "totals", "outcomes": outcomes})
+                if markets:
+                    game["bookmakers"] = [{"key": "bovada", "title": "Bovada", "markets": markets}]
+                games.append(game)
+        if games:
+            print(f"[ODDS] Bovada: {len(games)} games fetched (FREE)")
+            _cache_odds(games)
+        return games
+    except Exception as e:
+        print(f"[ODDS] Bovada failed: {e}")
+        return []
 
 
 def fetch_todays_games_odds_api() -> List[Dict]:
@@ -1411,14 +1459,16 @@ def main(bankroll: float = 100.0, include_props: bool = True, dry_run: bool = Fa
         games_nba = fetch_todays_games_nba_api()
         time.sleep(1.0)  # Rate limiting for nba_api
 
-    # Step 3: Fetch live odds from The Odds API
+    # Step 3: Fetch live odds (Bovada primary, The Odds API fallback)
     print("\n[STEP 3] Fetching live odds...")
     if dry_run:
         odds_data = _load_cached_odds()
         if not odds_data:
             odds_data = fetch_live_odds()  # Will use simulated if no key
     else:
-        odds_data = fetch_todays_games_odds_api()
+        odds_data = fetch_todays_games_bovada()
+        if not odds_data:
+            odds_data = fetch_todays_games_odds_api()
         time.sleep(0.5)
 
     # Step 4: Fetch player prop odds

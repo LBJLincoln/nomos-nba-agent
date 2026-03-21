@@ -43,7 +43,7 @@ if _env_file.exists():
             _k, _, _v = _line.partition("=")
             os.environ.setdefault(_k.strip(), _v.strip("'\""))
 
-ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "959eab3a6b0b731ef1766579e355f51d")
+ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
 
 
 def _load_latest_evolution():
