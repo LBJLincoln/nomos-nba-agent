@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 
 from models.power_ratings import predict_matchup, get_team, NBA_TEAMS
 from models.kelly import (
-    BetOpportunity, evaluate_bet, evaluate_multiple_bets,
+    BetOpportunity, evaluate_bet, evaluate_multiple_bets, MultiKellyResult,
     implied_probability, kelly_fraction, edge_percentage, format_kelly_report,
     FRACTIONAL_KELLY, DEFAULT_BANKROLL
 )
