@@ -261,4 +261,3 @@ def create_advanced_feature_engineering_pipeline(df: pd.DataFrame, team_id_col: 
 #     rest_col='rest_days', 
 #     travel_col='travel_distance'
 # )
-
