@@ -365,13 +365,27 @@ TASKS:
 # ══════════════════════════════════════════════
 # AGENT 4: Evolution Optimizer
 # ══════════════════════════════════════════════
+def _fetch_s10_status():
+    """Fetch live evolution status from S10 HF Space."""
+    try:
+        url = os.environ.get("S10_URL", "https://lbjlincoln-nomos-nba-quant.hf.space")
+        req = urllib.request.Request(f"{url}/api/status", headers={"User-Agent": "NomosCrewAgent/1.0"})
+        resp = urllib.request.urlopen(req, timeout=15)
+        return json.loads(resp.read().decode())
+    except Exception as e:
+        print(f"[Evolution] S10 status fetch failed: {e}")
+        return None
+
+
 def run_evolution_agent():
     """
     Analyze genetic algorithm performance, diagnose issues, suggest parameter changes.
     Connected to notebook results and feature engineer recommendations.
+    Pulls live S10 status when available.
     """
     rotator = get_rotator()
     evo = _load_latest_evolution()
+    s10_live = _fetch_s10_status()
     features = {}
     features_file = RESULTS_DIR / "crew-features.json"
     if features_file.exists():
@@ -408,6 +422,9 @@ ALL MODEL RESULTS:
 
 FEATURE ENGINEER RECOMMENDATIONS:
 {json.dumps(features.get('parsed') or features.get('response', 'None')[:1000], default=str)[:1500]}
+
+S10 LIVE STATUS (from HF Space):
+{json.dumps(s10_live, indent=2, default=str)[:1500] if s10_live else 'S10 unreachable'}
 
 TASKS:
 1. Is the GA making progress or stagnating? (GA showed Brier 0.3000 for all 30 gens = BROKEN)
