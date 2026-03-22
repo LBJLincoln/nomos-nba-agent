@@ -227,3 +227,4 @@ def generate_evolutionary_boosts(games: pd.DataFrame, team_id: int,
 # print(f"Adaptive mutation rate: {boosts['mutation_rate']:.4f}")
 # print(f"Feature mutations: {boosts['feature_mutations']}")
 # print(f"Enhanced features: {boosts['enhanced_features']}")
+
