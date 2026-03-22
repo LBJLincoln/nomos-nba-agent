@@ -287,4 +287,3 @@ def compute_matchup_advantage_score(profile: Dict[str, any]) -> float:
 # profile = generate_matchup_profile(games, team_id=1, opponent_id=2, season='2023-24')
 # advantage_score = compute_matchup_advantage_score(profile)
 # print(f"Matchup advantage score: {advantage_score:.3f}")
-
