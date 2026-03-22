@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
-from scipy.stats import zscore
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import brier_score_loss
 from typing import Dict, List
 
 def create_interaction_features(df: pd.DataFrame, feature_columns: List[str], degree: int = 2) -> pd.DataFrame:
@@ -170,3 +172,92 @@ def create_advanced_feature_engineering_pipeline(df: pd.DataFrame, team_id_col: 
     df = compute_advanced_performance_metrics(df)
     
     return df
+
+def evaluate_feature_impact(df: pd.DataFrame, target_col: str = 'actual') -> pd.DataFrame:
+    """
+    Evaluate feature importance and impact on model performance.
+    
+    Parameters:
+    df (pd.DataFrame): DataFrame with features and target
+    target_col (str): Target column name
+    
+    Returns:
+    pd.DataFrame: Feature importance analysis
+    """
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+    
+    # Train Random Forest for feature importance
+    rf = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf.fit(X, y)
+    
+    feature_importances = rf.feature_importances_
+    feature_names = X.columns
+    
+    # Create importance dataframe
+    importance_df = pd.DataFrame({
+        'feature': feature_names,
+        'importance': feature_importances
+    }).sort_values('importance', ascending=False)
+    
+    # Calculate baseline performance
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    rf.fit(X_train, y_train)
+    baseline_brier = brier_score_loss(y_test, rf.predict_proba(X_test)[:, 1])
+    
+    # Evaluate feature removal impact
+    impact_results = []
+    for feature in feature_names:
+        X_reduced = X.drop(columns=[feature])
+        X_train, X_test, y_train, y_test = train_test_split(X_reduced, y, test_size=0.2, random_state=42)
+        rf.fit(X_train, y_train)
+        brier = brier_score_loss(y_test, rf.predict_proba(X_test)[:, 1])
+        impact_results.append({
+            'feature': feature,
+            'importance': feature_importances[feature_names.get_loc(feature)],
+            'brier_score': brier,
+            'brier_increase': brier - baseline_brier
+        })
+    
+    impact_df = pd.DataFrame(impact_results)
+    
+    return pd.merge(importance_df, impact_df, on='feature')
+
+def create_complete_feature_set(df: pd.DataFrame, target_col: str = 'actual') -> pd.DataFrame:
+    """
+    Generate complete feature set combining all advanced techniques.
+    
+    Parameters:
+    df (pd.DataFrame): Raw game data
+    target_col (str): Target column name
+    
+    Returns:
+    pd.DataFrame: DataFrame with comprehensive feature engineering
+    """
+    # Define key columns
+    team_id_col = 'team_id'
+    opponent_id_col = 'opponent_id'
+    metric_cols = ['points', 'opponent_points', 'fga', 'fg3a', 'fta', 'orb', 'drb', 'tov']
+    rest_col = 'rest_days'
+    travel_col = 'travel_distance'
+    
+    # Create advanced features
+    df = create_advanced_feature_engineering_pipeline(df, team_id_col, opponent_id_col, 
+                                                      metric_cols, rest_col, travel_col)
+    
+    # Normalize key features
+    scaler = StandardScaler()
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    numeric_cols = [col for col in numeric_cols if col != target_col]
+    
+    if len(numeric_cols) > 0:
+        df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
+    
+    return df
+
+# Example usage:
+# df = pd.read_csv('data/games.csv')
+# df = create_complete_feature_set(df)
+# importance_analysis = evaluate_feature_impact(df)
+# print(importance_analysis.head(10))
+
