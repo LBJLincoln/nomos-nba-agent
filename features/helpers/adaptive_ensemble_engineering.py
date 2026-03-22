@@ -230,4 +230,3 @@ def evaluate_ensemble_performance(df: pd.DataFrame, target_col: str = 'actual') 
 # print(f"Ensemble Brier Score: {performance['brier_score']:.4f}")
 # print(f"Temporal Brier Score: {performance['temporal_brier']:.4f}")
 # print(f"Model Contributions: {performance['model_contributions']}")
-
