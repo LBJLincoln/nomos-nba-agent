@@ -77,3 +77,18 @@ def compute_clutch_time_statistics(df: pd.DataFrame, threshold_minutes: int = 5)
     df['clutch_pressure_score'] = df['clutch_pressure'] * df['clutch_efficiency']
     
     return df
+
+# Example usage:
+# df = pd.DataFrame({
+#     'team_id': [1,1,2,2],
+#     'opponent_id': [2,2,1,1],
+#     'points': [100, 110, 95, 105],
+#     'opponent_points': [90, 100, 105, 95],
+#     'team_strength': [1.1, 1.1, 0.9, 0.9],
+#     'opponent_strength': [0.9, 0.9, 1.1, 1.1],
+#     'game_time': [48, 48, 48, 48],
+#     'quarter': [4, 4, 4, 4]
+# })
+# 
+# df = compute_opponent_strength_decomposition(df)
+# df = compute_clutch_time_statistics(df)
