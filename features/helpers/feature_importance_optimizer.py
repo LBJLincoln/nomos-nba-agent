@@ -85,6 +85,10 @@ def main():
     # Load data
     games = load_game_data()
 
+    if games.empty:
+        print("No game data available. Exiting.")
+        return
+
     # Define feature and target columns
     feature_columns = ['weighted_win_streak', 'margin_trend', 'avg_margin', 'margin_volatility',
                         'rest_quality_score', 'travel_distance', 'timezone_adjustment',
