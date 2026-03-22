@@ -1,229 +1,112 @@
 import numpy as np
 import pandas as pd
-from scipy.stats import zscore
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import brier_score_loss, log_loss
+from sklearn.metrics import brier_score_loss
 from typing import Dict, List
 
-def create_advanced_team_features(df: pd.DataFrame, team_id_col: str = 'team_id', 
-                                 opponent_id_col: str = 'opponent_id') -> pd.DataFrame:
-    """
-    Create comprehensive team-specific features for performance prediction.
-    
-    Parameters:
-    df (pd.DataFrame): Game data with team and opponent statistics
-    team_id_col (str): Column name for team ID
-    opponent_id_col (str): Column name for opponent ID
-    
-    Returns:
-    pd.DataFrame: DataFrame with advanced team features
-    """
-    df = df.copy()
-    
-    # Team performance metrics
-    team_stats = df.groupby(team_id_col).agg({
-        'points': ['mean', 'std', 'median', 'max', 'min'],
-        'opponent_points': ['mean', 'std'],
-        'pace': ['mean', 'std'],
-        'rest_days': ['mean', 'std']
-    }).reset_index()
-    team_stats.columns = [team_id_col, 'team_pts_mean', 'team_pts_std', 'team_pts_median',
-                         'team_pts_max', 'team_pts_min', 'team_opp_pts_mean', 'team_opp_pts_std',
-                         'team_pace_mean', 'team_pace_std', 'team_rest_mean', 'team_rest_std']
-    
-    # Opponent strength metrics
-    opponent_strength = df.groupby(opponent_id_col)['points'].agg([
-        ('opp_strength_mean', 'mean'),
-        ('opp_strength_std', 'std')
-    ]).reset_index()
-    
-    # Merge back to original data
-    df = df.merge(team_stats, on=team_id_col, how='left')
-    df = df.merge(opponent_strength, left_on=opponent_id_col, right_on=opponent_id_col, how='left')
-    
-    # Advanced interaction features
-    df['strength_diff'] = df['team_pts_mean'] - df['opp_strength_mean']
-    df['pace_adjusted_strength'] = df['team_pace_mean'] * df['team_pts_mean']
-    df['rest_pace_interaction'] = df['team_rest_mean'] * df['team_pace_mean']
-    df['volatility_ratio'] = df['team_pts_std'] / (df['team_opp_pts_mean'] + 1)
-    
-    return df
-
-def compute_advanced_momentum_features(df: pd.DataFrame, window_sizes: List[int] = [3, 5, 10]) -> pd.DataFrame:
-    """
-    Compute multi-window momentum features for performance trends.
-    
-    Parameters:
-    df (pd.DataFrame): Game data with datetime index
-    window_sizes (List[int]): List of window sizes for momentum calculation
-    
-    Returns:
-    pd.DataFrame: DataFrame with momentum features
-    """
-    df = df.sort_values('game_date')
-    
-    momentum_features = []
-    
-    for window in window_sizes:
-        # Rolling statistics
-        rolling_stats = df.groupby('team_id')[['points', 'opponent_points']].rolling(window=window).agg([
-            ('mean', 'mean'),
-            ('std', 'std'),
-            ('trend', lambda x: np.polyfit(np.arange(len(x)), x, 1)[0] if len(x) > 1 else 0),
-            ('momentum', lambda x: (x - x.shift(1)).sum())
-        ]).reset_index()
-        
-        rolling_stats.columns = ['team_id', 'date', 'points_roll_mean', 'points_roll_std',
-                               'points_roll_trend', 'points_roll_momentum',
-                               'opp_points_roll_mean', 'opp_points_roll_std',
-                               'opp_points_roll_trend', 'opp_points_roll_momentum']
-        
-        momentum_features.append(rolling_stats)
-    
-    # Merge all momentum features
-    result = momentum_features[0]
-    for mf in momentum_features[1:]:
-        result = result.merge(mf, on=['team_id', 'date'], how='left', suffixes=('', f'_win{window}'))
-    
-    return result
-
-def create_rest_travel_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Create comprehensive rest and travel interaction features.
-    
-    Parameters:
-    df (pd.DataFrame): Game data with rest and travel information
-    
-    Returns:
-    pd.DataFrame: DataFrame with rest-travel interaction features
-    """
-    df = df.copy()
-    
-    # Rest categories
-    df['rest_category'] = pd.cut(df['rest_days'], 
-                                 bins=[-1, 0, 1, 2, 3, 4, np.inf],
-                                 labels=['no_rest', 'minimal', 'short', 'medium', 'long', 'extended'])
-    
-    # Travel categories
-    df['travel_category'] = pd.cut(df['travel_distance'],
-                                   bins=[0, 100, 500, 1000, 2000, np.inf],
-                                   labels=['local', 'regional', 'national', 'cross_country', 'international'])
-    
-    # Rest-travel interaction
-    df['rest_travel_interaction'] = df['rest_days'] * df['travel_distance']
-    
-    # Travel fatigue penalty
-    df['travel_fatigue'] = np.where(df['travel_distance'] > 1000, 0.3,
-                                   np.where(df['travel_distance'] > 500, 0.2, 0.1))
-    
-    # Rest quality score
-    df['rest_quality_score'] = np.where(df['rest_days'] < 1, 0.5,
-                                       np.where(df['rest_days'] < 2, 0.7,
-                                               np.where(df['rest_days'] < 3, 0.9, 1.0)))
-    
-    # Back-to-back penalty
-    df['back_to_back_penalty'] = np.where(df['rest_days'] < 1, 0.4, 0)
-    
-    # Combined rest-travel score
-    df['rest_travel_score'] = df['rest_quality_score'] * (1 - df['travel_fatigue']) * (1 - df['back_to_back_penalty'])
-    
-    return df
-
-def compute_advanced_opponent_features(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Compute advanced opponent-specific features for matchup analysis.
-    
-    Parameters:
-    df (pd.DataFrame): Game data with opponent statistics
-    
-    Returns:
-    pd.DataFrame: DataFrame with advanced opponent features
-    """
-    df = df.copy()
-    
-    # Opponent strength decomposition
-    df['opponent_tier'] = pd.qcut(df['opponent_strength'], q=5, labels=False)
-    df['strength_diff_abs'] = np.abs(df['team_strength'] - df['opponent_strength'])
-    
-    # Matchup difficulty indicators
-    df['is_tough_matchup'] = ((df['opponent_tier'] >= 3) & (df['strength_diff_abs'] < 0.5)).astype(int)
-    df['is_easy_matchup'] = ((df['opponent_tier'] <= 1) & (df['strength_diff_abs'] > 0.5)).astype(int)
-    
-    # Historical performance against opponent type
-    opponent_type_stats = df.groupby(['opponent_tier', 'team_id'])['points'].agg([
-        ('mean', 'mean'),
-        ('std', 'std')
-    ]).reset_index()
-    
-    opponent_type_stats.columns = ['opponent_tier', 'team_id', 'opp_type_pts_mean', 'opp_type_pts_std']
-    
-    df = df.merge(opponent_type_stats, on=['opponent_tier', 'team_id'], how='left')
-    
-    # Revenge game indicator (if team lost to this opponent recently)
-    df['last_opponent_game'] = df.groupby('team_id')['game_date'].shift(1)
-    df['is_revenge_game'] = ((df['last_opponent_game'] == df['game_date']) & 
-                            (df['points'] < df['opponent_points'])).astype(int)
-    
-    return df
-
-def create_polynomial_interaction_features(df: pd.DataFrame, degree: int = 2) -> pd.DataFrame:
+def create_interaction_features(df: pd.DataFrame, feature_columns: List[str], degree: int = 2) -> pd.DataFrame:
     """
     Create polynomial interaction features to capture non-linear relationships.
     
     Parameters:
     df (pd.DataFrame): Input data
-    degree (int): Degree of polynomial features
+    feature_columns (List[str]): List of feature column names to transform
+    degree (int): Degree of polynomial features (default: 2)
     
     Returns:
-    pd.DataFrame: DataFrame with polynomial interaction features
+    pd.DataFrame: DataFrame with original features plus interaction features
     """
     poly = PolynomialFeatures(degree=degree, include_bias=False)
-    
-    # Select numeric features for polynomial expansion
-    numeric_features = df.select_dtypes(include=[np.number])
-    interaction_matrix = poly.fit_transform(numeric_features)
-    
-    # Create feature names
-    feature_names = poly.get_feature_names_out(numeric_features.columns)
-    
-    # Create DataFrame with interaction features
-    interaction_df = pd.DataFrame(interaction_matrix, columns=feature_names, index=df.index)
+    interaction_matrix = poly.fit_transform(df[feature_columns])
+    interaction_df = pd.DataFrame(interaction_matrix, columns=poly.get_feature_names_out(feature_columns))
     
     return pd.concat([df, interaction_df], axis=1)
 
-def generate_complete_feature_set(df: pd.DataFrame) -> pd.DataFrame:
+def compute_opponent_adjusted_metrics(df: pd.DataFrame, team_id_col: str, opponent_id_col: str, metric_cols: List[str]) -> pd.DataFrame:
     """
-    Generate complete feature set combining all advanced features.
+    Compute opponent-adjusted metrics to account for strength of competition.
     
     Parameters:
-    df (pd.DataFrame): Raw game data
+    df (pd.DataFrame): Input data with team and opponent IDs
+    team_id_col (str): Column name for team ID
+    opponent_id_col (str): Column name for opponent ID
+    metric_cols (List[str]): List of metric columns to adjust
     
     Returns:
-    pd.DataFrame: DataFrame with comprehensive feature engineering
+    pd.DataFrame: DataFrame with opponent-adjusted metrics
     """
-    # Create advanced team features
-    df = create_advanced_team_features(df)
+    # Calculate opponent averages
+    opponent_stats = df.groupby(opponent_id_col)[metric_cols].mean().reset_index()
+    opponent_stats.columns = [opponent_id_col] + [f'opponent_avg_{col}' for col in metric_cols]
     
-    # Add momentum features
-    momentum_features = compute_advanced_momentum_features(df)
-    df = df.merge(momentum_features, on=['team_id', 'date'], how='left')
+    # Merge back to original data
+    df = df.merge(opponent_stats, on=opponent_id_col, how='left')
     
-    # Add rest-travel interaction features
-    df = create_rest_travel_interaction_features(df)
+    # Compute opponent-adjusted metrics
+    for col in metric_cols:
+        df[f'opponent_adj_{col}'] = df[col] - df[f'opponent_avg_{col}']
     
-    # Add advanced opponent features
-    df = compute_advanced_opponent_features(df)
+    return df
+
+def generate_rolling_statistics(df: pd.DataFrame, group_col: str, value_col: str, window: int = 5) -> pd.DataFrame:
+    """
+    Generate rolling statistics for time-series analysis.
     
-    # Create polynomial interactions
-    df = create_polynomial_interaction_features(df, degree=2)
+    Parameters:
+    df (pd.DataFrame): Input data with datetime index
+    group_col (str): Column to group by (e.g., team_id)
+    value_col (str): Column to calculate rolling statistics for
+    window (int): Window size for rolling calculations
     
-    # Normalize key features
-    scaler = StandardScaler()
-    numeric_cols = df.select_dtypes(include=[np.number]).columns
-    df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
+    Returns:
+    pd.DataFrame: DataFrame with rolling statistics
+    """
+    df = df.sort_index()
+    
+    rolling_stats = df.groupby(group_col)[value_col].rolling(window=window).agg([
+        ('rolling_mean', 'mean'),
+        ('rolling_std', 'std'),
+        ('rolling_min', 'min'),
+        ('rolling_max', 'max'),
+        ('rolling_zscore', lambda x: (x - x.mean()) / x.std())
+    ]).reset_index()
+    
+    rolling_stats.columns = [group_col, value_col, 
+                           f'{value_col}_roll_mean',
+                           f'{value_col}_roll_std',
+                           f'{value_col}_roll_min',
+                           f'{value_col}_roll_max',
+                           f'{value_col}_roll_zscore']
+    
+    return rolling_stats
+
+def create_team_strength_interactions(df: pd.DataFrame, team_strength_col: str, opponent_strength_col: str) -> pd.DataFrame:
+    """
+    Create interaction features between team and opponent strength.
+    
+    Parameters:
+    df (pd.DataFrame): Input data
+    team_strength_col (str): Column name for team strength
+    opponent_strength_col (str): Column name for opponent strength
+    
+    Returns:
+    pd.DataFrame: DataFrame with strength interaction features
+    """
+    df = df.copy()
+    
+    # Strength difference
+    df['strength_diff'] = df[team_strength_col] - df['opponent_strength_col']
+    
+    # Strength ratio
+    df['strength_ratio'] = df[team_strength_col] / df['opponent_strength_col']
+    
+    # Interaction term
+    df['strength_interaction'] = df[team_strength_col] * df['opponent_strength_col']
+    
+    # Strength dominance indicator
+    df['strength_dominant'] = (df[team_strength_col] > df['opponent_strength_col']).astype(int)
     
     return df
 
@@ -256,54 +139,128 @@ def compute_advanced_performance_metrics(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
-def evaluate_model_performance(X: pd.DataFrame, y: pd.Series) -> dict:
+def create_complete_feature_set(df: pd.DataFrame, team_id_col: str, opponent_id_col: str, 
+                                 metric_cols: List[str], rest_col: str, travel_col: str) -> pd.DataFrame:
     """
-    Evaluate model performance using multiple metrics.
+    Generate complete feature set combining all advanced techniques.
     
     Parameters:
-    X (pd.DataFrame): Feature matrix
-    y (pd.Series): Target labels
+    df (pd.DataFrame): Input data
+    team_id_col (str): Column for team ID
+    opponent_id_col (str): Column for opponent ID
+    metric_cols (List[str]): List of metric columns to transform
+    rest_col (str): Column for rest days
+    travel_col (str): Column for travel distance
     
     Returns:
-    dict: Performance metrics
+    pd.DataFrame: DataFrame with all advanced features
     """
+    # Create interaction features
+    df = create_interaction_features(df, metric_cols, degree=2)
+    
+    # Opponent-adjusted metrics
+    df = compute_opponent_adjusted_metrics(df, team_id_col, opponent_id_col, metric_cols)
+    
+    # Rolling statistics
+    rolling_stats = generate_rolling_statistics(df, team_id_col, 'points', window=5)
+    df = df.merge(rolling_stats, on=[team_id_col, 'date'], how='left')
+    
+    # Team strength interactions
+    df = create_team_strength_interactions(df, 'team_strength', 'opponent_strength')
+    
+    # Advanced performance metrics
+    df = compute_advanced_performance_metrics(df)
+    
+    return df
+
+def evaluate_feature_impact(df: pd.DataFrame, target_col: str = 'actual') -> pd.DataFrame:
+    """
+    Evaluate feature importance and impact on model performance.
+    
+    Parameters:
+    df (pd.DataFrame): DataFrame with features and target
+    target_col (str): Target column name
+    
+    Returns:
+    pd.DataFrame: Feature importance analysis
+    """
+    X = df.drop(columns=[target_col])
+    y = df[target_col]
+    
+    # Train Random Forest for feature importance
+    rf = RandomForestClassifier(n_estimators=100, random_state=42)
+    rf.fit(X, y)
+    
+    feature_importances = rf.feature_importances_
+    feature_names = X.columns
+    
+    # Create importance dataframe
+    importance_df = pd.DataFrame({
+        'feature': feature_names,
+        'importance': feature_importances
+    }).sort_values('importance', ascending=False)
+    
+    # Calculate baseline performance
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    rf.fit(X_train, y_train)
+    baseline_brier = brier_score_loss(y_test, rf.predict_proba(X_test)[:, 1])
     
-    # Train multiple models
-    models = {
-        'random_forest': RandomForestClassifier(n_estimators=100, random_state=42),
-        'gradient_boost': GradientBoostingClassifier(n_estimators=100, random_state=42),
-        'logistic_regression': LogisticRegression(random_state=42)
-    }
+    # Evaluate feature removal impact
+    impact_results = []
+    for feature in feature_names:
+        X_reduced = X.drop(columns=[feature])
+        X_train, X_test, y_train, y_test = train_test_split(X_reduced, y, test_size=0.2, random_state=42)
+        rf.fit(X_train, y_train)
+        brier = brier_score_loss(y_test, rf.predict_proba(X_test)[:, 1])
+        impact_results.append({
+            'feature': feature,
+            'importance': feature_importances[feature_names.get_loc(feature)],
+            'brier_score': brier,
+            'brier_increase': brier - baseline_brier
+        })
     
-    results = {}
+    impact_df = pd.DataFrame(impact_results)
     
-    for name, model in models.items():
-        try:
-            model.fit(X_train, y_train)
-            y_pred = model.predict_proba(X_test)[:, 1]
-            
-            results[name] = {
-                'brier_score': brier_score_loss(y_test, y_pred),
-                'log_loss': log_loss(y_test, y_pred),
-                'accuracy': np.mean((y_pred > 0.5) == y_test)
-            }
-        except Exception as e:
-            results[name] = {'error': str(e)}
+    return pd.merge(importance_df, impact_df, on='feature')
+
+def create_feature_engineering_pipeline(df: pd.DataFrame, target_col: str = 'actual') -> pd.DataFrame:
+    """
+    Complete feature engineering pipeline with evaluation.
     
-    return results
+    Parameters:
+    df (pd.DataFrame): Raw game data
+    target_col (str): Target column name
+    
+    Returns:
+    pd.DataFrame: DataFrame with comprehensive feature engineering and importance analysis
+    """
+    # Define key columns
+    team_id_col = 'team_id'
+    opponent_id_col = 'opponent_id'
+    metric_cols = ['points', 'opponent_points', 'fga', 'fg3a', 'fta', 'orb', 'drb', 'tov']
+    rest_col = 'rest_days'
+    travel_col = 'travel_distance'
+    
+    # Create advanced features
+    df = create_complete_feature_set(df, team_id_col, opponent_id_col, 
+                                      metric_cols, rest_col, travel_col)
+    
+    # Normalize key features
+    scaler = StandardScaler()
+    numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+    numeric_cols = [col for col in numeric_cols if col != target_col]
+    
+    if len(numeric_cols) > 0:
+        df[numeric_cols] = scaler.fit_transform(df[numeric_cols])
+    
+    # Evaluate feature impact
+    importance_analysis = evaluate_feature_impact(df, target_col)
+    
+    return df, importance_analysis
 
 # Example usage:
 # df = pd.read_csv('data/games.csv')
-# df = generate_complete_feature_set(df)
-# df = compute_advanced_performance_metrics(df)
-# 
-# X = df.select_dtypes(include=[np.number]).drop(columns=['actual'])
-# y = df['actual']
-# 
-# performance = evaluate_model_performance(X, y)
-# print("Model Performance:")
-# for model, metrics in performance.items():
-#     if 'error' not in metrics:
-#         print(f"{model}: Brier={metrics['brier_score']:.4f}, LogLoss={metrics['log_loss']:.4f}, Accuracy={metrics['accuracy']:.4f}")
-
+# df, importance_analysis = create_feature_engineering_pipeline(df)
+# print("Top 10 important features:")
+# print(importance_analysis.head(10))
+# print(f"Baseline Brier Score: {importance_analysis['brier_increase'].min():.4f}")
