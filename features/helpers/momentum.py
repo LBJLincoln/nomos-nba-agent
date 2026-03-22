@@ -18,7 +18,7 @@ def compute_win_streak_weighted_by_opponent_strength(games: pd.DataFrame, team_i
     team_games = games[games['team_id'] == team_id].copy()
 
     # Calculate streak
-    team_games['streak'] = (team_games['result'].astype(int).diff().fillna(1) != 0).cumsum()
+    team_games['streak'] = (team_games['result'].astype(int).diff().fillna(1)!= 0).cumsum()
     streaks = team_games.groupby('streak')['result'].agg(['first', 'size', 'sum'])
 
     # Filter only winning streaks
