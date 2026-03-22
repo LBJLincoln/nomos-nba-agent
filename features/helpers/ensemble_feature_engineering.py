@@ -4,6 +4,7 @@ from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import brier_score_loss, log_loss
 from typing import Dict, List
 
 def create_ensemble_features(df: pd.DataFrame, target_col: str = 'actual') -> pd.DataFrame:
