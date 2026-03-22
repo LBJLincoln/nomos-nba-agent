@@ -239,50 +239,9 @@ def evaluate_ensemble_performance(df: pd.DataFrame, target_col: str = 'actual') 
     
     return results
 
-def generate_feature_importance_report(df: pd.DataFrame, target_col: str = 'actual') -> pd.DataFrame:
-    """
-    Generate feature importance report for ensemble features.
-    
-    Parameters:
-    df (pd.DataFrame): Data with ensemble features
-    target_col (str): Target column name
-    
-    Returns:
-    pd.DataFrame: Feature importance dataframe
-    """
-    # Select numeric features
-    numeric_features = df.select_dtypes(include=[np.number]).columns.tolist()
-    numeric_features.remove(target_col)
-    
-    if len(numeric_features) < 5:
-        return pd.DataFrame()
-    
-    # Train ensemble model for feature importance
-    X = df[numeric_features]
-    y = df[target_col]
-    
-    # Random Forest for feature importance
-    rf = RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42)
-    rf.fit(X, y)
-    
-    feature_importances = rf.feature_importances_
-    feature_names = numeric_features
-    
-    importance_df = pd.DataFrame({
-        'feature': feature_names,
-        'importance': feature_importances
-    })
-    
-    importance_df = importance_df.sort_values('importance', ascending=False).reset_index(drop=True)
-    
-    return importance_df
-
 # Example usage:
 # df = pd.read_csv('data/games.csv')
 # df = create_complete_feature_set(df)
 # performance = evaluate_ensemble_performance(df)
 # print(f"Ensemble Brier Score: {performance['brier_score']:.4f}")
 # print(f"Ensemble Accuracy: {performance['accuracy']:.4f}")
-# importance_df = generate_feature_importance_report(df)
-# print(importance_df.head(10))
-
