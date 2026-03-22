@@ -252,3 +252,4 @@ class TemporalEnsembleOptimizer:
 # 
 # report = optimizer.generate_optimization_report(predictions, true_labels, dates, optimized_weights)
 # print(f"Brier improvement: {report['improvement']['percentage_improvement']:.2f}%")
+
