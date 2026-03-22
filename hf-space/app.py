@@ -954,11 +954,11 @@ def _gc_cleanup():
 # ═══════════════════════════════════════════════════════
 
 def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
-    """Stacking: XGBoost + LightGBM + CatBoost base models → LogisticRegression meta-learner."""
+    """Stacking: XGBoost + LightGBM + CatBoost + ExtraTrees base models → LogisticRegression meta-learner.
+    Uses 4 diverse base models for maximum ensemble benefit. CatBoost forced to CPU to avoid CUDA conflicts."""
     splits = n_splits if fast else max(n_splits, 3)
     tscv = TimeSeriesSplit(n_splits=splits)
-    # Cap base learner estimators at 80 for speed
-    base_est = min(hp_eval.get("n_estimators", 80), 80)
+    base_est = min(hp_eval.get("n_estimators", 100), 100)
     depth = min(hp_eval.get("max_depth", 6), 6)
     lr = hp_eval.get("learning_rate", 0.1)
 
@@ -971,35 +971,44 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
             X_tr, y_tr = X_sub[ti_safe], y_eval[ti_safe]
             X_val, y_val = X_sub[vi], y_eval[vi]
 
-            # Build 3 base models (capped at 80 estimators each)
+            # Build 4 diverse base models
             base_models = []
-            # XGBoost
+            # XGBoost — gradient boosting with histogram
             base_models.append(xgb.XGBClassifier(
                 n_estimators=base_est, max_depth=depth, learning_rate=lr,
                 subsample=hp_eval.get("subsample", 0.8),
                 colsample_bytree=hp_eval.get("colsample_bytree", 0.8),
+                reg_alpha=0.01, reg_lambda=0.1,
                 eval_metric="logloss", random_state=42, n_jobs=-1, tree_method="hist"))
-            # LightGBM
+            # LightGBM — leaf-wise boosting (different inductive bias)
             base_models.append(lgbm.LGBMClassifier(
                 n_estimators=base_est, max_depth=depth, learning_rate=lr,
                 subsample=hp_eval.get("subsample", 0.8),
                 num_leaves=min(2 ** depth - 1, 31),
+                reg_alpha=0.01, reg_lambda=0.1,
+                min_child_samples=20, feature_fraction=0.7,
                 verbose=-1, random_state=42, n_jobs=-1))
-            # CatBoost
+            # CatBoost — ordered boosting (FORCED CPU to avoid CUDA device conflicts)
             try:
                 from catboost import CatBoostClassifier
                 base_models.append(CatBoostClassifier(
-                    iterations=min(base_est, 80), depth=min(depth, 6),
-                    learning_rate=lr, verbose=0, random_state=42, thread_count=-1))
-            except ImportError:
-                # Fallback: use RandomForest if CatBoost unavailable
+                    iterations=min(base_est, 100), depth=min(depth, 6),
+                    learning_rate=lr, l2_leaf_reg=max(hp_eval.get("reg_lambda", 3.0), 1.0),
+                    verbose=0, random_state=42,
+                    task_type='CPU', thread_count=-1))
+            except (ImportError, Exception):
                 from sklearn.ensemble import RandomForestClassifier
                 base_models.append(RandomForestClassifier(
                     n_estimators=base_est, max_depth=depth,
                     random_state=42, n_jobs=-1))
+            # ExtraTrees — randomized splits (more diversity for stacking)
+            from sklearn.ensemble import ExtraTreesClassifier
+            base_models.append(ExtraTreesClassifier(
+                n_estimators=base_est, max_depth=depth,
+                min_samples_leaf=5, max_features="sqrt",
+                random_state=42, n_jobs=-1))
 
             # Get OOF predictions from each base model using inner CV
-            # Use 4-fold (was 2) to reduce stacking leakage
             inner_cv = TimeSeriesSplit(n_splits=4)
             oof_preds = np.zeros((len(X_tr), len(base_models)))
             for m_idx, bm in enumerate(base_models):
@@ -1007,12 +1016,18 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
                     oof = cross_val_predict(bm, X_tr, y_tr, cv=inner_cv, method="predict_proba")[:, 1]
                     oof_preds[:, m_idx] = oof
                 except Exception:
-                    # Fallback: use 0.5 if a base model fails
                     oof_preds[:, m_idx] = 0.5
 
-            # Train meta-learner on OOF predictions
-            meta = LogisticRegression(C=1.0, max_iter=200, random_state=42)
-            meta.fit(oof_preds, y_tr)
+            # Train meta-learner on OOF predictions (regularized to prevent stacking overfit)
+            # Calibrate meta-learner with Platt scaling for better probability estimates
+            meta_base = LogisticRegression(C=0.5, max_iter=300, random_state=42)
+            try:
+                meta = CalibratedClassifierCV(meta_base, method='sigmoid', cv=3)
+                meta.fit(oof_preds, y_tr)
+            except Exception:
+                # Fallback: uncalibrated if not enough data for calibration CV
+                meta = meta_base
+                meta.fit(oof_preds, y_tr)
 
             # Train base models on full training fold for validation predictions
             val_preds = np.zeros((len(X_val), len(base_models)))
@@ -1029,7 +1044,8 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
             briers.append(brier_score_loss(y_val, p))
             rois.append(_log_loss_score(p, y_val))
             all_p.extend(p); all_y.extend(y_val)
-        except Exception:
+        except Exception as e:
+            log(f"Stacking fold failed: {str(e)[:80]}", "WARN")
             briers.append(0.28); rois.append(0.0)
 
     return briers, rois, all_p, all_y
@@ -1205,7 +1221,8 @@ def _build(hp):
             from catboost import CatBoostClassifier
             return CatBoostClassifier(iterations=min(n_est, 100), depth=min(depth, 6),
                                       learning_rate=lr, l2_leaf_reg=hp["reg_lambda"],
-                                      verbose=0, random_state=42, thread_count=-1)
+                                      verbose=0, random_state=42,
+                                      task_type='CPU', thread_count=-1)
         elif mt == "random_forest":
             from sklearn.ensemble import RandomForestClassifier
             return RandomForestClassifier(n_estimators=n_est, max_depth=depth,
@@ -1554,20 +1571,20 @@ N_ISLANDS = 5            # Island model: 5 sub-populations
 ISLAND_SIZE = 100        # Individuals per island
 ELITE_SIZE = 25          # Top 5% preserved (5 per island)
 ELITE_PER_ISLAND = 5     # Elites per island
-BASE_MUT = 0.15          # Start high, decay to 0.05 over generations
-MUT_DECAY_RATE = 0.995   # Mutation rate *= this each generation (0.15 * 0.995^100 ≈ 0.09)
-MUT_FLOOR = 0.05         # Minimum mutation rate
+BASE_MUT = 0.12          # Slightly lower start — population is converging well
+MUT_DECAY_RATE = 0.997   # Slower decay — maintain exploration longer (0.12 * 0.997^100 ≈ 0.09)
+MUT_FLOOR = 0.04         # Lower floor — we're closer to optimum, fine-tune
 CROSSOVER_RATE = 0.85    # Constant high recombination
-TARGET_FEATURES = 65     # Tighter feature sets — overfitting guard (9551/65 = 147 samples/feature)
+TARGET_FEATURES = 80     # Raised from 65 — latest best used 115, allow wider search
 N_SPLITS = 3             # 3-fold walk-forward for reliable Brier estimates
 GENS_PER_CYCLE = 3       # Save every 3 gens
 COOLDOWN = 5             # Minimal cooldown
-TOURNAMENT_SIZE = 4      # Starting tournament size — adapts based on diversity
-DIVERSITY_RESTART = 20   # Give more time before nuking population
-FAST_EVAL_GAMES = 7000   # More data in fast eval — better signal
-FULL_EVAL_TOP = 10       # Full eval for top 10 — better selection of champion
-MIGRATION_INTERVAL = 10  # Migrate best between islands every N generations
-MIGRANTS_PER_ISLAND = 5  # How many top individuals migrate each interval
+TOURNAMENT_SIZE = 5      # Slightly higher pressure — population quality is up
+DIVERSITY_RESTART = 25   # More patience — we're close to 0.22, premature restart wastes progress
+FAST_EVAL_GAMES = 8000   # More data in fast eval — latest run showed 9333 games helps
+FULL_EVAL_TOP = 15       # Full eval for top 15 — better champion selection with 115 features
+MIGRATION_INTERVAL = 8   # Faster migration — spread good features across islands quicker
+MIGRANTS_PER_ISLAND = 6  # More migrants — accelerate convergence on winning feature sets
 GC_INTERVAL = 10         # Force garbage collection every N individuals evaluated
 
 # ── Feature importance tracking (directed mutation) ──
@@ -1997,18 +2014,19 @@ def evolution_loop():
                     e.pareto_rank = island[i].pareto_rank; e.crowding_dist = island[i].crowding_dist
                     new_island.append(e)
 
-                # Stagnation injection (per-island) — earlier and smarter
+                # Stagnation injection (per-island) — tiered response
                 if stagnation >= 7:
                     n_inject = ISLAND_SIZE // 3
                     specialization = island_model.island_specializations[island_id]
-                    n_random = n_inject // 2
-                    n_mutant = n_inject - n_random
-                    # Half random fresh individuals
+                    n_random = n_inject // 3      # 1/3 fully random
+                    n_mutant = n_inject // 3      # 1/3 mutants of best
+                    n_cross_island = n_inject - n_random - n_mutant  # 1/3 from other islands' best
+                    # Random fresh individuals
                     for _ in range(n_random):
                         fresh = Individual(n_feat, TARGET_FEATURES, model_type=random.choice(specialization))
                         fresh.island_id = island_id
                         new_island.append(fresh)
-                    # Half targeted mutants of island's best
+                    # Targeted mutants of island's best
                     if island:
                         island_best = min(island, key=lambda x: x.fitness.get("brier", 1.0))
                         for _ in range(n_mutant):
@@ -2021,8 +2039,26 @@ def evolution_loop():
                             mutant.island_id = island_id
                             mutant.pareto_rank = 999
                             mutant.crowding_dist = 0.0
-                            mutant.mutate(0.25)  # Heavy mutation
+                            mutant.mutate(0.20)  # Heavy mutation
                             new_island.append(mutant)
+                    # Cross-island pollination: inject best from OTHER islands
+                    other_islands = [i for i in range(N_ISLANDS) if i != island_id]
+                    for _ in range(n_cross_island):
+                        src = random.choice(other_islands)
+                        src_island = island_model.islands[src]
+                        if src_island:
+                            donor = min(src_island, key=lambda x: x.fitness.get("brier", 1.0))
+                            cross = Individual.__new__(Individual)
+                            cross.features = donor.features[:]
+                            cross.hyperparams = dict(donor.hyperparams)
+                            cross.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
+                            cross.n_features = donor.n_features
+                            cross.generation = generation
+                            cross.island_id = island_id
+                            cross.pareto_rank = 999
+                            cross.crowding_dist = 0.0
+                            cross.mutate(0.15)  # Moderate mutation to adapt to new island
+                            new_island.append(cross)
                 elif stagnation >= 3:
                     # Mild injection: 10% fresh per island
                     n_inject = max(2, ISLAND_SIZE // 10)
