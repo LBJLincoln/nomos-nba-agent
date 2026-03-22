@@ -264,3 +264,4 @@ def create_feature_engineering_pipeline(df: pd.DataFrame, target_col: str = 'act
 # print("Top 10 important features:")
 # print(importance_analysis.head(10))
 # print(f"Baseline Brier Score: {importance_analysis['brier_increase'].min():.4f}")
+
