@@ -237,52 +237,58 @@ def main():
     print("NBA Feature Importance Analysis")
     print("="*40)
     
-    # Load data
-    games = load_game_data()
-    predictions = load_predictions()
-    
-    if games.empty or predictions.empty:
-        print("Error: Could not load required data files")
-        return
-    
-    # Merge data to get target labels
-    merged = pd.merge(predictions, games, on=['game_id', 'team_id'], how='left')
-    merged['target'] = (merged['actual'] > 0.5).astype(int)
-    
-    # Select features (adjust based on actual available features)
-    feature_columns = [
-        'weighted_win_streak', 'margin_trend', 'avg_margin', 'margin_volatility',
-        'rest_quality_score', 'travel_distance', 'timezone_adjustment',
-        'opponent_strength', 'pace_adjusted_points', 'home_advantage',
-        'back_to_back_penalty', 'recent_performance', 'season_performance'
-    ]
-    
-    # Filter to available features
-    available_features = [col for col in feature_columns if col in merged.columns]
-    print(f"Analyzing {len(available_features)} features")
-    
-    if len(available_features) < 5:
-        print("Not enough features for analysis")
-        return
-    
-    X = merged[available_features]
-    y = merged['target']
-    
-    # Analyze feature importance
-    print("Analyzing feature importance...")
-    importance_data = analyze_feature_importance(X, y, available_features)
-    
-    # Generate visualizations
-    print("Generating visualizations...")
-    visualize_feature_importance(importance_data)
-    
-    # Generate report
-    print("Generating report...")
-    generate_importance_report(importance_data)
-    
-    print("\nFeature importance analysis complete!")
-    print(f"Visualization: feature_importance.png")
-    print(f"Report: feature_importance_report.txt")
+    # Load data (example - adjust paths as needed)
+    try:
+        # Load game data
+        games = pd.read_csv('data/games.csv')
+        print(f"Loaded {len(games)} games from data/games.csv")
+        
+        # Load predictions (for target labels)
+        predictions = pd.read_csv('predictions.csv')
+        print(f"Loaded {len(predictions)} predictions")
+        
+        # Merge to get target labels
+        merged = pd.merge(games, predictions, on=['game_id', 'team_id'], how='left')
+        merged['target'] = (merged['actual'] > 0.5).astype(int)
+        
+        # Select features (adjust based on actual available features)
+        feature_columns = [
+            'weighted_win_streak', 'margin_trend', 'avg_margin', 'margin_volatility',
+            'rest_quality_score', 'travel_distance', 'timezone_adjustment',
+            'opponent_strength', 'pace_adjusted_points', 'home_advantage',
+            'back_to_back_penalty', 'recent_performance', 'season_performance'
+        ]
+        
+        # Filter to available features
+        available_features = [col for col in feature_columns if col in merged.columns]
+        print(f"Analyzing {len(available_features)} features")
+        
+        if len(available_features) < 5:
+            print("Not enough features for analysis")
+            return
+        
+        X = merged[available_features]
+        y = merged['target']
+        
+        # Analyze feature importance
+        print("Analyzing feature importance...")
+        importance_data = analyze_feature_importance(X, y, available_features)
+        
+        # Generate visualizations
+        print("Generating visualizations...")
+        visualize_feature_importance(importance_data)
+        
+        # Generate report
+        print("Generating report...")
+        generate_importance_report(importance_data)
+        
+        print("\nFeature importance analysis complete!")
+        print(f"Visualization: feature_importance.png")
+        print(f"Report: feature_importance_report.txt")
+        
+    except Exception as e:
+        print(f"Error during analysis: {e}")
+        print("Please ensure data/games.csv and predictions.csv exist and have required columns")
 
 if __name__ == "__main__":
     main()
