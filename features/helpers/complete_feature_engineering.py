@@ -2,6 +2,10 @@ import numpy as np
 import pandas as pd
 from scipy.stats import zscore
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import brier_score_loss, log_loss
 from typing import Dict, List
 
 def create_advanced_team_features(df: pd.DataFrame, team_id_col: str = 'team_id', 
@@ -252,19 +256,54 @@ def compute_advanced_performance_metrics(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
+def evaluate_model_performance(X: pd.DataFrame, y: pd.Series) -> dict:
+    """
+    Evaluate model performance using multiple metrics.
+    
+    Parameters:
+    X (pd.DataFrame): Feature matrix
+    y (pd.Series): Target labels
+    
+    Returns:
+    dict: Performance metrics
+    """
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # Train multiple models
+    models = {
+        'random_forest': RandomForestClassifier(n_estimators=100, random_state=42),
+        'gradient_boost': GradientBoostingClassifier(n_estimators=100, random_state=42),
+        'logistic_regression': LogisticRegression(random_state=42)
+    }
+    
+    results = {}
+    
+    for name, model in models.items():
+        try:
+            model.fit(X_train, y_train)
+            y_pred = model.predict_proba(X_test)[:, 1]
+            
+            results[name] = {
+                'brier_score': brier_score_loss(y_test, y_pred),
+                'log_loss': log_loss(y_test, y_pred),
+                'accuracy': np.mean((y_pred > 0.5) == y_test)
+            }
+        except Exception as e:
+            results[name] = {'error': str(e)}
+    
+    return results
+
 # Example usage:
-# df = pd.DataFrame({
-#     'team_id': [1,1,2,2],
-#     'opponent_id': [2,2,1,1],
-#     'points': [100, 110, 95, 105],
-#     'opponent_points': [90, 100, 105, 95],
-#     'pace': [100, 105, 95, 100],
-#     'rest_days': [2, 1, 3, 0],
-#     'travel_distance': [0, 200, 500, 300],
-#     'game_date': pd.date_range('2024-01-01', periods=4),
-#     'team_strength': [1.2, 1.1, 0.9, 1.0],
-#     'opponent_strength': [0.9, 1.0, 1.1, 0.8]
-# })
+# df = pd.read_csv('data/games.csv')
+# df = generate_complete_feature_set(df)
+# df = compute_advanced_performance_metrics(df)
 # 
-# complete_features = generate_complete_feature_set(df)
-# complete_features = compute_advanced_performance_metrics(complete_features)
+# X = df.select_dtypes(include=[np.number]).drop(columns=['actual'])
+# y = df['actual']
+# 
+# performance = evaluate_model_performance(X, y)
+# print("Model Performance:")
+# for model, metrics in performance.items():
+#     if 'error' not in metrics:
+#         print(f"{model}: Brier={metrics['brier_score']:.4f}, LogLoss={metrics['log_loss']:.4f}, Accuracy={metrics['accuracy']:.4f}")
+
