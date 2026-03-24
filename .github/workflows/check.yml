@@ -33,8 +33,13 @@ jobs:
       - name: Verify engine imports
         run: |
           python3 -c "
-          from features.engine import NBAFeatureEngine, ENGINE_VERSION
-          print(f'Engine {ENGINE_VERSION} imports OK')
+          import importlib.util, sys
+          spec = importlib.util.spec_from_file_location('engine', 'features/engine.py')
+          mod = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mod)
+          print(f'Engine {mod.ENGINE_VERSION} imports OK — {len(dir(mod))} symbols')
+          assert hasattr(mod, 'NBAFeatureEngine'), 'NBAFeatureEngine class missing'
+          assert hasattr(mod, 'ENGINE_VERSION'), 'ENGINE_VERSION missing'
           "
 
       - name: Check dead code not reintroduced
