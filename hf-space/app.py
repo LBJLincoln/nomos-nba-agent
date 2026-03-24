@@ -5,7 +5,7 @@ NOMOS NBA QUANT AI — REAL Genetic Evolution (HF Space)
 RUNS 24/7 on HuggingFace Space (2 vCPU / 16GB RAM).
 
 NOT a fake LLM wrapper. REAL ML:
-  - Population of 500 individuals across 5 islands (island model GA)
+  - Population of 60 individuals across 5 islands (island model GA)
   - Walk-forward backtest fitness (Brier + LogLoss + Sharpe + ECE)
   - NSGA-II style Pareto front ranking (multi-objective)
   - 13 model types including neural nets (LSTM, Transformer, TabNet, etc.)
@@ -1566,25 +1566,25 @@ def _ece(probs, actuals, n_bins=10):
 # EVOLUTION ENGINE
 # ═══════════════════════════════════════════════════════
 
-POP_SIZE = 500           # 500 individuals across 5 islands (100 per island)
+POP_SIZE = 60            # Optimal: 60 (proven by 1244 experiments — fewer=faster gens/day)
 N_ISLANDS = 5            # Island model: 5 sub-populations
-ISLAND_SIZE = 100        # Individuals per island
-ELITE_SIZE = 25          # Top 5% preserved (5 per island)
-ELITE_PER_ISLAND = 5     # Elites per island
-BASE_MUT = 0.12          # Slightly lower start — population is converging well
-MUT_DECAY_RATE = 0.997   # Slower decay — maintain exploration longer (0.12 * 0.997^100 ≈ 0.09)
-MUT_FLOOR = 0.04         # Lower floor — we're closer to optimum, fine-tune
-CROSSOVER_RATE = 0.85    # Constant high recombination
-TARGET_FEATURES = 80     # Raised from 65 — latest best used 115, allow wider search
+ISLAND_SIZE = 12         # 60/5 = 12 per island
+ELITE_SIZE = 6           # Top 10% preserved
+ELITE_PER_ISLAND = 2     # Elites per island (ceil(12*0.1)=2)
+BASE_MUT = 0.09          # Optimal: 0.09 (0.2 destroys population, 0.12 too high)
+MUT_DECAY_RATE = 0.998   # Gentle decay — already near optimum
+MUT_FLOOR = 0.05         # Don't go too low — maintain exploration
+CROSSOVER_RATE = 0.80    # Optimal: 0.80 (0.85-0.95 too much noise)
+TARGET_FEATURES = 63     # Sweet spot: 60-66 range dominates (not 80/115)
 N_SPLITS = 3             # 3-fold walk-forward for reliable Brier estimates
 GENS_PER_CYCLE = 3       # Save every 3 gens
 COOLDOWN = 5             # Minimal cooldown
-TOURNAMENT_SIZE = 5      # Slightly higher pressure — population quality is up
-DIVERSITY_RESTART = 25   # More patience — we're close to 0.22, premature restart wastes progress
-FAST_EVAL_GAMES = 8000   # More data in fast eval — latest run showed 9333 games helps
-FULL_EVAL_TOP = 15       # Full eval for top 15 — better champion selection with 115 features
-MIGRATION_INTERVAL = 8   # Faster migration — spread good features across islands quicker
-MIGRANTS_PER_ISLAND = 6  # More migrants — accelerate convergence on winning feature sets
+TOURNAMENT_SIZE = 7      # Higher pressure with small pop — proven optimal
+DIVERSITY_RESTART = 30   # More patience with small pop
+FAST_EVAL_GAMES = 8000   # More data in fast eval
+FULL_EVAL_TOP = 10       # Full eval for top 10 (out of 60)
+MIGRATION_INTERVAL = 8   # Migration every 8 gens
+MIGRANTS_PER_ISLAND = 3  # 3 migrants per island (25% of island)
 GC_INTERVAL = 10         # Force garbage collection every N individuals evaluated
 
 # ── Feature importance tracking (directed mutation) ──

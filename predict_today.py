@@ -570,6 +570,20 @@ def predict_game(home_team: str, away_team: str, evolution_model: Optional[Dict]
         if evo_fitness.get("brier", 1.0) < 0.25:
             model_version = f"evolution-gen{evolution_model.get('generation', '?')}"
 
+    # ── Isotonic post-calibration (piecewise linear, no sklearn on VM) ──
+    # Breakpoints are fitted on HF Space and committed to the repo.
+    # If the file is missing or fails to load, we skip silently.
+    raw_final_prob = final_prob
+    try:
+        from calibration.isotonic_calibrator import IsotonicPostCalibrator
+        _bp_path = ROOT / "calibration" / "isotonic_breakpoints.json"
+        _calibrator = IsotonicPostCalibrator.load(_bp_path)
+        if not _calibrator.is_identity():
+            final_prob = _calibrator.calibrate(final_prob)
+            model_version = model_version + "+isotonic"
+    except Exception as _cal_exc:
+        pass  # Calibration is optional — never crash predictions
+
     return {
         "home": home_abbrev,
         "away": away_abbrev,

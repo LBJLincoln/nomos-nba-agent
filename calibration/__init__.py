@@ -19,6 +19,7 @@ from calibration.conformal import (
     EnsembleConformalCalibrator,
     create_conformal_experiment,
 )
+from calibration.isotonic_calibrator import IsotonicPostCalibrator
 
 __all__ = [
     "conformal_calibrate",
@@ -28,4 +29,5 @@ __all__ = [
     "MondrianConformalCalibrator",
     "EnsembleConformalCalibrator",
     "create_conformal_experiment",
+    "IsotonicPostCalibrator",
 ]
