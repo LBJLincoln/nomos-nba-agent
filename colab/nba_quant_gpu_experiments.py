@@ -87,6 +87,7 @@ if not DATABASE_URL:
 POLL_INTERVAL = 60           # Poll every 60s
 MAX_EVAL_GAMES = 10000       # OOM protection cap
 WALK_FORWARD_SPLITS = 3      # Default walk-forward splits
+EXPERIMENT_TIMEOUT = 1800    # 30 min max per experiment (matches HF Space S11)
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 512
 MAX_EPOCHS = 200
@@ -1131,19 +1132,30 @@ def _run_model_fold(model_name, X_train, y_train, X_val, y_val, params):
 
 # %%
 def fetch_next_experiment() -> Optional[Dict[str, Any]]:
-    """Fetch the highest-priority pending GPU experiment from Supabase."""
+    """Fetch AND atomically claim the next pending GPU experiment from Supabase.
+
+    Uses CTE with FOR UPDATE SKIP LOCKED to prevent double-pickup when
+    multiple Colab instances poll simultaneously.
+    """
     rows = _exec_sql("""
-        SELECT id, experiment_id, agent_name, experiment_type, description,
-               hypothesis, params, priority, status, target_space,
-               baseline_brier, created_at
-        FROM public.nba_experiments
-        WHERE status = 'pending'
-          AND (target_space = 'colab' OR target_space = 'gpu'
-               OR target_space = 'any' OR target_space IS NULL)
-        ORDER BY priority DESC, created_at ASC
-        LIMIT 1
+        WITH next_exp AS (
+            SELECT id FROM public.nba_experiments
+            WHERE status = 'pending'
+              AND (target_space = 'colab' OR target_space = 'gpu'
+                   OR target_space = 'any' OR target_space IS NULL)
+            ORDER BY priority DESC, created_at ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+        )
+        UPDATE public.nba_experiments e
+        SET status = 'running', started_at = NOW()
+        FROM next_exp
+        WHERE e.id = next_exp.id
+        RETURNING e.id, e.experiment_id, e.agent_name, e.experiment_type,
+                  e.description, e.hypothesis, e.params, e.priority,
+                  e.status, e.target_space, e.baseline_brier, e.created_at
     """)
-    if not rows or rows is True:
+    if not rows or rows is True or len(rows) == 0:
         return None
     row = rows[0]
     return {
@@ -1163,14 +1175,8 @@ def fetch_next_experiment() -> Optional[Dict[str, Any]]:
 
 
 def claim_experiment(exp_id: int) -> bool:
-    """Atomically claim an experiment (pending -> running)."""
-    result = _exec_sql("""
-        UPDATE public.nba_experiments
-        SET status = 'running', started_at = NOW()
-        WHERE id = %s AND status = 'pending'
-        RETURNING id
-    """, (exp_id,))
-    return result is not None and result is not True and len(result) > 0
+    """Legacy claim — now handled atomically in fetch_next_experiment(), kept for compatibility."""
+    return True
 
 
 def complete_experiment(exp_id: int, brier: float, accuracy: float,
