@@ -1,0 +1,210 @@
+[
+  {
+    "id": "23109303",
+    "description": "Sacramento Kings @ Charlotte Hornets",
+    "start_time": 1774393200000,
+    "source": "bovada",
+    "markets": {
+      "spread": [
+        {
+          "name": "Sacramento Kings",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "17.5"
+        },
+        {
+          "name": "Charlotte Hornets",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "-17.5"
+        }
+      ],
+      "moneyline": [
+        {
+          "name": "Sacramento Kings",
+          "american": "+850",
+          "decimal": "9.500",
+          "handicap": ""
+        },
+        {
+          "name": "Charlotte Hornets",
+          "american": "-1800",
+          "decimal": "1.055556",
+          "handicap": ""
+        }
+      ],
+      "total": [
+        {
+          "name": "Over",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "230.0"
+        },
+        {
+          "name": "Under",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "230.0"
+        }
+      ]
+    },
+    "away_team": "Sacramento Kings",
+    "home_team": "Charlotte Hornets"
+  },
+  {
+    "id": "23109109",
+    "description": "New Orleans Pelicans @ New York Knicks",
+    "start_time": 1774395000000,
+    "source": "bovada",
+    "markets": {
+      "spread": [
+        {
+          "name": "New Orleans Pelicans",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "8.5"
+        },
+        {
+          "name": "New York Knicks",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "-8.5"
+        }
+      ],
+      "moneyline": [
+        {
+          "name": "New Orleans Pelicans",
+          "american": "+285",
+          "decimal": "3.850",
+          "handicap": ""
+        },
+        {
+          "name": "New York Knicks",
+          "american": "-370",
+          "decimal": "1.270",
+          "handicap": ""
+        }
+      ],
+      "total": [
+        {
+          "name": "Over",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "231.0"
+        },
+        {
+          "name": "Under",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "231.0"
+        }
+      ]
+    },
+    "away_team": "New Orleans Pelicans",
+    "home_team": "New York Knicks"
+  },
+  {
+    "id": "23109308",
+    "description": "Orlando Magic @ Cleveland Cavaliers",
+    "start_time": 1774396800000,
+    "source": "bovada",
+    "markets": {
+      "spread": [
+        {
+          "name": "Orlando Magic",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "10.5"
+        },
+        {
+          "name": "Cleveland Cavaliers",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "-10.5"
+        }
+      ],
+      "moneyline": [
+        {
+          "name": "Orlando Magic",
+          "american": "+345",
+          "decimal": "4.450",
+          "handicap": ""
+        },
+        {
+          "name": "Cleveland Cavaliers",
+          "american": "-470",
+          "decimal": "1.212766",
+          "handicap": ""
+        }
+      ],
+      "total": [
+        {
+          "name": "Over",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "231.0"
+        },
+        {
+          "name": "Under",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "231.0"
+        }
+      ]
+    },
+    "away_team": "Orlando Magic",
+    "home_team": "Cleveland Cavaliers"
+  },
+  {
+    "id": "23109323",
+    "description": "Denver Nuggets @ Phoenix Suns",
+    "start_time": 1774407600000,
+    "source": "bovada",
+    "markets": {
+      "spread": [
+        {
+          "name": "Denver Nuggets",
+          "american": "-105",
+          "decimal": "1.952381",
+          "handicap": "-6.0"
+        },
+        {
+          "name": "Phoenix Suns",
+          "american": "-115",
+          "decimal": "1.870",
+          "handicap": "6.0"
+        }
+      ],
+      "moneyline": [
+        {
+          "name": "Denver Nuggets",
+          "american": "-235",
+          "decimal": "1.425532",
+          "handicap": ""
+        },
+        {
+          "name": "Phoenix Suns",
+          "american": "+195",
+          "decimal": "2.950",
+          "handicap": ""
+        }
+      ],
+      "total": [
+        {
+          "name": "Over",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "232.5"
+        },
+        {
+          "name": "Under",
+          "american": "-110",
+          "decimal": "1.909091",
+          "handicap": "232.5"
+        }
+      ]
+    },
+    "away_team": "Denver Nuggets",
+    "home_team": "Phoenix Suns"
+  }
+]
