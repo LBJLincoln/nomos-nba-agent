@@ -83,6 +83,16 @@ def main():
         print("ERROR: HF_TOKEN not set. Run: source .env.local")
         sys.exit(1)
 
+    # ── Engine parity check ──
+    root_engine = (LOCAL_DIR.parent / "features" / "engine.py").read_bytes()
+    hf_engine = (LOCAL_DIR / "features" / "engine.py").read_bytes()
+    if root_engine != hf_engine:
+        print("ERROR: features/engine.py and hf-space/features/engine.py have diverged!")
+        print("Fix: cp hf-space/features/engine.py features/engine.py")
+        print("Or:  cp features/engine.py hf-space/features/engine.py")
+        sys.exit(1)
+    print("Engine parity check: OK")
+
     api = HfApi(token=HF_TOKEN)
     print(f"Deploying NBA Quant AI to {SPACE_ID}...")
 

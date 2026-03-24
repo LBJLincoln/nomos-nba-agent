@@ -67,6 +67,8 @@ from sklearn.metrics import brier_score_loss, log_loss, accuracy_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import clone
 
+FEATURE_ENGINE_VERSION = "colab-inline-163feat"
+
 # ── DATABASE_URL from Colab secrets or environment ──
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
@@ -382,11 +384,11 @@ def build_features_inline(games: List[dict]) -> Tuple[np.ndarray, np.ndarray, Li
                            "best_margin", "worst_margin", "median_margin", "form"]
             for i, label in enumerate(stat_labels):
                 row.extend([h_stats[i], a_stats[i], h_stats[i] - a_stats[i]])
-                names.extend([f"home_{label}_w{w}", f"away_{label}_w{w}", f"diff_{label}_w{w}"])
+                names.extend([f"h_{label}_w{w}", f"a_{label}_w{w}", f"d_{label}_w{w}"])
 
         # ── ELO features (3) ──
         row.extend([team_elo[ht], team_elo[at], team_elo[ht] - team_elo[at]])
-        names.extend(["home_elo", "away_elo", "elo_diff"])
+        names.extend(["h_elo", "a_elo", "elo_d"])
 
         # ── Rest features (4) ──
         try:
@@ -411,21 +413,21 @@ def build_features_inline(games: List[dict]) -> Tuple[np.ndarray, np.ndarray, Li
 
         row.extend([home_rest, away_rest, home_rest - away_rest,
                     1.0 if home_rest <= 1 else 0.0])
-        names.extend(["home_rest", "away_rest", "rest_diff", "home_b2b"])
+        names.extend(["h_rest", "a_rest", "rest_d", "h_b2b"])
 
         # ── Streak features (4) ──
         h_streak = _streak(hr)
         a_streak = _streak(ar)
         row.extend([h_streak, a_streak, h_streak - a_streak,
                     1.0 if h_streak >= 3 else (- 1.0 if h_streak <= -3 else 0.0)])
-        names.extend(["home_streak", "away_streak", "streak_diff", "home_hot_cold"])
+        names.extend(["h_streak", "a_streak", "streak_d", "h_hot_cold"])
 
         # ── Head-to-head (3) ──
         h2h = [r for r in hr if r[4] == at][-10:]
         h2h_wins = sum(1 for r in h2h if r[1]) / max(len(h2h), 1)
         h2h_margin = float(np.mean([r[2] for r in h2h])) if h2h else 0.0
         row.extend([h2h_wins, h2h_margin, len(h2h)])
-        names.extend(["h2h_winpct", "h2h_avg_margin", "h2h_games"])
+        names.extend(["h2h_wp", "h2h_mg", "h2h_n"])
 
         # ── Season context (4) ──
         h_games_played = len(hr)
@@ -434,8 +436,8 @@ def build_features_inline(games: List[dict]) -> Tuple[np.ndarray, np.ndarray, Li
         a_season_winpct = sum(1 for r in ar if r[1]) / max(a_games_played, 1)
         row.extend([h_season_winpct, a_season_winpct,
                     h_season_winpct - a_season_winpct, h_games_played / 82.0])
-        names.extend(["home_season_winpct", "away_season_winpct",
-                       "season_winpct_diff", "season_progress"])
+        names.extend(["h_swp", "a_swp",
+                       "swp_d", "season_progress"])
 
         # ── Home advantage constant (1) ──
         row.append(1.0)
@@ -1195,6 +1197,7 @@ def complete_experiment(exp_id: int, brier: float, accuracy: float,
             result_accuracy = %s,
             result_log_loss = %s,
             result_details = %s,
+            feature_engine_version = %s,
             completed_at = NOW()
         WHERE id = %s
     """, (
@@ -1203,6 +1206,7 @@ def complete_experiment(exp_id: int, brier: float, accuracy: float,
         float(accuracy),
         float(log_loss_val),
         json.dumps(clean_details),
+        FEATURE_ENGINE_VERSION,
         int(exp_id),
     ), fetch=False)
 

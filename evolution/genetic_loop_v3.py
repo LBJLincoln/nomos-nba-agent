@@ -214,11 +214,28 @@ def load_all_games():
 
 
 # ═══════════════════════════════════════════════════════════
-# SECTION 2: FEATURE ENGINE (250+ features)
+# SECTION 2: FEATURE ENGINE
 # ═══════════════════════════════════════════════════════════
 
+FEATURE_ENGINE_VERSION = "genetic-loop-v3"
+
 def build_features(games):
-    """Build 250+ features from raw game data. Returns X, y, feature_names."""
+    """Build features from raw game data. Tries real NBAFeatureEngine first, falls back to inline."""
+    try:
+        from features.engine import NBAFeatureEngine
+        engine = NBAFeatureEngine(skip_placeholder=True)
+        X, y, feature_names = engine.build(games)
+        X = np.nan_to_num(np.array(X, dtype=np.float64), nan=0.0, posinf=1e6, neginf=-1e6)
+        y = np.array(y, dtype=np.int32)
+        print(f"[ENGINE] Real NBAFeatureEngine: {X.shape[1]} features, {len(y)} games")
+        return X, y, feature_names
+    except Exception as e:
+        print(f"[ENGINE] NBAFeatureEngine import failed ({e}), using inline fallback")
+        return _build_features_inline(games)
+
+
+def _build_features_inline(games):
+    """Fallback: Build 250+ inline features from raw game data. Returns X, y, feature_names."""
     team_results = defaultdict(list)
     team_last = {}
     team_elo = defaultdict(lambda: 1500.0)

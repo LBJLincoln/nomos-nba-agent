@@ -62,6 +62,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 import math
 
+# ── Engine Version ──
+ENGINE_VERSION = "v3.0-35cat"
+
 # ── Team mappings ──
 TEAM_MAP = {
     "Atlanta Hawks": "ATL", "Boston Celtics": "BOS", "Brooklyn Nets": "BKN",

@@ -2631,8 +2631,8 @@ async def api_experiment_submit(request: Request):
         cur.execute("""
             INSERT INTO public.nba_experiments
             (experiment_id, agent_name, experiment_type, description, hypothesis,
-             params, priority, status, target_space, baseline_brier)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s)
+             params, priority, status, target_space, baseline_brier, feature_engine_version)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s)
             RETURNING id
         """, (
             exp_id_str,
@@ -2644,6 +2644,7 @@ async def api_experiment_submit(request: Request):
             body.get("priority", 5),
             body.get("target_space", "S11"),
             body.get("baseline_brier"),
+            body.get("feature_engine_version", "v3.0-35cat-6000feat"),
         ))
         db_id = cur.fetchone()[0]
         conn.commit()

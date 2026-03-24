@@ -239,10 +239,11 @@ def complete_experiment(exp_id: int, brier: float, accuracy: float,
             result_accuracy = %s,
             result_log_loss = %s,
             result_details = %s,
+            feature_engine_version = %s,
             completed_at = NOW()
         WHERE id = %s
     """, (status, float(brier), float(accuracy), float(log_loss_val),
-          json.dumps(clean_details), int(exp_id)), fetch=False)
+          json.dumps(clean_details), "v3.0-35cat-6000feat", int(exp_id)), fetch=False)
 
 
 def fail_experiment(exp_id: int, error_msg: str):
@@ -928,8 +929,8 @@ def register_experiment_endpoints(api):
             _exec_sql("""
                 INSERT INTO public.nba_experiments
                 (experiment_id, agent_name, experiment_type, description, hypothesis,
-                 params, priority, status, target_space)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', 'S11')
+                 params, priority, status, target_space, feature_engine_version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', 'S11', %s)
                 RETURNING id
             """, (
                 exp_id_str,
@@ -939,6 +940,7 @@ def register_experiment_endpoints(api):
                 body.get("hypothesis", ""),
                 json.dumps(body.get("params", {})),
                 body.get("priority", 10),
+                "v3.0-35cat-6000feat",
             ))
 
             # Fetch the just-inserted experiment
@@ -1007,8 +1009,8 @@ def register_experiment_endpoints(api):
             result = _exec_sql("""
                 INSERT INTO public.nba_experiments
                 (experiment_id, agent_name, experiment_type, description, hypothesis,
-                 params, priority, status, target_space, baseline_brier)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s)
+                 params, priority, status, target_space, baseline_brier, feature_engine_version)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'pending', %s, %s, %s)
                 RETURNING id
             """, (
                 exp_id_str,
@@ -1020,6 +1022,7 @@ def register_experiment_endpoints(api):
                 body.get("priority", 5),
                 body.get("target_space", "S11"),
                 body.get("baseline_brier"),
+                body.get("feature_engine_version", "v3.0-35cat-6000feat"),
             ))
 
             if result is None:

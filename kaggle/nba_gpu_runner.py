@@ -32,6 +32,8 @@ if torch.cuda.is_available():
     print(f"  GPU: {torch.cuda.get_device_name(0)} | "
           f"VRAM: {torch.cuda.get_device_properties(0).total_mem / 1e9:.1f} GB")
 
+FEATURE_ENGINE_VERSION = "kaggle-inline-121feat"
+
 # ── Config ──
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 MAX_EVAL_GAMES, WALK_FORWARD_SPLITS, BATCH_SIZE = 10000, 3, 512
@@ -708,9 +710,10 @@ def _claim(eid):
 
 def _complete(eid, brier, acc, ll, details, status="completed"):
     _exec_sql("UPDATE public.nba_experiments SET status=%s,result_brier=%s,result_accuracy=%s,"
-              "result_log_loss=%s,result_details=%s,completed_at=NOW() WHERE id=%s",
+              "result_log_loss=%s,result_details=%s,feature_engine_version=%s,"
+              "completed_at=NOW() WHERE id=%s",
               (str(status),float(brier),float(acc),float(ll),
-               json.dumps(_sanitize(details)),int(eid)), fetch=False)
+               json.dumps(_sanitize(details)),FEATURE_ENGINE_VERSION,int(eid)), fetch=False)
 
 def _fail(eid, msg):
     d = {"error":str(msg)[:2000],"failed_at":datetime.now(timezone.utc).isoformat(),
