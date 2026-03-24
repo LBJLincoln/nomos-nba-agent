@@ -1,0 +1,49 @@
+# Large data files (regenerable)
+data/historical/
+data/predictions/
+data/odds/
+data/results/
+data/cache/
+data/models/
+data/training/
+data/features/
+data/*.jsonl
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+*.whl
+*.so
+
+# Serialized models
+*.pickle
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.onnx
+
+# Logs
+logs/
+*.log
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Dependencies
+venv/
+.venv/
+node_modules/
+
+# OS/IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Archives
+*.tar.gz
+*.zip
