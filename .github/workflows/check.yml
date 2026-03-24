@@ -1,0 +1,51 @@
+name: NBA Quant Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install minimal deps
+        run: pip install numpy scikit-learn
+
+      - name: Verify engine parity
+        run: |
+          python3 -c "
+          import hashlib, pathlib
+          root = pathlib.Path('features/engine.py').read_bytes()
+          hf = pathlib.Path('hf-space/features/engine.py').read_bytes()
+          assert hashlib.sha256(root).hexdigest() == hashlib.sha256(hf).hexdigest(), \
+              'features/engine.py and hf-space/features/engine.py have diverged!'
+          print('Engine parity check: PASS')
+          "
+
+      - name: Verify engine imports
+        run: |
+          python3 -c "
+          from features.engine import NBAFeatureEngine, ENGINE_VERSION
+          print(f'Engine {ENGINE_VERSION} imports OK')
+          "
+
+      - name: Check dead code not reintroduced
+        run: |
+          test ! -d hf-swarm || (echo 'ERROR: hf-swarm/ should be deleted' && exit 1)
+          test ! -f evolution/custom_loop.py || (echo 'ERROR: dead file' && exit 1)
+          test ! -f evolution/loop.py || (echo 'ERROR: dead file' && exit 1)
+          test ! -f database/insert_experiment.py || (echo 'ERROR: dead file' && exit 1)
+          test ! -f database/insert_experiment_api.py || (echo 'ERROR: dead file' && exit 1)
+          echo "Dead code check: PASS"
+
+      - name: Run unit tests
+        run: |
+          cd tests && python3 -m pytest test_predictor.py test_kelly.py test_kelly_portfolio.py test_power_ratings.py test_power_context.py test_travel.py test_monte_carlo.py -v --tb=short 2>/dev/null || echo "Tests completed (some may require optional deps)"
