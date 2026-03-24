@@ -56,6 +56,13 @@ import gradio as gr
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+# GPU detection (determines if neural models are viable)
+try:
+    import torch as _torch
+    _HAS_GPU = _torch.cuda.is_available()
+except ImportError:
+    _HAS_GPU = False
+
 # ── Run Logger (Supabase logging + auto-cut) ──
 try:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -271,14 +278,36 @@ def load_all_games():
 # FEATURE ENGINE (164 features)
 # ═══════════════════════════════════════════════════════
 
+_FEATURE_CACHE = Path("/tmp/nba_feature_cache.npz")
+
 def build_features(games):
-    """Build features using the full NBAFeatureEngine (2058 features)."""
+    """Build features using the full NBAFeatureEngine. Caches to disk for fast restarts."""
+    # ── Try disk cache first (saves ~50min on restart) ──
+    if _FEATURE_CACHE.exists():
+        try:
+            cache = np.load(_FEATURE_CACHE, allow_pickle=True)
+            X, y = cache["X"], cache["y"]
+            feature_names = list(cache["feature_names"])
+            if X.shape[0] >= len(games) - 200:  # Accept cache if within ~200 games
+                print(f"[CACHE] Loaded feature matrix from disk: {X.shape}")
+                return X, y, feature_names
+            else:
+                print(f"[CACHE] Stale ({X.shape[0]} vs {len(games)} games), rebuilding")
+        except Exception as e:
+            print(f"[CACHE] Load failed ({e}), rebuilding")
+
     try:
         from features.engine import NBAFeatureEngine
         engine = NBAFeatureEngine()
         X, y, feature_names = engine.build(games)
         X = np.nan_to_num(np.array(X, dtype=np.float64))
         y = np.array(y, dtype=np.int32)
+        # ── Save to disk cache ──
+        try:
+            np.savez_compressed(_FEATURE_CACHE, X=X, y=y, feature_names=np.array(feature_names))
+            print(f"[CACHE] Saved feature matrix to disk: {X.shape}")
+        except Exception as ce:
+            print(f"[CACHE] Save failed: {ce}")
         return X, y, feature_names
     except Exception as e:
         print(f"[WARN] NBAFeatureEngine failed ({e}), falling back to inline features")
@@ -1101,9 +1130,23 @@ def _prune_correlated_features(X_sub, threshold=0.95):
         return X_sub, np.ones(X_sub.shape[1], dtype=bool)
 
 
+EVAL_TIMEOUT_S = 120  # Max seconds per individual evaluation — prevents hung models
+
+def _eval_with_timeout(fn, timeout, *args, **kwargs):
+    """Run fn with a wall-clock timeout. Returns True if completed, False if timed out."""
+    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        try:
+            pool.submit(fn, *args, **kwargs).result(timeout=timeout)
+            return True
+        except FuturesTimeout:
+            return False
+        except Exception:
+            return False
+
 def evaluate(ind, X, y, n_splits=2, fast=True, eval_counter=[0]):
     """Two-tier evaluation: fast (subsample + 2-fold) or full (all data + 3-fold).
-    Includes memory management for 16GB RAM with 500 individuals."""
+    Includes memory management for 16GB RAM and per-eval timeout."""
     # Periodic GC to manage memory with large population
     eval_counter[0] += 1
     if eval_counter[0] % GC_INTERVAL == 0:
@@ -1116,6 +1159,12 @@ def evaluate(ind, X, y, n_splits=2, fast=True, eval_counter=[0]):
     selected = ind.selected_indices()
     if len(selected) < 15 or len(selected) > max_features:
         ind.fitness = {"brier": 0.30, "roi": 0.0, "sharpe": 0.0, "calibration": 0.15, "composite": -1.0,
+                       "features_pruned": 0}
+        return
+
+    # Skip neural models entirely on CPU — they're too slow
+    if is_nn and not _HAS_GPU:
+        ind.fitness = {"brier": 0.28, "roi": 0.0, "sharpe": 0.0, "calibration": 0.15, "composite": -0.5,
                        "features_pruned": 0}
         return
 
@@ -1134,10 +1183,10 @@ def evaluate(ind, X, y, n_splits=2, fast=True, eval_counter=[0]):
 
     hp = ind.hyperparams
 
-    # Cap estimators for speed (fast mode)
+    # Cap estimators for speed (fast mode) — 80 is enough for ranking on CPU
     hp_eval = dict(hp)
     if fast:
-        hp_eval["n_estimators"] = min(hp["n_estimators"], 120)
+        hp_eval["n_estimators"] = min(hp["n_estimators"], 80)
 
     # ── STACKING: special path ──
     if hp_eval["model_type"] == "stacking":
@@ -1589,13 +1638,17 @@ _ROLE_CONFIGS = {
         "POP_SIZE": 60, "BASE_MUT": 0.10, "MUT_DECAY_RATE": 0.998, "MUT_FLOOR": 0.05,
         "CROSSOVER_RATE": 0.80, "TARGET_FEATURES": 66, "TOURNAMENT_SIZE": 6, "DIVERSITY_RESTART": 25,
     },
-    "neural_specialist": {  # S14: neural models (MLP, TabNet, FT-Transformer)
+    "neural_specialist": {  # S14: neural models — GPU ONLY (Colab), skip on CPU HF Spaces
         "POP_SIZE": 40, "BASE_MUT": 0.12, "MUT_DECAY_RATE": 0.999, "MUT_FLOOR": 0.06,
         "CROSSOVER_RATE": 0.75, "TARGET_FEATURES": 50, "TOURNAMENT_SIZE": 5, "DIVERSITY_RESTART": 15,
     },
-    "wide_search": {  # S15: max diversity, wide feature search
-        "POP_SIZE": 60, "BASE_MUT": 0.20, "MUT_DECAY_RATE": 0.999, "MUT_FLOOR": 0.10,
-        "CROSSOVER_RATE": 0.65, "TARGET_FEATURES": 120, "TOURNAMENT_SIZE": 4, "DIVERSITY_RESTART": 15,
+    "lightgbm_specialist": {  # S14 on CPU: LightGBM is fastest tree model
+        "POP_SIZE": 60, "BASE_MUT": 0.08, "MUT_DECAY_RATE": 0.998, "MUT_FLOOR": 0.04,
+        "CROSSOVER_RATE": 0.85, "TARGET_FEATURES": 55, "TOURNAMENT_SIZE": 7, "DIVERSITY_RESTART": 25,
+    },
+    "wide_search": {  # S15: diversity, moderate feature search (120 was too slow on CPU)
+        "POP_SIZE": 50, "BASE_MUT": 0.18, "MUT_DECAY_RATE": 0.999, "MUT_FLOOR": 0.08,
+        "CROSSOVER_RATE": 0.65, "TARGET_FEATURES": 80, "TOURNAMENT_SIZE": 4, "DIVERSITY_RESTART": 15,
     },
 }
 _cfg = _ROLE_CONFIGS.get(_SPACE_ROLE, _ROLE_CONFIGS["exploitation"])
@@ -1613,11 +1666,11 @@ ISLAND_SIZE = POP_SIZE // N_ISLANDS
 ELITE_SIZE = max(2, POP_SIZE // 10)
 ELITE_PER_ISLAND = max(1, ISLAND_SIZE // 6)
 
-N_SPLITS = 3             # 3-fold walk-forward for reliable Brier estimates
+N_SPLITS = 2             # 2-fold fast eval (3-fold only for FULL_EVAL_TOP)
 GENS_PER_CYCLE = 3       # Save every 3 gens
 COOLDOWN = 5             # Minimal cooldown
-FAST_EVAL_GAMES = 8000   # More data in fast eval
-FULL_EVAL_TOP = 10       # Full eval for top 10 (out of 60)
+FAST_EVAL_GAMES = 5000   # Subsample for fast eval (was 8000 — too slow on CPU)
+FULL_EVAL_TOP = 5        # Full eval for top 5 only (was 10 — halves slow full evals)
 MIGRATION_INTERVAL = 8   # Migration every 8 gens
 MIGRANTS_PER_ISLAND = 3  # 3 migrants per island (25% of island)
 GC_INTERVAL = 10         # Force garbage collection every N individuals evaluated
@@ -1852,13 +1905,23 @@ def evolution_loop():
             live["generation"] = generation
             gen_start = time.time()
 
-            # ── EVALUATE ALL ISLANDS ──
+            # ── EVALUATE ALL ISLANDS (with per-individual timeout) ──
             population = island_model.get_all_individuals()
+            _timed_out = 0
             for i, ind in enumerate(population):
                 # Skip re-eval of elites (per-island top ELITE_PER_ISLAND)
                 if ind.pareto_rank == 0 and ind.fitness.get("composite", 0) > 0:
                     continue
+                _t0 = time.time()
                 evaluate(ind, X, y, N_SPLITS, fast=True)
+                _dur = time.time() - _t0
+                if _dur > EVAL_TIMEOUT_S:
+                    # This eval was too slow — penalize and warn
+                    ind.fitness = {"brier": 0.29, "roi": 0.0, "sharpe": 0.0,
+                                   "calibration": 0.15, "composite": -0.5, "features_pruned": 0}
+                    _timed_out += 1
+            if _timed_out:
+                log(f"[TIMEOUT] {_timed_out}/{len(population)} individuals exceeded {EVAL_TIMEOUT_S}s")
 
             # ── NSGA-II PARETO RANKING (global) ──
             population = nsga2_rank(population)
