@@ -197,7 +197,7 @@ class KeyRotator:
 
     def get_any_key(self, preferred_providers=None) -> Optional[APIKey]:
         """Get a key from ANY provider, trying preferred ones first."""
-        providers = preferred_providers or ["groq", "openrouter", "litellm", "kimi", "openai", "xai", "google"]
+        providers = preferred_providers or ["groq", "openrouter", "kimi", "openai", "xai", "google"]
         for provider in providers:
             key = self.get_key(provider)
             if key:
@@ -266,7 +266,7 @@ def call_llm(rotator: KeyRotator, system_prompt: str, user_prompt: str,
 
     providers_to_try = [provider]
     # Add fallback providers — Groq FIRST (free, working, has Kimi K2)
-    all_providers = ["groq", "openrouter", "litellm", "kimi", "openai", "xai"]
+    all_providers = ["groq", "openrouter", "kimi", "openai", "xai", "google"]
     for p in all_providers:
         if p not in providers_to_try:
             providers_to_try.append(p)
