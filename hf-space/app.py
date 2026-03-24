@@ -1566,21 +1566,56 @@ def _ece(probs, actuals, n_bins=10):
 # EVOLUTION ENGINE
 # ═══════════════════════════════════════════════════════
 
-POP_SIZE = 60            # Optimal: 60 (proven by 1244 experiments — fewer=faster gens/day)
-N_ISLANDS = 5            # Island model: 5 sub-populations
-ISLAND_SIZE = 12         # 60/5 = 12 per island
-ELITE_SIZE = 6           # Top 10% preserved
-ELITE_PER_ISLAND = 2     # Elites per island (ceil(12*0.1)=2)
-BASE_MUT = 0.09          # Optimal: 0.09 (0.2 destroys population, 0.12 too high)
-MUT_DECAY_RATE = 0.998   # Gentle decay — already near optimum
-MUT_FLOOR = 0.05         # Don't go too low — maintain exploration
-CROSSOVER_RATE = 0.80    # Optimal: 0.80 (0.85-0.95 too much noise)
-TARGET_FEATURES = 63     # Sweet spot: 60-66 range dominates (not 80/115)
+# ── Runtime config (env-overridable for multi-Space island model) ──
+# S10 (primary): exploitation — proven optimal params
+# S11 (secondary): exploration — higher mutation, wider feature search
+import os as _os
+_SPACE_ROLE = _os.environ.get("SPACE_ROLE", "exploitation")  # "exploitation" or "exploration"
+
+_ROLE_CONFIGS = {
+    "exploitation": {  # S10: proven optimal
+        "POP_SIZE": 60, "BASE_MUT": 0.09, "MUT_DECAY_RATE": 0.998, "MUT_FLOOR": 0.05,
+        "CROSSOVER_RATE": 0.80, "TARGET_FEATURES": 63, "TOURNAMENT_SIZE": 7, "DIVERSITY_RESTART": 30,
+    },
+    "exploration": {  # S11: wider search
+        "POP_SIZE": 60, "BASE_MUT": 0.15, "MUT_DECAY_RATE": 0.999, "MUT_FLOOR": 0.08,
+        "CROSSOVER_RATE": 0.70, "TARGET_FEATURES": 80, "TOURNAMENT_SIZE": 5, "DIVERSITY_RESTART": 20,
+    },
+    "extra_trees_specialist": {  # S12: extra_trees focus, tight features
+        "POP_SIZE": 60, "BASE_MUT": 0.08, "MUT_DECAY_RATE": 0.998, "MUT_FLOOR": 0.04,
+        "CROSSOVER_RATE": 0.80, "TARGET_FEATURES": 60, "TOURNAMENT_SIZE": 7, "DIVERSITY_RESTART": 25,
+    },
+    "catboost_specialist": {  # S13: catboost focus, medium exploration
+        "POP_SIZE": 60, "BASE_MUT": 0.10, "MUT_DECAY_RATE": 0.998, "MUT_FLOOR": 0.05,
+        "CROSSOVER_RATE": 0.80, "TARGET_FEATURES": 66, "TOURNAMENT_SIZE": 6, "DIVERSITY_RESTART": 25,
+    },
+    "neural_specialist": {  # S14: neural models (MLP, TabNet, FT-Transformer)
+        "POP_SIZE": 40, "BASE_MUT": 0.12, "MUT_DECAY_RATE": 0.999, "MUT_FLOOR": 0.06,
+        "CROSSOVER_RATE": 0.75, "TARGET_FEATURES": 50, "TOURNAMENT_SIZE": 5, "DIVERSITY_RESTART": 15,
+    },
+    "wide_search": {  # S15: max diversity, wide feature search
+        "POP_SIZE": 60, "BASE_MUT": 0.20, "MUT_DECAY_RATE": 0.999, "MUT_FLOOR": 0.10,
+        "CROSSOVER_RATE": 0.65, "TARGET_FEATURES": 120, "TOURNAMENT_SIZE": 4, "DIVERSITY_RESTART": 15,
+    },
+}
+_cfg = _ROLE_CONFIGS.get(_SPACE_ROLE, _ROLE_CONFIGS["exploitation"])
+POP_SIZE = _cfg["POP_SIZE"]
+BASE_MUT = _cfg["BASE_MUT"]
+MUT_DECAY_RATE = _cfg["MUT_DECAY_RATE"]
+MUT_FLOOR = _cfg["MUT_FLOOR"]
+CROSSOVER_RATE = _cfg["CROSSOVER_RATE"]
+TARGET_FEATURES = _cfg["TARGET_FEATURES"]
+TOURNAMENT_SIZE = _cfg["TOURNAMENT_SIZE"]
+DIVERSITY_RESTART = _cfg["DIVERSITY_RESTART"]
+
+N_ISLANDS = 5
+ISLAND_SIZE = POP_SIZE // N_ISLANDS
+ELITE_SIZE = max(2, POP_SIZE // 10)
+ELITE_PER_ISLAND = max(1, ISLAND_SIZE // 6)
+
 N_SPLITS = 3             # 3-fold walk-forward for reliable Brier estimates
 GENS_PER_CYCLE = 3       # Save every 3 gens
 COOLDOWN = 5             # Minimal cooldown
-TOURNAMENT_SIZE = 7      # Higher pressure with small pop — proven optimal
-DIVERSITY_RESTART = 30   # More patience with small pop
 FAST_EVAL_GAMES = 8000   # More data in fast eval
 FULL_EVAL_TOP = 10       # Full eval for top 10 (out of 60)
 MIGRATION_INTERVAL = 8   # Migration every 8 gens
