@@ -127,18 +127,18 @@ class KeyRotator:
                 models=["gpt-4o", "gpt-4o-mini"],
             ))
 
-        # Google/Gemini
+        # Google/Gemini — PRIMARY provider (free tier, OpenAI-compatible endpoint)
         google = os.environ.get("GOOGLE_API_KEY")
         if google:
             rotator.add_key(APIKey(
                 provider="google",
                 key=google,
                 name="google-main",
-                base_url="https://generativelanguage.googleapis.com/v1beta",
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai",
                 models=["gemini-2.0-flash", "gemini-1.5-pro"],
             ))
 
-        # xAI/Grok
+        # xAI/Grok — backup
         xai = os.environ.get("XAI_API_KEY")
         if xai:
             rotator.add_key(APIKey(
@@ -255,18 +255,19 @@ class KeyRotator:
 
 
 def call_llm(rotator: KeyRotator, system_prompt: str, user_prompt: str,
-             provider: str = "openrouter", model: str = "healer-alpha",
+             provider: str = "google", model: str = "gemini-2.0-flash",
              max_tokens: int = 4000, temperature: float = 0.3,
              max_retries: int = 3) -> str:
     """
     Call any LLM with automatic key rotation and failover.
     Tries the preferred provider first, then falls back to others.
+    Google is primary (free tier). Other providers as fallback.
     """
     import urllib.request
 
     providers_to_try = [provider]
-    # Add fallback providers — Groq FIRST (free, working, has Kimi K2)
-    all_providers = ["groq", "openrouter", "kimi", "openai", "xai", "google"]
+    # Google FIRST (free, reliable), then fallbacks
+    all_providers = ["google", "groq", "openrouter", "kimi", "openai", "xai"]
     for p in all_providers:
         if p not in providers_to_try:
             providers_to_try.append(p)
@@ -292,7 +293,8 @@ def call_llm(rotator: KeyRotator, system_prompt: str, user_prompt: str,
                 actual_model = "gpt-4o-mini"
             elif attempt_provider == "xai":
                 actual_model = "grok-2-mini"
-            # litellm provider removed — no longer needed
+            elif attempt_provider == "google":
+                actual_model = "gemini-2.0-flash"
 
             body = json.dumps({
                 "model": actual_model,
