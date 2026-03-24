@@ -1,33 +1,64 @@
-# Adam — NBA Quant AI Agent
+# Nomos42 — NBA Quant AI
 
-You are Adam, an autonomous agent improving the NBA Quant AI prediction model.
-You have Claude Code Max OAuth credentials (no API key needed).
-You are working on the REAL git repository. Your changes will be committed and pushed.
+> Architecture v14 — Claude Code 2026 | Updated: 2026-03-24
 
-## MISSION
-Build the best NBA prediction AI in the world. Beat the best hedge funds.
-Current best: Brier 0.2205 | Target: Brier < 0.20, ROI > 5%, Sharpe > 1.5
+## Mission
+Build the best NBA prediction AI in the world.
+**Current:** Brier 0.2200 (Stacking, 96 features) | **Target:** Brier < 0.20, ROI > 5%, Sharpe > 1.5
 
-## KEY FILES
-- features/engine.py — 580+ feature candidates, 94 selected
-- evolution/loop.py — Genetic algorithm (population 50+, multi-objective fitness)
-- models/ — XGBoost, LightGBM, CatBoost, Stacking
-- colab/nba_gpu_runner.ipynb — GPU training (MLP, LSTM, FT-Transformer, etc.)
-- predict_today.py — Daily prediction pipeline
+## Architecture
 
-## RULES
-1. NEVER run ML training here — submit experiments to Supabase for GPU runners (Colab)
-2. Keep changes minimal and focused — 1 fix per commit
-3. ALWAYS commit and push when done
-4. Read existing code BEFORE modifying
-5. Run tests if available
-6. Do NOT create README.md or documentation files
+```
+Cloud Brain (Sonnet 4.6, every 4h)     VM Muscle (cron, every 4h)
+├── Monitor S10/S11 via APIs            ├── Crew research cycle (4 agents)
+├── Analyze trends + stagnation         ├── Daily predictions
+├── Decide: tune/diversify/inject       ├── Push results to git
+└── Write health report + push          └── Auto-restart data server
 
-## ENDPOINTS
-- S10 Evolution: https://lbjlincoln-nomos-nba-quant.hf.space/api/status
-- S11 Parallel: https://lbjlincoln-nomos-nba-quant-2.hf.space/api/status
-- ESPN Scores: https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard
+S10 (HF Space) — 24/7 genetic evolution (5 islands × 100, NSGA-II)
+S11 (HF Space) — Experiment queue runner (polls Supabase)
+```
 
-## SUPABASE (for experiment submission)
-Use the nba_experiments table. Insert with status='pending', target_space='gpu'.
-DATABASE_URL is in the environment.
+## Key Files
+
+| File | Role |
+|------|------|
+| `features/engine.py` | Canonical feature engine v3.0-35cat, 6000+ candidates |
+| `hf-space/features/engine.py` | MUST equal root engine (deploy.py checks) |
+| `hf-space/app.py` | S10 Gradio app + evolution loop + API endpoints |
+| `hf-space/experiment_runner.py` | S11 experiment queue processor |
+| `evolution/genetic_loop_v3.py` | GA v3 with real engine import |
+| `predict_today.py` | Daily predictions (60% S10 evolved + 40% ensemble) |
+| `agents/nba_crew.py` | 4-agent CrewAI swarm (Research, Market, Feature, Evolution) |
+| `agents/key_rotator.py` | Multi-provider LLM routing (6 providers, 16 keys) |
+
+## S10 Public API (no auth)
+
+| Endpoint | Method | Returns |
+|----------|--------|---------|
+| `/api/status` | GET | cycle, generation, best_brier, stagnation, pop_size |
+| `/api/brier-trend` | GET | Last 50 generations Brier scores |
+| `/api/recent-runs` | GET | Recent cycle summaries |
+| `/api/run-stats` | GET | Aggregate stats from Supabase |
+| `/api/remote-log` | GET | Pending params, commands, injected features |
+| `/api/config` | POST | Queue GA parameter changes |
+| `/api/command` | POST | diversify, boost_mutation, reset |
+| `/api/inject-features` | POST | Force features into GA population |
+| `/api/checkpoint` | POST | Save current best model |
+| `/api/experiment/submit` | POST | Queue experiment for S11 |
+| `/api/predict` | POST | Get evolved model predictions |
+
+## Rules
+
+1. **ZERO ML on VM** — 1 vCPU / 969 MB RAM. ALL training on HF Spaces
+2. **Feature engine parity** — `features/engine.py` = `hf-space/features/engine.py` always
+3. **1 fix per iteration** — never multiple simultaneous changes
+4. **All experiments tagged** with `feature_engine_version` in Supabase
+5. **ENGINE_VERSION** = `v3.0-35cat` (6000+ candidates, 35 categories)
+
+## Supabase Tables
+
+| Table | Purpose |
+|-------|---------|
+| `nba_experiments` | All experiment results + `feature_engine_version` |
+| `research_proposals` | Karpathy loop proposals (proposed/testing/rejected/live) |
