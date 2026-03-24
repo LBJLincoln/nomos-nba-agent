@@ -861,6 +861,7 @@ def build_predictions_output(
     evolution_model: Optional[Dict],
     bankroll: float,
     include_props: bool = True,
+    evolved_predictions: Optional[Dict] = None,
 ) -> Dict:
     """
     Build the complete predictions JSON output.
@@ -933,8 +934,11 @@ def build_predictions_output(
         print(f"  {away_full} @ {home_full}")
         print(f"{'='*60}")
 
-        # Run model prediction
-        pred = predict_game(home_full, away_full, evolution_model)
+        # Run model prediction (with evolved model from S10 when available)
+        evo_prob = None
+        if evolved_predictions:
+            evo_prob = evolved_predictions.get((home_abbrev, away_abbrev))
+        pred = predict_game(home_full, away_full, evolution_model, evolved_prob=evo_prob)
 
         # Find matching odds data
         odds_game = None
@@ -1483,6 +1487,23 @@ def main(bankroll: float = 100.0, include_props: bool = True, dry_run: bool = Fa
         print("\n[WARNING] No games found from any source. Using simulated data.")
         odds_data = fetch_live_odds()  # Will generate simulated if no key
 
+    # Step 4b: Fetch evolved predictions from S10
+    print("\n[STEP 4b] Fetching evolved model predictions from S10...")
+    evolved_predictions = {}
+    if not dry_run:
+        s10_games = []
+        for g in games_nba:
+            s10_games.append({"home": g.get("home_team", ""), "away": g.get("away_team", "")})
+        for og in odds_data:
+            h = _match_team_name(og.get("home_team", ""))
+            a = _match_team_name(og.get("away_team", ""))
+            if h and a and not any(g.get("home") == h for g in s10_games):
+                s10_games.append({"home": h, "away": a})
+        if s10_games:
+            evolved_predictions = fetch_evolved_predictions(s10_games)
+    else:
+        print("[DRY RUN] Skipping S10 evolved predictions")
+
     # Step 5: Build predictions
     print("\n[STEP 5] Generating predictions...")
     output = build_predictions_output(
@@ -1492,6 +1513,7 @@ def main(bankroll: float = 100.0, include_props: bool = True, dry_run: bool = Fa
         evolution_model=evolution_model,
         bankroll=bankroll,
         include_props=include_props,
+        evolved_predictions=evolved_predictions,
     )
 
     # Step 6: Save outputs
