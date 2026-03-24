@@ -20,7 +20,7 @@ Connected to:
 Runs autonomously every 30 minutes. Observable via JSON output files.
 """
 
-import os, sys, json, time, traceback
+import os, sys, json, time, traceback, urllib.request
 from pathlib import Path
 from datetime import datetime, timezone
 
