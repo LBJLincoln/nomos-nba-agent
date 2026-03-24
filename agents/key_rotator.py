@@ -12,7 +12,7 @@ Providers:
   - OpenAI (1 key)
   - Google/Gemini (1 key)
   - xAI/Grok (1 key)
-  - LiteLLM proxy (1 key, routes to all above)
+  - (LiteLLM removed — redundant proxy, all providers called directly)
 """
 
 import os, json, time, threading
@@ -149,17 +149,7 @@ class KeyRotator:
                 models=["grok-2", "grok-2-mini"],
             ))
 
-        # LiteLLM proxy (master fallback)
-        litellm = os.environ.get("LITELLM_MASTER_KEY", os.environ.get("LITELLM_KEY"))
-        if litellm:
-            rotator.add_key(APIKey(
-                provider="litellm",
-                key=litellm,
-                name="litellm-s7",
-                base_url=os.environ.get("LITELLM_PROXY_URL",
-                                        "https://lbjlincoln-nomos-rag-engine-7.hf.space") + "/v1",
-                models=["smart", "fast", "default"],
-            ))
+        # LiteLLM removed — redundant proxy, all providers called directly
 
         return rotator
 
@@ -302,8 +292,7 @@ def call_llm(rotator: KeyRotator, system_prompt: str, user_prompt: str,
                 actual_model = "gpt-4o-mini"
             elif attempt_provider == "xai":
                 actual_model = "grok-2-mini"
-            elif attempt_provider == "litellm":
-                actual_model = "smart"
+            # litellm provider removed — no longer needed
 
             body = json.dumps({
                 "model": actual_model,

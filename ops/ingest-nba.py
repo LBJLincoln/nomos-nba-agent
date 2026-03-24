@@ -31,8 +31,7 @@ SSL_CTX = ssl.create_default_context()
 SSL_CTX.check_hostname = False
 SSL_CTX.verify_mode = ssl.CERT_NONE
 
-LITELLM_URL = os.environ.get("LITELLM_BASE_URL", "https://lbjlincoln-nomos-rag-engine-7.hf.space/v1")
-LITELLM_KEY = os.environ.get("LITELLM_API_KEY", "sk-litellm-nomos-2026")
+# LiteLLM removed — not used in this file
 BALLDONTLIE_KEY = os.environ.get("BALLDONTLIE_API_KEY", "")
 ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
 EXA_API_KEY = os.environ.get("EXA_API_KEY", "")

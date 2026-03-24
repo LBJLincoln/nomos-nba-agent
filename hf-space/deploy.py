@@ -50,8 +50,7 @@ SECRETS = {
     "XAI_API_KEY": os.environ.get("XAI_API_KEY", ""),
     "COHERE_API_KEY": os.environ.get("COHERE_API_KEY", ""),
     "KIMI_API_KEY": os.environ.get("KIMI_API_KEY", ""),
-    "LITELLM_PROXY_URL": os.environ.get("LITELLM_PROXY_URL", ""),
-    "LITELLM_MASTER_KEY": os.environ.get("LITELLM_MASTER_KEY", ""),
+    # LiteLLM removed — direct provider calls only
     # ── Telegram ──
     "TELEGRAM_BOT_TOKEN": os.environ.get("TELEGRAM_BOT_TOKEN", ""),
     "ADMIN_TELEGRAM_ID": os.environ.get("ADMIN_TELEGRAM_ID", ""),

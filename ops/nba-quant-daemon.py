@@ -43,8 +43,9 @@ load_env()
 ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
 EXA_API_KEY = os.environ.get("EXA_API_KEY", "")
 BRAVE_API_KEY = os.environ.get("BRAVE_API_KEY", "")
-LITELLM_URL = os.environ.get("LITELLM_BASE_URL", "https://lbjlincoln-nomos-rag-engine-7.hf.space/v1")
-LITELLM_KEY = os.environ.get("LITELLM_API_KEY", "sk-litellm-nomos-2026")
+# LiteLLM removed — use key_rotator for all LLM calls
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from agents.key_rotator import call_llm as _call_llm_rotator
 EMBEDDINGS_URL = os.environ.get("EMBEDDINGS_URL", "https://lbjlincoln-nomos-embeddings-api.hf.space")
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY", "")
 
@@ -313,19 +314,13 @@ Respond ONLY with a JSON object containing suggested adjustments, e.g.:
 {{"elo_k_factor": 22, "home_court_advantage": 2.8, "monte_carlo_stdev": 11.5, "avg_team_score": 114.2, "kelly_fraction": 0.25, "min_edge": 0.02, "weight_power": 0.35, "weight_elo": 0.20, "weight_poisson": 0.15, "weight_mc": 0.30, "reasoning": "brief explanation"}}"""
 
     try:
-        data, status = http_post(
-            f"{LITELLM_URL}/chat/completions",
-            {
-                "model": "smart",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 500,
-                "temperature": 0.3,
-            },
-            headers={"Authorization": f"Bearer {LITELLM_KEY}"},
-            timeout=60
+        content = _call_llm_rotator(
+            system_prompt="You are a quantitative NBA model calibration expert.",
+            user_prompt=prompt,
+            max_tokens=500,
+            temperature=0.3,
         )
-        if status == 200 and "choices" in data:
-            content = data["choices"][0]["message"]["content"]
+        if content:
             # Extract JSON from response
             import re
             json_match = re.search(r'\{[^{}]+\}', content, re.DOTALL)

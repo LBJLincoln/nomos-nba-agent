@@ -28,8 +28,8 @@ def load_env():
 load_env()
 
 # ── Config ────────────────────────────────────────────────────────────────────
-LITELLM_URL = os.environ.get("LITELLM_BASE_URL", "https://lbjlincoln-nomos-rag-engine-7.hf.space/v1")
-LITELLM_KEY = os.environ.get("LITELLM_API_KEY", "sk-litellm-nomos-2026")
+# LiteLLM removed — use key_rotator for all LLM calls
+from agents.key_rotator import call_llm as _call_llm_rotator
 BALLDONTLIE_KEY = os.environ.get("BALLDONTLIE_API_KEY", "")
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY", "")
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
@@ -87,37 +87,22 @@ def http_get(url, headers=None, timeout=30):
     except Exception as e:
         return {"error": str(e)}, 0
 
-# ── LLM call via LiteLLM ─────────────────────────────────────────────────────
+# ── LLM call via key_rotator (direct provider routing) ───────────────────────
 def ask_llm(question, context="", model="smart", max_tokens=2000):
-    """Ask LLM with NBA system prompt + optional RAG context."""
-    messages = [{"role": "system", "content": NBA_SYSTEM_PROMPT}]
-
+    """Ask LLM with NBA system prompt + optional RAG context via key_rotator."""
+    user_msg = question
     if context:
-        messages.append({"role": "user", "content": f"Contexte RAG:\n{context}\n\n---\nQuestion: {question}"})
-    else:
-        messages.append({"role": "user", "content": question})
-
-    data = {
-        "model": model,
-        "messages": messages,
-        "max_tokens": max_tokens,
-        "temperature": 0.3,
-    }
-
-    resp, status = http_post(
-        f"{LITELLM_URL}/chat/completions",
-        data,
-        headers={"Authorization": f"Bearer {LITELLM_KEY}"},
-        timeout=90,
-    )
-
-    if "error" in resp:
-        return f"[LLM ERROR] {resp['error']}"
+        user_msg = f"Contexte RAG:\n{context}\n\n---\nQuestion: {question}"
 
     try:
-        return resp["choices"][0]["message"]["content"]
-    except (KeyError, IndexError):
-        return f"[LLM ERROR] Unexpected response: {json.dumps(resp)[:200]}"
+        return _call_llm_rotator(
+            system_prompt=NBA_SYSTEM_PROMPT,
+            user_prompt=user_msg,
+            max_tokens=max_tokens,
+            temperature=0.3,
+        )
+    except Exception as e:
+        return f"[LLM ERROR] {e}"
 
 # ── Embeddings ────────────────────────────────────────────────────────────────
 def get_embedding(text):
