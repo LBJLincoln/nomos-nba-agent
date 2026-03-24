@@ -2197,6 +2197,32 @@ class NBAFeatureEngine:
                 for stat in _q_stats:
                     names.append(f"qdetail_{prefix}_{q}_{stat}")
 
+        # 36. EWMA PERFORMANCE + CROSSOVERS + REST INTERACTIONS (~108 features)
+        # Inspired by deepshot (EWMA rolling stats) + kyleskom (rest × performance)
+        _ewma36_stats = ["wp", "pd", "ppg", "papg", "margin", "close", "blowout", "ou_avg"]
+        _ewma36_alphas = ["005", "015", "025", "04", "07"]
+        for prefix in ["h", "a"]:
+            for stat in _ewma36_stats:
+                for alpha in _ewma36_alphas:
+                    names.append(f"ewma36_{prefix}_{stat}_a{alpha}")
+
+        # EWMA crossovers: fast(0.7) - slow(0.05) = momentum signal (MACD-like)
+        for prefix in ["h", "a"]:
+            for stat in _ewma36_stats:
+                names.append(f"ewma36_{prefix}_{stat}_crossover")
+
+        # Rest × performance interactions
+        names.extend([
+            "rest_x_h_wp5", "rest_x_a_wp5",         # rest_days × recent win%
+            "b2b_x_h_margin5", "b2b_x_a_margin5",   # b2b × recent margin
+            "fatigue_x_h_ortg", "fatigue_x_a_ortg",  # fatigue × offensive rating
+            "rest_adv_x_wp_diff",                     # rest_advantage × win% difference
+            "b2b_diff_x_margin_diff",                 # b2b differential × margin differential
+            "h_rest_sq", "a_rest_sq",                 # rest_days squared (diminishing returns)
+            "rest_x_travel",                          # rest_advantage × travel_advantage
+            "dense_sched_x_margin",                   # schedule_density × margin_diff
+        ])
+
         self.feature_names = names
 
     def build(self, games, market_data=None, referee_data=None, player_data=None, quarter_data=None):
@@ -4922,6 +4948,68 @@ class NBAFeatureEngine:
                 for q in ["q1", "q2", "q3", "q4"]:
                     for stat in ["margin", "ortg", "drtg", "pace", "efg", "tov_rate", "ft_rate"]:
                         row.append(qd_.get(f"{q}_{stat}", 0.0))
+
+            # ── 36. EWMA PERFORMANCE + CROSSOVERS + REST INTERACTIONS ──
+            _ALPHA36 = {"005": 0.05, "015": 0.15, "025": 0.25, "04": 0.4, "07": 0.7}
+            _STAT_FN36 = {
+                "wp": lambda tr, w: self._wp(tr, w),
+                "pd": lambda tr, w: self._pd(tr, w),
+                "ppg": lambda tr, w: self._ppg(tr, w),
+                "papg": lambda tr, w: self._papg(tr, w),
+                "margin": lambda tr, w: self._avg_margin(tr, w),
+                "close": lambda tr, w: self._close_pct(tr, w),
+                "blowout": lambda tr, w: self._blowout_pct(tr, w),
+                "ou_avg": lambda tr, w: self._ou_avg(tr, w),
+            }
+            for _pfx36, _tr36 in [("h", hr_), ("a", ar_)]:
+                # Build per-game stat series (last 20 games) for EWMA
+                _n36 = min(20, len(_tr36))
+                _series36 = {}
+                for _st36 in _STAT_FN36:
+                    _series36[_st36] = []
+                    for _i36 in range(max(0, len(_tr36) - _n36), len(_tr36)):
+                        _sub = _tr36[:_i36+1]
+                        _series36[_st36].append(_STAT_FN36[_st36](_sub, min(5, len(_sub))))
+
+                # EWMA: 8 stats × 5 alphas = 40 per team
+                for _st36 in ["wp", "pd", "ppg", "papg", "margin", "close", "blowout", "ou_avg"]:
+                    _vals = _series36.get(_st36, [])
+                    for _ak36 in ["005", "015", "025", "04", "07"]:
+                        row.append(_ewma_val(_vals, _ALPHA36[_ak36]) if _vals else 0.0)
+
+                # EWMA crossover: fast(0.7) - slow(0.05) = momentum signal
+                for _st36 in ["wp", "pd", "ppg", "papg", "margin", "close", "blowout", "ou_avg"]:
+                    _vals = _series36.get(_st36, [])
+                    if _vals:
+                        row.append(_ewma_val(_vals, 0.7) - _ewma_val(_vals, 0.05))
+                    else:
+                        row.append(0.0)
+
+            # Rest × performance interactions (12 features)
+            _h_wp5 = self._wp(hr_, 5)
+            _a_wp5 = self._wp(ar_, 5)
+            _h_margin5 = self._avg_margin(hr_, 5)
+            _a_margin5 = self._avg_margin(ar_, 5)
+            _h_ortg = self._stat_avg(hr_, 10, "ortg")
+            _a_ortg = self._stat_avg(ar_, 10, "ortg")
+            _h_b2b = 1.0 if h_rest <= 1 else 0.0
+            _a_b2b = 1.0 if a_rest <= 1 else 0.0
+            _h_fatigue = self._fatigue_score(hr_, gd, home, h_rest) if hasattr(self, '_fatigue_score') else 0.0
+            _a_fatigue = self._fatigue_score(ar_, gd, away, a_rest) if hasattr(self, '_fatigue_score') else 0.0
+            row.extend([
+                min(h_rest, 7) * _h_wp5,               # rest × win%
+                min(a_rest, 7) * _a_wp5,
+                _h_b2b * _h_margin5,                    # b2b × margin
+                _a_b2b * _a_margin5,
+                _h_fatigue * _h_ortg,                   # fatigue × offensive rating
+                _a_fatigue * _a_ortg,
+                (h_rest - a_rest) * (_h_wp5 - _a_wp5),  # rest_adv × wp_diff
+                (_h_b2b - _a_b2b) * (_h_margin5 - _a_margin5),  # b2b_diff × margin_diff
+                min(h_rest, 7) ** 2 / 49.0,             # rest squared (normalized)
+                min(a_rest, 7) ** 2 / 49.0,
+                (h_rest - a_rest) * (self._travel_dist(home, away) if hasattr(self, '_travel_dist') else 0.0),
+                (self._games_in_window(hr_, gd, 7) - self._games_in_window(ar_, gd, 7)) * (_h_margin5 - _a_margin5),
+            ])
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
