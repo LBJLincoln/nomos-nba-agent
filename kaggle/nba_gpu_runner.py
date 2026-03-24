@@ -36,6 +36,7 @@ if torch.cuda.is_available():
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 MAX_EVAL_GAMES, WALK_FORWARD_SPLITS, BATCH_SIZE = 10000, 3, 512
 MAX_EPOCHS, PATIENCE, MAX_EXPERIMENTS, POLL_INTERVAL = 200, 15, 10, 30
+EXPERIMENT_TIMEOUT = 1800    # 30 min max per experiment (matches HF Space S11)
 GPU_MODELS = ["mlp", "mlp_residual", "lstm", "ft_transformer", "tabnet",
               "node", "mc_dropout_rnn", "saint", "tft",
               "xgboost_gpu", "lightgbm_gpu", "catboost_gpu"]
@@ -672,14 +673,27 @@ def wf_eval(model_name, X, y, params=None, n_splits=WALK_FORWARD_SPLITS, feat_id
 # EXPERIMENT QUEUE
 # ═══════════════════════════════════════════════
 
-_TARGET_SQL = """(target_space IN ('colab','gpu','kaggle','any') OR target_space IS NULL)"""
+_TARGET_SQL = """(target_space IN ('kaggle','gpu','any') OR target_space IS NULL)"""
 
 def fetch_next():
-    rows = _exec_sql(f"""SELECT id, experiment_id, agent_name, experiment_type, description,
-        hypothesis, params, priority, status, target_space, baseline_brier, created_at
-        FROM public.nba_experiments WHERE status='pending' AND {_TARGET_SQL}
-        ORDER BY priority DESC, created_at ASC LIMIT 1""")
-    if not rows or rows is True: return None
+    """Fetch AND atomically claim the next pending experiment in one transaction."""
+    rows = _exec_sql(f"""
+        WITH next_exp AS (
+            SELECT id FROM public.nba_experiments
+            WHERE status='pending' AND {_TARGET_SQL}
+            ORDER BY priority DESC, created_at ASC
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+        )
+        UPDATE public.nba_experiments e
+        SET status='running', started_at=NOW()
+        FROM next_exp
+        WHERE e.id = next_exp.id
+        RETURNING e.id, e.experiment_id, e.agent_name, e.experiment_type, e.description,
+                  e.hypothesis, e.params, e.priority, e.status, e.target_space,
+                  e.baseline_brier, e.created_at
+    """)
+    if not rows or rows is True or len(rows)==0: return None
     r = rows[0]
     return {"id":r[0],"experiment_id":r[1],"agent_name":r[2],"experiment_type":r[3],
             "description":r[4],"hypothesis":r[5],
@@ -689,9 +703,8 @@ def fetch_next():
             "created_at":str(r[11]) if r[11] else None}
 
 def _claim(eid):
-    r = _exec_sql("UPDATE public.nba_experiments SET status='running',started_at=NOW() "
-                   "WHERE id=%s AND status='pending' RETURNING id", (eid,))
-    return r is not None and r is not True and len(r)>0
+    """Legacy claim — now handled atomically in fetch_next(), kept for compatibility."""
+    return True
 
 def _complete(eid, brier, acc, ll, details, status="completed"):
     _exec_sql("UPDATE public.nba_experiments SET status=%s,result_brier=%s,result_accuracy=%s,"
