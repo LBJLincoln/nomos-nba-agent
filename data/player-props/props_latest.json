@@ -1,0 +1,490 @@
+[
+  {
+    "game_id": "0022500983",
+    "matchup": "ORL @ ATL",
+    "players": [
+      {
+        "player_id": 1630552,
+        "player_name": "Jalen Johnson",
+        "team": "ATL",
+        "opponent": "ORL",
+        "is_home": true,
+        "props": [
+          {
+            "stat": "PTS",
+            "line": 23.5,
+            "prediction": "LEAN_OVER",
+            "confidence": 19.1,
+            "projected_value": 23.8,
+            "edge": 1.1,
+            "score_raw": 0.115,
+            "factors": [
+              "Trending up: L5-L20 delta = +2.0",
+              "vs Top-10 defense (rank 10)",
+              "Minutes trending up (+1.4), high correlation (0.72)"
+            ]
+          },
+          {
+            "stat": "AST",
+            "line": 8.0,
+            "prediction": "LEAN_OVER",
+            "confidence": 22.3,
+            "projected_value": 8.2,
+            "edge": 2.9,
+            "score_raw": 0.292,
+            "factors": [
+              "vs Top-10 defense (rank 10)",
+              "Minutes trending up (+1.4), high correlation (0.54)"
+            ]
+          },
+          {
+            "stat": "REB",
+            "line": 9.0,
+            "prediction": "UNDER",
+            "confidence": 31.8,
+            "projected_value": 8.5,
+            "edge": -5.9,
+            "score_raw": -0.594,
+            "factors": [
+              "Recent avg 8.5 is below line 9.0",
+              "Trending down: L5-L20 delta = -2.8",
+              "vs Top-10 defense (rank 10)",
+              "Minutes trending up (+1.4), high correlation (0.55)"
+            ]
+          },
+          {
+            "stat": "FG3M",
+            "line": 2.0,
+            "prediction": "LEAN_OVER",
+            "confidence": 3.2,
+            "projected_value": 2.0,
+            "edge": 1.4,
+            "score_raw": 0.136,
+            "factors": [
+              "Recent avg 1.8 is below line 2.0",
+              "H/A split: home=1.4 away=1.7",
+              "vs Top-10 defense (rank 10)",
+              "Minutes trending up (+1.4), high correlation (0.31)"
+            ]
+          }
+        ]
+      },
+      {
+        "player_id": 1630700,
+        "player_name": "Dyson Daniels",
+        "team": "ATL",
+        "opponent": "ORL",
+        "is_home": true,
+        "props": [
+          {
+            "stat": "PTS",
+            "line": 11.5,
+            "prediction": "LEAN_OVER",
+            "confidence": 22.1,
+            "projected_value": 11.7,
+            "edge": 1.5,
+            "score_raw": 0.152,
+            "factors": [
+              "Trending up: L5-L20 delta = +1.9",
+              "vs Top-10 defense (rank 10)"
+            ]
+          },
+          {
+            "stat": "AST",
+            "line": 6.0,
+            "prediction": "UNDER",
+            "confidence": 25.0,
+            "projected_value": 5.7,
+            "edge": -4.7,
+            "score_raw": -0.47,
+            "factors": [
+              "vs Top-10 defense (rank 10)"
+            ]
+          },
+          {
+            "stat": "REB",
+            "line": 7.5,
+            "prediction": "LEAN_OVER",
+            "confidence": 26.6,
+            "projected_value": 7.6,
+            "edge": 1.7,
+            "score_raw": 0.169,
+            "factors": [
+              "Trending up: L5-L20 delta = +1.2",
+              "vs Top-10 defense (rank 10)"
+            ]
+          }
+        ]
+      },
+      {
+        "player_id": 1631094,
+        "player_name": "Paolo Banchero",
+        "team": "ORL",
+        "opponent": "ATL",
+        "is_home": false,
+        "props": [
+          {
+            "stat": "PTS",
+            "line": 25.0,
+            "prediction": "OVER",
+            "confidence": 30.2,
+            "projected_value": 25.9,
+            "edge": 3.7,
+            "score_raw": 0.374,
+            "factors": [
+              "Trending up: L5-L20 delta = +2.6",
+              "H/A split: home=20.7 away=23.9"
+            ]
+          },
+          {
+            "stat": "AST",
+            "line": 5.0,
+            "prediction": "LEAN_OVER",
+            "confidence": 19.4,
+            "projected_value": 5.0,
+            "edge": 0.6,
+            "score_raw": 0.062,
+            "factors": [
+              "H/A split: home=4.3 away=5.8"
+            ]
+          },
+          {
+            "stat": "REB",
+            "line": 9.0,
+            "prediction": "OVER",
+            "confidence": 27.6,
+            "projected_value": 9.3,
+            "edge": 3.3,
+            "score_raw": 0.329,
+            "factors": [
+              "H/A split: home=8.1 away=9.0"
+            ]
+          },
+          {
+            "stat": "FG3M",
+            "line": 1.5,
+            "prediction": "LEAN_UNDER",
+            "confidence": 12.6,
+            "projected_value": 1.5,
+            "edge": -2.4,
+            "score_raw": -0.238,
+            "factors": [
+              "Recent avg 1.3 is below line 1.5"
+            ]
+          }
+        ]
+      },
+      {
+        "player_id": 1630217,
+        "player_name": "Desmond Bane",
+        "team": "ORL",
+        "opponent": "ATL",
+        "is_home": false,
+        "props": [
+          {
+            "stat": "PTS",
+            "line": 24.0,
+            "prediction": "LEAN_OVER",
+            "confidence": 27.3,
+            "projected_value": 24.6,
+            "edge": 2.5,
+            "score_raw": 0.247,
+            "factors": [
+              "H/A split: home=22.1 away=19.1"
+            ]
+          },
+          {
+            "stat": "AST",
+            "line": 5.0,
+            "prediction": "OVER",
+            "confidence": 43.3,
+            "projected_value": 5.5,
+            "edge": 10.1,
+            "score_raw": 1.015,
+            "factors": [
+              "Recent avg 5.6 is above line 5.0",
+              "Trending up: L5-L20 delta = +1.8",
+              "H/A split: home=4.6 away=3.9"
+            ]
+          },
+          {
+            "stat": "REB",
+            "line": 4.0,
+            "prediction": "LEAN_OVER",
+            "confidence": 13.3,
+            "projected_value": 4.0,
+            "edge": 0.3,
+            "score_raw": 0.026,
+            "factors": [
+              "H/A split: home=4.4 away=3.9"
+            ]
+          },
+          {
+            "stat": "FG3M",
+            "line": 2.0,
+            "prediction": "UNDER",
+            "confidence": 40.1,
+            "projected_value": 1.7,
+            "edge": -15.6,
+            "score_raw": -1.558,
+            "factors": [
+              "Recent avg 1.5 is below line 2.0",
+              "Trending down: L5-L20 delta = -1.4",
+              "H/A split: home=2.3 away=1.8"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "game_id": "0022500984",
+    "matchup": "GSW @ WAS",
+    "players": [
+      {
+        "player_id": 203076,
+        "player_name": "Anthony Davis",
+        "team": "WAS",
+        "opponent": "GSW",
+        "is_home": true,
+        "props": [
+          {
+            "stat": "PTS",
+            "line": 19.0,
+            "prediction": "UNDER",
+            "confidence": 27.5,
+            "projected_value": 18.1,
+            "edge": -4.6,
+            "score_raw": -0.455,
+            "factors": [
+              "Trending down: L5-L20 delta = -4.0",
+              "H/A split: home=21.6 away=18.5"
+            ]
+          },
+          {
+            "stat": "AST",
+            "line": 2.5,
+            "prediction": "UNDER",
+            "confidence": 30.0,
+            "projected_value": 2.3,
+            "edge": -6.3,
+            "score_raw": -0.628,
+            "factors": [
+              "Recent avg 2.3 is below line 2.5",
+              "H/A split: home=2.6 away=3.1"
+            ]
+          },
+          {
+            "stat": "REB",
+            "line": 11.0,
+            "prediction": "LEAN_UNDER",
+            "confidence": 25.7,
+            "projected_value": 10.7,
+            "edge": -2.8,
+            "score_raw": -0.277,
+            "factors": [
+              "Trending down: L5-L20 delta = -1.1"
+            ]
+          }
+        ]
+      },
+      {
+        "player_id": 1642273,
+        "player_name": "Kyshawn George",
+        "team": "WAS",
+        "opponent": "GSW",
+        "is_home": true,
+        "props": [
+          {
+            "stat": "PTS",
+            "line": 12.5,
+            "prediction": "UNDER",
+            "confidence": 37.1,
+            "projected_value": 11.5,
+            "edge": -7.7,
+            "score_raw": -0.765,
+            "factors": [
+              "Recent avg 11.7 is below line 12.5",
+              "Trending down: L5-L20 delta = -2.5",
+              "Minutes trending down (-6.4), high correlation (0.68)"
+            ]
+          },
+          {
+            "stat": "AST",
+            "line": 2.5,
+            "prediction": "UNDER",
+            "confidence": 64.7,
+            "projected_value": 2.0,
+            "edge": -20.2,
+            "score_raw": -2.024,
+            "factors": [
+              "Recent avg 1.7 is below line 2.5",
+              "Trending down: L5-L20 delta = -2.4",
+              "H/A split: home=3.8 away=5.1",
+              "Minutes trending down (-6.4), high correlation (0.78)"
+            ]
+          },
+          {
+            "stat": "REB",
+            "line": 3.0,
+            "prediction": "UNDER",
+            "confidence": 55.5,
+            "projected_value": 2.5,
+            "edge": -17.2,
+            "score_raw": -1.724,
+            "factors": [
+              "Recent avg 2.3 is below line 3.0",
+              "Trending down: L5-L20 delta = -2.1",
+              "H/A split: home=4.4 away=5.8",
+              "Minutes trending down (-6.4), high correlation (0.64)"
+            ]
+          },
+          {
+            "stat": "FG3M",
+            "line": 1.5,
+            "prediction": "LEAN_OVER",
+            "confidence": 4.8,
+            "projected_value": 1.5,
+            "edge": 0.8,
+            "score_raw": 0.082,
+            "factors": [
+              "Recent avg 1.6 is above line 1.5",
+              "H/A split: home=2.2 away=1.9",
+              "Minutes trending down (-6.4), high correlation (0.36)"
+            ]
+          }
+        ]
+      },
+      {
+        "player_id": 201939,
+        "player_name": "Stephen Curry",
+        "team": "GSW",
+        "opponent": "WAS",
+        "is_home": false,
+        "props": [
+          {
+            "stat": "PTS",
+            "line": 25.0,
+            "prediction": "LEAN_OVER",
+            "confidence": 19.9,
+            "projected_value": 25.2,
+            "edge": 0.7,
+            "score_raw": 0.074,
+            "factors": [
+              "H/A split: home=25.2 away=29.5",
+              "vs Bottom-10 defense (rank 29)",
+              "Minutes trending down (-3.3), high correlation (0.76)"
+            ]
+          },
+          {
+            "stat": "AST",
+            "line": 4.5,
+            "prediction": "UNDER",
+            "confidence": 29.8,
+            "projected_value": 4.1,
+            "edge": -8.5,
+            "score_raw": -0.847,
+            "factors": [
+              "Recent avg 4.0 is below line 4.5",
+              "Trending down: L5-L20 delta = -2.5",
+              "H/A split: home=5.7 away=3.9",
+              "vs Bottom-10 defense (rank 29)"
+            ]
+          },
+          {
+            "stat": "REB",
+            "line": 2.5,
+            "prediction": "UNDER",
+            "confidence": 28.7,
+            "projected_value": 2.4,
+            "edge": -4.5,
+            "score_raw": -0.451,
+            "factors": [
+              "H/A split: home=3.7 away=3.4",
+              "vs Bottom-10 defense (rank 29)",
+              "Minutes trending down (-3.3), high correlation (0.32)"
+            ]
+          },
+          {
+            "stat": "FG3M",
+            "line": 4.0,
+            "prediction": "LEAN_OVER",
+            "confidence": 20.7,
+            "projected_value": 4.1,
+            "edge": 2.4,
+            "score_raw": 0.237,
+            "factors": [
+              "H/A split: home=4.1 away=4.9",
+              "vs Bottom-10 defense (rank 29)",
+              "Minutes trending down (-3.3), high correlation (0.31)"
+            ]
+          }
+        ]
+      },
+      {
+        "player_id": 202710,
+        "player_name": "Jimmy Butler III",
+        "team": "GSW",
+        "opponent": "WAS",
+        "is_home": false,
+        "props": [
+          {
+            "stat": "PTS",
+            "line": 21.0,
+            "prediction": "OVER",
+            "confidence": 30.8,
+            "projected_value": 21.9,
+            "edge": 4.1,
+            "score_raw": 0.406,
+            "factors": [
+              "Trending up: L5-L20 delta = +2.0",
+              "H/A split: home=18.8 away=21.5",
+              "vs Bottom-10 defense (rank 29)",
+              "Minutes trending down (-3.8), high correlation (0.52)"
+            ]
+          },
+          {
+            "stat": "AST",
+            "line": 5.0,
+            "prediction": "LEAN_OVER",
+            "confidence": 22.5,
+            "projected_value": 5.1,
+            "edge": 1.3,
+            "score_raw": 0.131,
+            "factors": [
+              "H/A split: home=5.1 away=4.5",
+              "vs Bottom-10 defense (rank 29)",
+              "Minutes trending down (-3.8), high correlation (0.31)"
+            ]
+          },
+          {
+            "stat": "REB",
+            "line": 5.5,
+            "prediction": "OVER",
+            "confidence": 38.1,
+            "projected_value": 5.9,
+            "edge": 7.2,
+            "score_raw": 0.723,
+            "factors": [
+              "vs Bottom-10 defense (rank 29)"
+            ]
+          },
+          {
+            "stat": "FG3M",
+            "line": 1.0,
+            "prediction": "UNDER",
+            "confidence": 12.3,
+            "projected_value": 1.0,
+            "edge": -4.8,
+            "score_raw": -0.479,
+            "factors": [
+              "Recent avg 0.8 is below line 1.0",
+              "H/A split: home=1.0 away=0.7",
+              "vs Bottom-10 defense (rank 29)"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

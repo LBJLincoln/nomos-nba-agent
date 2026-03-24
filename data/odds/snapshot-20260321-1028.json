@@ -1,0 +1,526 @@
+{
+  "source": "bovada",
+  "timestamp": "20260321-1028",
+  "games": [
+    {
+      "id": "23440923",
+      "description": "Oklahoma City Thunder @ Washington Wizards",
+      "start_time": 1774126800000,
+      "source": "bovada",
+      "markets": {
+        "spread": [
+          {
+            "name": "Oklahoma City Thunder",
+            "american": "-105",
+            "decimal": "1.952381",
+            "handicap": "-21.0"
+          },
+          {
+            "name": "Washington Wizards",
+            "american": "-115",
+            "decimal": "1.870",
+            "handicap": "21.0"
+          }
+        ],
+        "moneyline": [
+          {
+            "name": "Oklahoma City Thunder",
+            "american": "-5000",
+            "decimal": "1.020",
+            "handicap": ""
+          },
+          {
+            "name": "Washington Wizards",
+            "american": "+1300",
+            "decimal": "14.00",
+            "handicap": ""
+          }
+        ],
+        "total": [
+          {
+            "name": "Over",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "230.5"
+          },
+          {
+            "name": "Under",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "230.5"
+          }
+        ]
+      },
+      "away_team": "Oklahoma City Thunder",
+      "home_team": "Washington Wizards"
+    },
+    {
+      "id": "23423964",
+      "description": "Cleveland Cavaliers @ New Orleans Pelicans",
+      "start_time": 1774134000000,
+      "source": "bovada",
+      "markets": {
+        "spread": [
+          {
+            "name": "Cleveland Cavaliers",
+            "american": "-115",
+            "decimal": "1.870",
+            "handicap": "-4.5"
+          },
+          {
+            "name": "New Orleans Pelicans",
+            "american": "-105",
+            "decimal": "1.952381",
+            "handicap": "4.5"
+          }
+        ],
+        "moneyline": [
+          {
+            "name": "Cleveland Cavaliers",
+            "american": "-195",
+            "decimal": "1.512821",
+            "handicap": ""
+          },
+          {
+            "name": "New Orleans Pelicans",
+            "american": "+165",
+            "decimal": "2.650",
+            "handicap": ""
+          }
+        ],
+        "total": [
+          {
+            "name": "Over",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "235.0"
+          },
+          {
+            "name": "Under",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "235.0"
+          }
+        ]
+      },
+      "away_team": "Cleveland Cavaliers",
+      "home_team": "New Orleans Pelicans"
+    },
+    {
+      "id": "23434529",
+      "description": "Los Angeles Lakers @ Orlando Magic",
+      "start_time": 1774134000000,
+      "source": "bovada",
+      "markets": {
+        "spread": [
+          {
+            "name": "Los Angeles Lakers",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "-3.0"
+          },
+          {
+            "name": "Orlando Magic",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "3.0"
+          }
+        ],
+        "moneyline": [
+          {
+            "name": "Los Angeles Lakers",
+            "american": "-150",
+            "decimal": "1.666667",
+            "handicap": ""
+          },
+          {
+            "name": "Orlando Magic",
+            "american": "+130",
+            "decimal": "2.300",
+            "handicap": ""
+          }
+        ],
+        "total": [
+          {
+            "name": "Over",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "232.5"
+          },
+          {
+            "name": "Under",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "232.5"
+          }
+        ]
+      },
+      "away_team": "Los Angeles Lakers",
+      "home_team": "Orlando Magic"
+    },
+    {
+      "id": "23440717",
+      "description": "Memphis Grizzlies @ Charlotte Hornets",
+      "start_time": 1774134000000,
+      "source": "bovada",
+      "markets": {
+        "spread": [
+          {
+            "name": "Memphis Grizzlies",
+            "american": "-105",
+            "decimal": "1.952381",
+            "handicap": "16.0"
+          },
+          {
+            "name": "Charlotte Hornets",
+            "american": "-115",
+            "decimal": "1.870",
+            "handicap": "-16.0"
+          }
+        ],
+        "moneyline": [
+          {
+            "name": "Memphis Grizzlies",
+            "american": "+800",
+            "decimal": "9.00",
+            "handicap": ""
+          },
+          {
+            "name": "Charlotte Hornets",
+            "american": "-1600",
+            "decimal": "1.0625",
+            "handicap": ""
+          }
+        ],
+        "total": [
+          {
+            "name": "Over",
+            "american": "-105",
+            "decimal": "1.952381",
+            "handicap": "235.5"
+          },
+          {
+            "name": "Under",
+            "american": "-115",
+            "decimal": "1.870",
+            "handicap": "235.5"
+          }
+        ]
+      },
+      "away_team": "Memphis Grizzlies",
+      "home_team": "Charlotte Hornets"
+    },
+    {
+      "id": "23440922",
+      "description": "Golden State Warriors @ Atlanta Hawks",
+      "start_time": 1774137600000,
+      "source": "bovada",
+      "markets": {
+        "spread": [
+          {
+            "name": "Golden State Warriors",
+            "american": "-105",
+            "decimal": "1.952381",
+            "handicap": "10.0"
+          },
+          {
+            "name": "Atlanta Hawks",
+            "american": "-115",
+            "decimal": "1.870",
+            "handicap": "-10.0"
+          }
+        ],
+        "moneyline": [
+          {
+            "name": "Golden State Warriors",
+            "american": "+345",
+            "decimal": "4.450",
+            "handicap": ""
+          },
+          {
+            "name": "Atlanta Hawks",
+            "american": "-470",
+            "decimal": "1.212766",
+            "handicap": ""
+          }
+        ],
+        "total": [
+          {
+            "name": "Over",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "230.0"
+          },
+          {
+            "name": "Under",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "230.0"
+          }
+        ]
+      },
+      "away_team": "Golden State Warriors",
+      "home_team": "Atlanta Hawks"
+    },
+    {
+      "id": "23440921",
+      "description": "Indiana Pacers @ San Antonio Spurs",
+      "start_time": 1774137600000,
+      "source": "bovada",
+      "markets": {
+        "spread": [
+          {
+            "name": "Indiana Pacers",
+            "american": "-115",
+            "decimal": "1.870",
+            "handicap": "19.0"
+          },
+          {
+            "name": "San Antonio Spurs",
+            "american": "-105",
+            "decimal": "1.952381",
+            "handicap": "-19.0"
+          }
+        ],
+        "moneyline": [
+          {
+            "name": "Indiana Pacers",
+            "american": "+1100",
+            "decimal": "12.00",
+            "handicap": ""
+          },
+          {
+            "name": "San Antonio Spurs",
+            "american": "-2800",
+            "decimal": "1.035714",
+            "handicap": ""
+          }
+        ],
+        "total": [
+          {
+            "name": "Over",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "233.5"
+          },
+          {
+            "name": "Under",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "233.5"
+          }
+        ]
+      },
+      "away_team": "Indiana Pacers",
+      "home_team": "San Antonio Spurs"
+    },
+    {
+      "id": "23440920",
+      "description": "Miami Heat @ Houston Rockets",
+      "start_time": 1774137600000,
+      "source": "bovada",
+      "markets": {
+        "spread": [
+          {
+            "name": "Miami Heat",
+            "american": "-105",
+            "decimal": "1.952381",
+            "handicap": "2.0"
+          },
+          {
+            "name": "Houston Rockets",
+            "american": "-115",
+            "decimal": "1.870",
+            "handicap": "-2.0"
+          }
+        ],
+        "moneyline": [
+          {
+            "name": "Miami Heat",
+            "american": "+110",
+            "decimal": "2.100",
+            "handicap": ""
+          },
+          {
+            "name": "Houston Rockets",
+            "american": "-130",
+            "decimal": "1.769230",
+            "handicap": ""
+          }
+        ],
+        "total": [
+          {
+            "name": "Over",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "229.5"
+          },
+          {
+            "name": "Under",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "229.5"
+          }
+        ]
+      },
+      "away_team": "Miami Heat",
+      "home_team": "Houston Rockets"
+    },
+    {
+      "id": "23439703",
+      "description": "L.A. Clippers @ Dallas Mavericks",
+      "start_time": 1774139400000,
+      "source": "bovada",
+      "markets": {
+        "spread": [
+          {
+            "name": "L.A. Clippers",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "-7.0"
+          },
+          {
+            "name": "Dallas Mavericks",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "7.0"
+          }
+        ],
+        "moneyline": [
+          {
+            "name": "L.A. Clippers",
+            "american": "-280",
+            "decimal": "1.357143",
+            "handicap": ""
+          },
+          {
+            "name": "Dallas Mavericks",
+            "american": "+230",
+            "decimal": "3.300",
+            "handicap": ""
+          }
+        ],
+        "total": [
+          {
+            "name": "Over",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "233.5"
+          },
+          {
+            "name": "Under",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "233.5"
+          }
+        ]
+      },
+      "away_team": "L.A. Clippers",
+      "home_team": "Dallas Mavericks"
+    },
+    {
+      "id": "23440919",
+      "description": "Philadelphia 76ers @ Utah Jazz",
+      "start_time": 1774143000000,
+      "source": "bovada",
+      "markets": {
+        "spread": [
+          {
+            "name": "Philadelphia 76ers",
+            "american": "-115",
+            "decimal": "1.870",
+            "handicap": "-6.0"
+          },
+          {
+            "name": "Utah Jazz",
+            "american": "-105",
+            "decimal": "1.952381",
+            "handicap": "6.0"
+          }
+        ],
+        "moneyline": [
+          {
+            "name": "Philadelphia 76ers",
+            "american": "-245",
+            "decimal": "1.408163",
+            "handicap": ""
+          },
+          {
+            "name": "Utah Jazz",
+            "american": "+205",
+            "decimal": "3.050",
+            "handicap": ""
+          }
+        ],
+        "total": [
+          {
+            "name": "Over",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "231.0"
+          },
+          {
+            "name": "Under",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "231.0"
+          }
+        ]
+      },
+      "away_team": "Philadelphia 76ers",
+      "home_team": "Utah Jazz"
+    },
+    {
+      "id": "23440716",
+      "description": "Milwaukee Bucks @ Phoenix Suns",
+      "start_time": 1774144800000,
+      "source": "bovada",
+      "markets": {
+        "spread": [
+          {
+            "name": "Milwaukee Bucks",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "11.5"
+          },
+          {
+            "name": "Phoenix Suns",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "-11.5"
+          }
+        ],
+        "moneyline": [
+          {
+            "name": "Milwaukee Bucks",
+            "american": "+430",
+            "decimal": "5.30",
+            "handicap": ""
+          },
+          {
+            "name": "Phoenix Suns",
+            "american": "-625",
+            "decimal": "1.160000",
+            "handicap": ""
+          }
+        ],
+        "total": [
+          {
+            "name": "Over",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "220.0"
+          },
+          {
+            "name": "Under",
+            "american": "-110",
+            "decimal": "1.909091",
+            "handicap": "220.0"
+          }
+        ]
+      },
+      "away_team": "Milwaukee Bucks",
+      "home_team": "Phoenix Suns"
+    }
+  ]
+}
