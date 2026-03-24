@@ -2,8 +2,6 @@
 """
 NBA Quant Feature Engine — 6000+ Features with Genetic Selection
 =================================================================
-
-ENGINE_VERSION: v3.0-35cat — canonical source, same as hf-space/features/engine.py
 Generates ~6000+ feature candidates across 35 categories, then uses
 genetic algorithm to select optimal 150-400 features.
 
