@@ -1,0 +1,94 @@
+ XGBoost device: cuda
+TabICLv2: loaded OK
+TabPFN-2.5: loaded OK
+
+Fold 1/5: train=1572, test=1576
+  random_forest       : brier=0.22659 (0.9s)
+  extra_trees         : brier=0.22586 (0.4s)
+/usr/local/lib/python3.12/dist-packages/xgboost/core.py:751: UserWarning: [16:18:52] WARNING: /__w/xgboost/xgboost/src/common/error_msg.cc:62: Falling back to prediction using DMatrix due to mismatched devices. This might lead to higher memory usage and slower performance. XGBoost is running on: cuda:0, while the input data is on: cpu.
+Potential solutions:
+- Use a data structure that matches the device ordinal in the booster.
+- Set the device for booster before call to inplace_predict.
+
+This warning will only be shown once.
+
+  return func(**kwargs)
+  xgboost             : brier=0.23024 (1.1s)
+/usr/local/lib/python3.12/dist-packages/huggingface_hub/utils/_auth.py:94: UserWarning: 
+The secret `HF_TOKEN` does not exist in your Colab secrets.
+To authenticate with the Hugging Face Hub, create a token in your settings tab (https://huggingface.co/settings/tokens), set it as secret in your Google Colab and restart your session.
+You will be able to reuse this secret in all of your notebooks.
+Please note that authentication is recommended but still optional to access public models or datasets.
+  warnings.warn(
+INFO: You are downloading 'tabicl-classifier-v2-20260212.ckpt', the latest best-performing version, used in our TabICLv2 paper.
+
+Checkpoint 'tabicl-classifier-v2-20260212.ckpt' not cached.
+ Downloading from Hugging Face Hub (jingang/TabICL).
+
+tabicl-classifier-v2-20260212.ckpt: 100% 110M/110M [00:01<00:00, 165MB/s]  tabicl_v2           : brier=0.22265 (5.5s)
+  tabpfn_2.5          : FAILED (Failed to download model to /root/.cache/tabpfn/tabpfn-v2.5-classifier-v2.5_default.ckpt!
+
+For offline usage, please download the model manually from:
+https://huggingface.co/Prior-Labs/TabPFN-v2-clf/resolve/main/tabpfn-v2.5-classifier-v2.5_default.ckpt
+
+Then place it at: /root/.cache/tabpfn/tabpfn-v2.5-classifier-v2.5_default.ckpt)
+
+Fold 2/5: train=3148, test=1576
+  random_forest       : brier=0.23247 (2.2s)
+  extra_trees         : brier=0.23323 (0.5s)
+  xgboost             : brier=0.23839 (0.7s)
+  tabicl_v2           : brier=0.23298 (1.9s)
+  tabpfn_2.5          : FAILED (Failed to download model to /root/.cache/tabpfn/tabpfn-v2.5-classifier-v2.5_default.ckpt!
+
+For offline usage, please download the model manually from:
+https://huggingface.co/Prior-Labs/TabPFN-v2-clf/resolve/main/tabpfn-v2.5-classifier-v2.5_default.ckpt
+
+Then place it at: /root/.cache/tabpfn/tabpfn-v2.5-classifier-v2.5_default.ckpt)
+
+Fold 3/5: train=4724, test=1576
+  random_forest       : brier=0.22765 (1.9s)
+  extra_trees         : brier=0.22890 (0.5s)
+  xgboost             : brier=0.23190 (0.7s)
+  tabicl_v2           : brier=0.22709 (2.6s)
+  tabpfn_2.5          : FAILED (Failed to download model to /root/.cache/tabpfn/tabpfn-v2.5-classifier-v2.5_default.ckpt!
+
+For offline usage, please download the model manually from:
+https://huggingface.co/Prior-Labs/TabPFN-v2-clf/resolve/main/tabpfn-v2.5-classifier-v2.5_default.ckpt
+
+Then place it at: /root/.cache/tabpfn/tabpfn-v2.5-classifier-v2.5_default.ckpt)
+
+Fold 4/5: train=6300, test=1576
+  random_forest       : brier=0.21429 (3.7s)
+  extra_trees         : brier=0.21848 (0.6s)
+  xgboost             : brier=0.21697 (0.8s)
+  tabicl_v2           : brier=0.21222 (3.3s)
+  tabpfn_2.5          : FAILED (Failed to download model to /root/.cache/tabpfn/tabpfn-v2.5-classifier-v2.5_default.ckpt!
+
+For offline usage, please download the model manually from:
+https://huggingface.co/Prior-Labs/TabPFN-v2-clf/resolve/main/tabpfn-v2.5-classifier-v2.5_default.ckpt
+
+Then place it at: /root/.cache/tabpfn/tabpfn-v2.5-classifier-v2.5_default.ckpt)
+
+Fold 5/5: train=7876, test=1576
+  random_forest       : brier=0.22134 (3.0s)
+  extra_trees         : brier=0.22363 (0.7s)
+  xgboost             : brier=0.22225 (0.8s)
+  tabicl_v2           : brier=0.22060 (4.3s)
+  tabpfn_2.5          : FAILED (Failed to download model to /root/.cache/tabpfn/tabpfn-v2.5-classifier-v2.5_default.ckpt!
+
+For offline usage, please download the model manually from:
+https://huggingface.co/Prior-Labs/TabPFN-v2-clf/resolve/main/tabpfn-v2.5-classifier-v2.5_default.ckpt
+
+Then place it at: /root/.cache/tabpfn/tabpfn-v2.5-classifier-v2.5_default.ckpt)
+
+======================================================================
+FINAL RESULTS (walk-forward, lower = better)
+======================================================================
+  tabicl_v2           : 0.22311 +/- 0.00690  (3.5s/fold)
+  random_forest       : 0.22447 +/- 0.00620  (2.3s/fold)
+  extra_trees         : 0.22602 +/- 0.00496  (0.5s/fold)
+  xgboost             : 0.22795 +/- 0.00752  (0.8s/fold)
+  tabpfn_2.5          : 0.30000 +/- 0.00000  (0.0s/fold)
+
+TabICLv2 vs best tree: -0.00136 (BETTER)
+TabPFN-2.5 vs best tree: +0.07553 (WORSE)
