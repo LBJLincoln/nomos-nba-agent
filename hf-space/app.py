@@ -602,6 +602,9 @@ NEURAL_NET_TYPES = {"lstm", "transformer", "tabnet", "ft_transformer", "deep_ens
 # Fast model types (for islands that prioritize speed)
 FAST_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "random_forest", "extra_trees"]
 
+# CPU-viable model types (all tree-based + stacking, excludes neural nets)
+CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"]
+
 
 # ── Custom Brier objective for XGBoost ──
 def _brier_objective(y_true, y_pred):
@@ -627,7 +630,7 @@ class Individual:
             "min_child_weight": random.randint(1, 15),
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
-            "model_type": model_type or random.choice(ALL_MODEL_TYPES),
+            "model_type": model_type or random.choice(CPU_MODEL_TYPES if not _HAS_GPU else ALL_MODEL_TYPES),
             "calibration": random.choices(["none", "sigmoid", "venn_abers"], weights=[60, 20, 20], k=1)[0],
             # Neural net hyperparams (used only for NN model types)
             "nn_hidden_dims": random.choice([64, 128, 256]),
@@ -692,7 +695,7 @@ class Individual:
         if random.random() < 0.15: self.hyperparams["n_estimators"] = max(50, min(200, self.hyperparams["n_estimators"] + random.randint(-50, 50)))
         if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(8, self.hyperparams["max_depth"] + random.randint(-2, 2)))
         if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.3, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
-        if random.random() < 0.08: self.hyperparams["model_type"] = random.choice(ALL_MODEL_TYPES)
+        if random.random() < 0.08: self.hyperparams["model_type"] = random.choice(CPU_MODEL_TYPES if not _HAS_GPU else ALL_MODEL_TYPES)
         if random.random() < 0.05: self.hyperparams["calibration"] = random.choices(["none", "sigmoid", "venn_abers"], weights=[60, 20, 20], k=1)[0]
         # Neural net hyperparams mutation
         if random.random() < 0.10: self.hyperparams["nn_hidden_dims"] = random.choice([64, 128, 256, 512])
@@ -821,13 +824,24 @@ class IslandModel:
         self.islands = []  # list of lists of Individuals
 
         # Each island can specialize — assign model type biases
-        self.island_specializations = [
-            FAST_MODEL_TYPES,                                          # Island 0: fast tree models
-            ["catboost", "stacking", "extra_trees"],                    # Island 1: ensemble specialists
-            ["mlp", "tabnet", "ft_transformer"],                       # Island 2: neural nets
-            ["lstm", "transformer", "deep_ensemble"],                  # Island 3: deep learning
-            ALL_MODEL_TYPES,                                           # Island 4: unrestricted (melting pot)
-        ]
+        # On CPU (all HF Spaces), neural models are skipped (brier=0.28 penalty).
+        # Use all 5 islands for productive CPU tree-based exploration.
+        if _HAS_GPU:
+            self.island_specializations = [
+                FAST_MODEL_TYPES,                                      # Island 0: fast tree models
+                ["catboost", "stacking", "extra_trees"],               # Island 1: ensemble specialists
+                ["mlp", "tabnet", "ft_transformer"],                   # Island 2: neural nets
+                ["lstm", "transformer", "deep_ensemble"],              # Island 3: deep learning
+                ALL_MODEL_TYPES,                                       # Island 4: unrestricted
+            ]
+        else:
+            self.island_specializations = [
+                ["extra_trees", "random_forest"],                      # Island 0: tree specialists (best models)
+                ["xgboost", "xgboost_brier"],                          # Island 1: XGBoost variants
+                ["lightgbm", "catboost"],                              # Island 2: gradient boosters
+                ["catboost", "stacking", "extra_trees"],               # Island 3: ensemble mix
+                FAST_MODEL_TYPES,                                      # Island 4: unrestricted fast
+            ]
 
     def initialize(self):
         """Create initial population across all islands."""
@@ -970,9 +984,10 @@ class IslandModel:
                 ind.hyperparams.setdefault("nn_dropout", 0.3)
                 ind.hyperparams.setdefault("nn_epochs", 50)
                 ind.hyperparams.setdefault("nn_batch_size", 64)
-                # Ensure model_type is valid
-                if ind.hyperparams.get("model_type") not in ALL_MODEL_TYPES:
-                    ind.hyperparams["model_type"] = random.choice(ALL_MODEL_TYPES)
+                # Ensure model_type is valid (on CPU, force tree-based models)
+                _valid_types = CPU_MODEL_TYPES if not _HAS_GPU else ALL_MODEL_TYPES
+                if ind.hyperparams.get("model_type") not in _valid_types:
+                    ind.hyperparams["model_type"] = random.choice(_valid_types)
                 island.append(ind)
             im.islands.append(island)
         return im
@@ -1859,8 +1874,9 @@ def evolution_loop():
                     ind.hyperparams.setdefault("nn_dropout", 0.3)
                     ind.hyperparams.setdefault("nn_epochs", 50)
                     ind.hyperparams.setdefault("nn_batch_size", 64)
-                    if ind.hyperparams.get("model_type") not in ALL_MODEL_TYPES:
-                        ind.hyperparams["model_type"] = random.choice(ALL_MODEL_TYPES)
+                    _valid_types = CPU_MODEL_TYPES if not _HAS_GPU else ALL_MODEL_TYPES
+                    if ind.hyperparams.get("model_type") not in _valid_types:
+                        ind.hyperparams["model_type"] = random.choice(_valid_types)
                     population.append(ind)
 
                 # Convert flat population to island model
