@@ -602,8 +602,9 @@ NEURAL_NET_TYPES = {"lstm", "transformer", "tabnet", "ft_transformer", "deep_ens
 # Fast model types (for islands that prioritize speed)
 FAST_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "random_forest", "extra_trees"]
 
-# CPU-viable model types (all tree-based + stacking, excludes neural nets)
-CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees", "stacking"]
+# CPU-viable model types (tree-based only, excludes neural nets and stacking)
+# Stacking removed: 200 gens, best brier=0.24733 (10% worse than trees), too slow on CPU
+CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees"]
 
 
 # ── Custom Brier objective for XGBoost ──
@@ -839,7 +840,7 @@ class IslandModel:
                 ["extra_trees", "random_forest"],                      # Island 0: tree specialists (best models)
                 ["xgboost", "xgboost_brier"],                          # Island 1: XGBoost variants
                 ["lightgbm", "catboost"],                              # Island 2: gradient boosters
-                ["catboost", "stacking", "extra_trees"],               # Island 3: ensemble mix
+                ["catboost", "extra_trees", "random_forest"],             # Island 3: diverse trees
                 FAST_MODEL_TYPES,                                      # Island 4: unrestricted fast
             ]
 
