@@ -628,7 +628,7 @@ class Individual:
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
             "model_type": model_type or random.choice(ALL_MODEL_TYPES),
-            "calibration": random.choice(["isotonic", "sigmoid", "none"]),
+            "calibration": random.choices(["none", "sigmoid", "venn_abers"], weights=[60, 20, 20], k=1)[0],
             # Neural net hyperparams (used only for NN model types)
             "nn_hidden_dims": random.choice([64, 128, 256]),
             "nn_n_layers": random.randint(2, 4),
@@ -693,7 +693,7 @@ class Individual:
         if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(8, self.hyperparams["max_depth"] + random.randint(-2, 2)))
         if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.3, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
         if random.random() < 0.08: self.hyperparams["model_type"] = random.choice(ALL_MODEL_TYPES)
-        if random.random() < 0.05: self.hyperparams["calibration"] = random.choice(["isotonic", "sigmoid", "none"])
+        if random.random() < 0.05: self.hyperparams["calibration"] = random.choices(["none", "sigmoid", "venn_abers"], weights=[60, 20, 20], k=1)[0]
         # Neural net hyperparams mutation
         if random.random() < 0.10: self.hyperparams["nn_hidden_dims"] = random.choice([64, 128, 256, 512])
         if random.random() < 0.10: self.hyperparams["nn_n_layers"] = max(1, min(6, self.hyperparams.get("nn_n_layers", 2) + random.randint(-1, 1)))
@@ -1216,11 +1216,22 @@ def evaluate(ind, X, y, n_splits=2, fast=True, eval_counter=[0]):
                 # Purge last PURGE_GAP games from training to avoid temporal leakage
                 ti_safe = ti[:-PURGE_GAP] if len(ti) > PURGE_GAP + 50 else ti
                 m = clone(model)
-                # Force sigmoid calibration (Platt scaling) — isotonic overfits on small folds
-                cal_method = hp_eval["calibration"]
+                # Calibration: none (default, best empirically), sigmoid (Platt), or venn_abers (MAPIE)
+                cal_method = hp_eval.get("calibration", "none")
                 if cal_method == "isotonic":
-                    cal_method = "sigmoid"  # Isotonic needs >500 samples, sigmoid is more robust
-                if cal_method != "none":
+                    cal_method = "none"  # Isotonic empirically hurts Brier (+0.003 to +0.007)
+                if cal_method == "venn_abers":
+                    try:
+                        from mapie.classification import MapieClassifier
+                        m_inner = clone(m)
+                        m_inner.fit(X_sub[ti_safe], y_eval[ti_safe])
+                        mapie = MapieClassifier(m_inner, method="lac", cv="prefit")
+                        mapie.fit(X_sub[ti_safe[-200:]], y_eval[ti_safe[-200:]])
+                        m = mapie  # MapieClassifier wraps fitted model
+                        cal_method = "none"  # Skip CalibratedClassifierCV below
+                    except (ImportError, Exception):
+                        cal_method = "none"  # Fallback if MAPIE not installed
+                if cal_method == "sigmoid":
                     m = CalibratedClassifierCV(m, method=cal_method, cv=3)
                 m.fit(X_sub[ti_safe], y_eval[ti_safe])
                 p = m.predict_proba(X_sub[vi])[:, 1]
