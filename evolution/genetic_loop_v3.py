@@ -35,13 +35,17 @@ from typing import Dict, List, Tuple, Optional
 
 warnings.filterwarnings("ignore")
 
-# All model types the GA can evolve (13 total)
-ALL_MODEL_TYPES = [
-    "xgboost", "lightgbm", "catboost", "random_forest", "extra_trees",
+# All model types the GA can evolve
+CPU_MODEL_TYPES = [
+    "xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees",
+]
+GPU_MODEL_TYPES = CPU_MODEL_TYPES + ["tabicl", "tabpfn"]
+ALL_MODEL_TYPES = GPU_MODEL_TYPES + [
     "stacking", "mlp", "lstm", "transformer", "tabnet",
     "ft_transformer", "deep_ensemble", "autogluon",
 ]
 NEURAL_NET_TYPES = {"lstm", "transformer", "tabnet", "ft_transformer", "deep_ensemble", "mlp", "autogluon"}
+ICL_MODEL_TYPES = {"tabicl", "tabpfn"}  # In-context learning models (GPU, no hyperparams to tune)
 
 # ── Run Logger (best-effort) ──
 try:
@@ -845,7 +849,7 @@ class Individual:
             "min_child_weight": random.randint(1, 15),
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
-            "model_type": model_type or random.choice(ALL_MODEL_TYPES),
+            "model_type": model_type or random.choice(GPU_MODEL_TYPES),
             "calibration": random.choice(["isotonic", "sigmoid", "none"]),
             # Neural net hyperparams
             "nn_hidden_dims": random.choice([64, 128, 256]),
@@ -950,7 +954,7 @@ class Individual:
             self.hyperparams["learning_rate"] *= 10 ** random.uniform(-0.3, 0.3)
             self.hyperparams["learning_rate"] = max(0.001, min(0.5, self.hyperparams["learning_rate"]))
         if random.random() < 0.08:
-            self.hyperparams["model_type"] = random.choice(ALL_MODEL_TYPES)
+            self.hyperparams["model_type"] = random.choice(GPU_MODEL_TYPES)
         if random.random() < 0.05:
             self.hyperparams["calibration"] = random.choice(["isotonic", "sigmoid", "none"])
         # Neural net hyperparams
@@ -1003,33 +1007,36 @@ def evaluate_individual(ind, X, y, n_splits=5, use_gpu=False, _eval_counter=[0])
         ind.fitness["composite"] = -1.0
         return
 
+    is_icl = hp["model_type"] in ICL_MODEL_TYPES
     briers, rois, all_probs, all_y = [], [], [], []
 
     for ti, vi in tscv.split(X_sub):
         try:
-            # ── Platt Scaling: split train fold 80/20 → proper + calibration ──
-            cal_split = max(1, int(len(ti) * 0.20))
-            ti_proper = ti[:-cal_split]   # first 80% (chronological order preserved)
-            ti_cal    = ti[-cal_split:]   # last 20% as held-out calibration set
+            # ── ICL models (TabICLv2, TabPFN): no clone via get_params, no calibration wrapper ──
+            if is_icl:
+                m = _build_model(hp, use_gpu)
+                m.fit(X_sub[ti], y[ti])
+                probs = m.predict_proba(X_sub[vi])[:, 1]
+            else:
+                # ── Platt Scaling: split train fold 80/20 → proper + calibration ──
+                cal_split = max(1, int(len(ti) * 0.20))
+                ti_proper = ti[:-cal_split]
+                ti_cal    = ti[-cal_split:]
 
-            m = type(model)(**model.get_params())
-            if hp["calibration"] != "none":
-                m = CalibratedClassifierCV(m, method=hp["calibration"], cv=3)
+                m = type(model)(**model.get_params())
+                if hp["calibration"] != "none":
+                    m = CalibratedClassifierCV(m, method=hp["calibration"], cv=3)
 
-            # Train on proper subset only
-            m.fit(X_sub[ti_proper], y[ti_proper])
+                m.fit(X_sub[ti_proper], y[ti_proper])
 
-            # Get raw probabilities on calibration set
-            raw_cal = m.predict_proba(X_sub[ti_cal])[:, 1].reshape(-1, 1)
-            y_cal   = y[ti_cal]
+                raw_cal = m.predict_proba(X_sub[ti_cal])[:, 1].reshape(-1, 1)
+                y_cal   = y[ti_cal]
 
-            # Fit logistic regression calibrator (Platt scaling)
-            platt = LogisticRegression(C=1.0, solver="lbfgs", max_iter=200, random_state=42)
-            platt.fit(raw_cal, y_cal)
+                platt = LogisticRegression(C=1.0, solver="lbfgs", max_iter=200, random_state=42)
+                platt.fit(raw_cal, y_cal)
 
-            # Apply calibration to test set predictions
-            raw_test = m.predict_proba(X_sub[vi])[:, 1].reshape(-1, 1)
-            probs = platt.predict_proba(raw_test)[:, 1]
+                raw_test = m.predict_proba(X_sub[vi])[:, 1].reshape(-1, 1)
+                probs = platt.predict_proba(raw_test)[:, 1]
 
             briers.append(brier_score_loss(y[vi], probs))
             rois.append(_simulate_betting(probs, y[vi]))
@@ -1122,6 +1129,35 @@ def _build_model(hp, use_gpu=False):
                 min_samples_leaf=max(1, hp["min_child_weight"]),
                 random_state=42, n_jobs=-1,
             )
+        elif mt == "xgboost_brier":
+            import xgboost as xgb
+            def _brier_objective(y_true, y_pred):
+                grad = 2.0 * (y_pred - y_true)
+                hess = np.full_like(grad, 2.0)
+                return grad, hess
+            params = {
+                "n_estimators": hp["n_estimators"],
+                "max_depth": hp["max_depth"],
+                "learning_rate": hp["learning_rate"],
+                "subsample": hp["subsample"],
+                "colsample_bytree": hp["colsample_bytree"],
+                "min_child_weight": hp["min_child_weight"],
+                "reg_alpha": hp["reg_alpha"],
+                "reg_lambda": hp["reg_lambda"],
+                "objective": _brier_objective,
+                "random_state": 42,
+                "n_jobs": -1,
+                "tree_method": "hist",
+            }
+            if use_gpu:
+                params["device"] = "cuda"
+            return xgb.XGBClassifier(**params)
+        elif mt == "tabicl":
+            from tabicl import TabICLClassifier
+            return TabICLClassifier()
+        elif mt == "tabpfn":
+            from tabpfn import TabPFNClassifier
+            return TabPFNClassifier(device="cuda" if use_gpu else "cpu")
         elif mt == "stacking":
             from sklearn.ensemble import StackingClassifier, RandomForestClassifier, GradientBoostingClassifier
             from sklearn.linear_model import LogisticRegression
