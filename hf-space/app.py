@@ -2028,16 +2028,18 @@ def evolution_loop():
                 stagnation = max(0, stagnation - 1)
 
             # ── Adaptive mutation: decay over time, boost on stagnation ──
-            # Base decay: starts at 0.15, decays toward 0.05
+            # Base decay: starts at BASE_MUT, decays toward MUT_FLOOR
+            # Data analysis: 0.10-0.15 has 80% improvement rate vs 18% at >=0.20
+            # So caps are set to keep mutation in the productive range
             mutation_rate *= MUT_DECAY_RATE
             mutation_rate = max(MUT_FLOOR, mutation_rate)
-            # Stagnation boost (overrides decay temporarily)
+            # Stagnation boost (capped at 0.15 — data shows >=0.20 is destructive)
             if stagnation >= 10:
-                mutation_rate = min(0.25, mutation_rate * 1.8)
+                mutation_rate = min(0.15, mutation_rate * 1.5)
             elif stagnation >= 7:
-                mutation_rate = min(0.20, mutation_rate * 1.5)
+                mutation_rate = min(0.13, mutation_rate * 1.3)
             elif stagnation >= 3:
-                mutation_rate = min(0.15, mutation_rate * 1.2)
+                mutation_rate = min(0.12, mutation_rate * 1.15)
 
             # ── Adaptive tournament size ──
             tourney_size = _adaptive_tournament_size(population, TOURNAMENT_SIZE)
@@ -2360,7 +2362,7 @@ def evolution_loop():
                 # Changing island count is complex — queue for next restart
                 log(f"n_islands change requested ({params['n_islands']}) — will take effect on restart")
             if "mutation_rate" in params:
-                mutation_rate = min(float(params["mutation_rate"]), 0.25)
+                mutation_rate = min(float(params["mutation_rate"]), 0.15)
                 log(f"Mutation rate set to {mutation_rate}")
             if "target_features" in params:
                 TARGET_FEATURES = min(int(params["target_features"]), 150)
@@ -2403,7 +2405,7 @@ def evolution_loop():
                     island_model.islands[isl_idx] = isl
                 log(f"REMOTE DIVERSIFY: 1/3 of each island replaced")
             elif cmd == "boost_mutation":
-                mutation_rate = min(0.25, mutation_rate * 2)
+                mutation_rate = min(0.15, mutation_rate * 1.5)
                 log(f"REMOTE: mutation boosted to {mutation_rate}")
         remote_config["commands"] = []
 
