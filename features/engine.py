@@ -2223,6 +2223,16 @@ class NBAFeatureEngine:
             "dense_sched_x_margin",                   # schedule_density × margin_diff
         ])
 
+        # 37. MOVDA ELO FEATURES (6 features) — arXiv:2506.00348
+        # Margin-of-Victory Differential Analysis: R' = R + K*(S-E) + λ*(MOV-E_MOV)
+        for prefix in ["h", "a"]:
+            names.append(f"{prefix}_movda_rating")          # MOVDA Elo rating (normalized)
+            names.append(f"{prefix}_mov_surprise_ewm")      # EWMA of MOV surprise signal
+        names.extend([
+            "movda_diff",                                    # MOVDA rating differential
+            "movda_win_prob",                                # MOVDA-derived win probability
+        ])
+
         self.feature_names = names
 
     def build(self, games, market_data=None, referee_data=None, player_data=None, quarter_data=None):
@@ -2254,6 +2264,13 @@ class NBAFeatureEngine:
         team_elo_history = defaultdict(list)               # team → [elo_after_each_game]
         team_home_margin_sum = defaultdict(float)          # For home court advantage
         team_home_games_count = defaultdict(int)
+        # ── Category 37: MOVDA ELO state trackers ──
+        team_movda = defaultdict(lambda: 1500.0)           # MOVDA Elo rating
+        mov_surprise_ewm = defaultdict(float)               # Per-team EWMA of MOV surprise
+        _MOVDA_K = 20.0; _MOVDA_C = 400.0; _MOVDA_LAMBDA = 0.3
+        _MOVDA_ALPHA = 19.2511; _MOVDA_BETA = 0.002342
+        _MOVDA_GAMMA = 648.0334; _MOVDA_DELTA = -645.8717
+        _MOVDA_EWM_ALPHA = 0.3
         # ── Category 18: Season-level trackers (precomputed per game via records) ──
         # These are derived from team_results on-the-fly (no extra state needed)
 
@@ -2303,6 +2320,10 @@ class NBAFeatureEngine:
                     team_elo_margin, team_elo_offense, team_elo_defense,
                     team_elo_recency, team_elo_history,
                     team_home_margin_sum, team_home_games_count)
+                # Update MOVDA ELO (Cat 37)
+                self._update_movda(home, away, hs, as_, team_movda, mov_surprise_ewm,
+                                   _MOVDA_K, _MOVDA_C, _MOVDA_LAMBDA, _MOVDA_ALPHA,
+                                   _MOVDA_BETA, _MOVDA_GAMMA, _MOVDA_DELTA, _MOVDA_EWM_ALPHA)
                 continue
 
             # ── Build feature vector ──
@@ -5011,6 +5032,15 @@ class NBAFeatureEngine:
                 (self._games_in_window(hr_, gd, 7) - self._games_in_window(ar_, gd, 7)) * (_h_margin5 - _a_margin5),
             ])
 
+            # ── 37. MOVDA ELO FEATURES (6 features) ──
+            _movda_dr = team_movda[home] - team_movda[away]
+            _movda_wp = 1.0 / (1.0 + 10.0 ** (-_movda_dr / _MOVDA_C))
+            for _mt, _mk in [(home, home), (away, away)]:
+                row.append((team_movda[_mk] - 1500.0) / 400.0)     # movda_rating (normalized)
+                row.append(mov_surprise_ewm[_mk] / 20.0)           # mov_surprise_ewm (normalized)
+            row.append(_movda_dr / 400.0)                           # movda_diff
+            row.append(_movda_wp)                                    # movda_win_prob
+
             X.append(row)
             y.append(1 if hs > as_ else 0)
 
@@ -5025,6 +5055,10 @@ class NBAFeatureEngine:
                 team_elo_margin, team_elo_offense, team_elo_defense,
                 team_elo_recency, team_elo_history,
                 team_home_margin_sum, team_home_games_count)
+            # Update MOVDA ELO (Cat 37)
+            self._update_movda(home, away, hs, as_, team_movda, mov_surprise_ewm,
+                               _MOVDA_K, _MOVDA_C, _MOVDA_LAMBDA, _MOVDA_ALPHA,
+                               _MOVDA_BETA, _MOVDA_GAMMA, _MOVDA_DELTA, _MOVDA_EWM_ALPHA)
 
         X = np.nan_to_num(np.array(X, dtype=np.float64))
         y = np.array(y, dtype=np.int32)
@@ -5576,6 +5610,21 @@ class NBAFeatureEngine:
         # ── Home court advantage tracking ──
         team_home_margin_sum[home] += margin
         team_home_games_count[home] += 1
+
+    def _update_movda(self, home, away, hs, as_, team_movda, mov_surprise_ewm,
+                      K, C, lam, alpha, beta, gamma, delta_param, ewm_alpha):
+        """Update MOVDA Elo ratings (Cat 37). arXiv:2506.00348."""
+        margin = hs - as_
+        result = 1.0 if margin > 0 else (0.0 if margin < 0 else 0.5)
+        delta_r = team_movda[home] - team_movda[away]
+        e_a = 1.0 / (1.0 + 10.0 ** (-delta_r / C))
+        e_mov = alpha * np.tanh(beta * delta_r) + gamma + delta_param
+        delta_mov = float(margin) - e_mov
+        movda_update = K * (result - e_a) + lam * delta_mov
+        team_movda[home] += movda_update
+        team_movda[away] -= movda_update
+        mov_surprise_ewm[home] = ewm_alpha * delta_mov + (1 - ewm_alpha) * mov_surprise_ewm[home]
+        mov_surprise_ewm[away] = ewm_alpha * (-delta_mov) + (1 - ewm_alpha) * mov_surprise_ewm[away]
 
     def _parse_stats(self, stats, pts, opp_pts, is_home=True):
         """Extract stats from game data. Uses REAL box score when available, estimates otherwise."""
