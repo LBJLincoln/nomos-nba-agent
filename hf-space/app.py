@@ -619,6 +619,8 @@ def _brier_objective(y_true, y_pred):
 
 
 class Individual:
+    MAX_FEATURES = 200  # Hard cap — individuals above this waste compute
+
     def __init__(self, n_features, target=100, model_type=None):
         prob = target / max(n_features, 1)
         self.features = [1 if random.random() < prob else 0 for _ in range(n_features)]
@@ -645,6 +647,15 @@ class Individual:
         self.crowding_dist = 0.0  # NSGA-II crowding distance
         self.island_id = -1       # Which island this individual belongs to
         self.generation = 0
+        self._enforce_feature_cap()
+
+    def _enforce_feature_cap(self):
+        """If feature count exceeds MAX_FEATURES, randomly drop excess features."""
+        selected = [i for i, b in enumerate(self.features) if b]
+        if len(selected) > self.MAX_FEATURES:
+            to_drop = random.sample(selected, len(selected) - self.MAX_FEATURES)
+            for idx in to_drop:
+                self.features[idx] = 0
         self.n_features = sum(self.features)
 
     def selected_indices(self):
@@ -676,7 +687,7 @@ class Individual:
         child.crowding_dist = 0.0
         child.island_id = random.choice([p1.island_id, p2.island_id]) if hasattr(p1, 'island_id') else -1
         child.generation = max(p1.generation, p2.generation) + 1
-        child.n_features = sum(child.features)
+        child._enforce_feature_cap()
         return child
 
     def mutate(self, rate=0.03, feature_importance=None):
@@ -703,7 +714,7 @@ class Individual:
         if random.random() < 0.10: self.hyperparams["nn_n_layers"] = max(1, min(6, self.hyperparams.get("nn_n_layers", 2) + random.randint(-1, 1)))
         if random.random() < 0.10: self.hyperparams["nn_dropout"] = max(0.0, min(0.7, self.hyperparams.get("nn_dropout", 0.3) + random.uniform(-0.1, 0.1)))
         if random.random() < 0.10: self.hyperparams["nn_epochs"] = max(10, min(200, self.hyperparams.get("nn_epochs", 50) + random.randint(-20, 20)))
-        self.n_features = sum(self.features)
+        self._enforce_feature_cap()
 
 
 # ═══════════════════════════════════════════════════════

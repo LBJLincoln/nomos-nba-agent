@@ -860,7 +860,7 @@ class Individual:
         self.island_id = -1
         self.generation = 0
         self.birth_generation = 0
-        self.n_features = sum(self.features)
+        self._enforce_feature_cap()
 
     def selected_indices(self):
         return [i for i, b in enumerate(self.features) if b]
@@ -919,14 +919,29 @@ class Individual:
         child.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "calibration_error": 1.0, "composite": 0.0}
         child.generation = max(p1.generation, p2.generation) + 1
         child.birth_generation = child.generation
-        child.n_features = sum(child.features)
+        child.pareto_rank = 999
+        child.crowding_dist = 0.0
+        child.island_id = -1
+        child._enforce_feature_cap()
         return child
+
+    MAX_FEATURES = 200  # Hard cap — individuals above this waste compute
+
+    def _enforce_feature_cap(self):
+        """If feature count exceeds MAX_FEATURES, randomly drop excess features."""
+        selected = [i for i, b in enumerate(self.features) if b]
+        if len(selected) > self.MAX_FEATURES:
+            to_drop = random.sample(selected, len(selected) - self.MAX_FEATURES)
+            for idx in to_drop:
+                self.features[idx] = 0
+        self.n_features = sum(self.features)
 
     def mutate(self, rate=0.03):
         """Mutate features and hyperparameters."""
         for i in range(len(self.features)):
             if random.random() < rate:
                 self.features[i] = 1 - self.features[i]
+        self._enforce_feature_cap()
         if random.random() < 0.15:
             self.hyperparams["n_estimators"] = max(50, self.hyperparams["n_estimators"] + random.randint(-100, 100))
         if random.random() < 0.15:
@@ -945,7 +960,6 @@ class Individual:
             self.hyperparams["nn_n_layers"] = max(1, min(6, self.hyperparams.get("nn_n_layers", 2) + random.randint(-1, 1)))
         if random.random() < 0.10:
             self.hyperparams["nn_dropout"] = max(0.0, min(0.7, self.hyperparams.get("nn_dropout", 0.3) + random.uniform(-0.1, 0.1)))
-        self.n_features = sum(self.features)
 
 
 # ═══════════════════════════════════════════════════════════
@@ -975,7 +989,7 @@ def evaluate_individual(ind, X, y, n_splits=5, use_gpu=False, _eval_counter=[0])
     from sklearn.linear_model import LogisticRegression
 
     selected = ind.selected_indices()
-    if len(selected) < 15 or len(selected) > 250:
+    if len(selected) < 15 or len(selected) > Individual.MAX_FEATURES:
         ind.fitness = {"brier": 0.30, "roi": -0.10, "sharpe": -1.0, "calibration": 0.15, "calibration_error": 0.15, "composite": -1.0}
         return
 
@@ -1449,15 +1463,15 @@ class GeneticEvolutionEngine:
         diversity_mutation = 0.03 + 0.07 * max(0.0, 1.0 - self._hamming_diversity / 0.25)
         # Stagnation boosts applied on top (capped at 0.25)
         if self.stagnation_counter >= 10:
-            self.mutation_rate = min(0.25, diversity_mutation * 1.8)
+            self.mutation_rate = min(0.15, diversity_mutation * 1.8)
             print(f"  [STAGNATION-CRITICAL] {self.stagnation_counter} gens — "
                   f"mutation rate -> {self.mutation_rate:.3f} (diversity={self._hamming_diversity:.3f})")
         elif self.stagnation_counter >= 7:
-            self.mutation_rate = min(0.20, diversity_mutation * 1.5)
+            self.mutation_rate = min(0.15, diversity_mutation * 1.5)
             print(f"  [STAGNATION] {self.stagnation_counter} gens — "
                   f"mutation rate -> {self.mutation_rate:.3f} (diversity={self._hamming_diversity:.3f})")
         elif self.stagnation_counter >= 3:
-            self.mutation_rate = min(0.15, diversity_mutation * 1.2)
+            self.mutation_rate = min(0.12, diversity_mutation * 1.2)
         else:
             # Normal regime: formula drives the rate directly
             self.mutation_rate = diversity_mutation

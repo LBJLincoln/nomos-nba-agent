@@ -500,28 +500,102 @@ def load_evolution_model() -> Optional[Dict]:
 # STEP 3: GENERATE PREDICTIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
+ISLAND_URLS = {
+    "S10": "https://lbjlincoln-nomos-nba-quant.hf.space",
+    "S11": "https://lbjlincoln-nomos-nba-quant-2.hf.space",
+    "S12": "https://lbjlincoln26-nba-evo-3.hf.space",
+    "S13": "https://lbjlincoln26-nba-evo-4.hf.space",
+    "S14": "https://nomos42-nba-evo-5.hf.space",
+    "S15": "https://nomos42-nba-evo-6.hf.space",
+}
+
+
+def _fetch_island_predictions(island_name, url, games):
+    """Fetch predictions from a single island. Returns (name, brier, {(home,away): prob}) or None."""
+    import requests
+    try:
+        # Get best brier from status
+        status_resp = requests.get(f"{url}/api/status", timeout=10)
+        best_brier = 1.0
+        if status_resp.status_code == 200:
+            best_brier = status_resp.json().get("best_brier", 1.0)
+
+        payload = {"games": [{"home_team": g["home"], "away_team": g["away"]} for g in games]}
+        resp = requests.post(f"{url}/api/predict", json=payload, timeout=30)
+        if resp.status_code == 200:
+            preds = {}
+            for pred in resp.json().get("predictions", []):
+                key = (pred.get("home_team", ""), pred.get("away_team", ""))
+                preds[key] = pred.get("home_win_prob", 0.5)
+            print(f"[EVOLVED] {island_name}: {len(preds)} preds, brier={best_brier:.5f}")
+            return (island_name, best_brier, preds)
+    except Exception as e:
+        print(f"[EVOLVED] {island_name} unreachable: {e}")
+    return None
+
+
 def fetch_evolved_predictions(games):
     """
-    Fetch predictions from S10's evolved model via /api/predict.
-    Returns dict: {(home, away): evolved_home_prob}
+    Fetch predictions from all 6 islands, rank-fuse probabilities.
+    Rank-based fusion (arXiv 2603.10916): convert probs to ranks,
+    average ranks, convert back. Outperforms simple score averaging.
+    Returns dict: {(home, away): fused_home_prob}
     """
-    S10_URL = os.environ.get("S10_URL", "https://lbjlincoln-nomos-nba-quant.hf.space")
-    results = {}
-    try:
-        import requests
-        payload = {"games": [{"home_team": g["home"], "away_team": g["away"]} for g in games]}
-        resp = requests.post(f"{S10_URL}/api/predict", json=payload, timeout=30)
-        if resp.status_code == 200:
-            data = resp.json()
-            for pred in data.get("predictions", []):
-                key = (pred.get("home_team", ""), pred.get("away_team", ""))
-                results[key] = pred.get("home_win_prob", 0.5)
-            print(f"[EVOLVED] Got {len(results)} predictions from S10")
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    island_results = []
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futures = {
+            pool.submit(_fetch_island_predictions, name, url, games): name
+            for name, url in ISLAND_URLS.items()
+        }
+        for fut in as_completed(futures, timeout=45):
+            result = fut.result()
+            if result:
+                island_results.append(result)
+
+    if not island_results:
+        print("[EVOLVED] No islands responded")
+        return {}
+
+    # Sort by best brier (lower = better)
+    island_results.sort(key=lambda x: x[1])
+    print(f"[EVOLVED] {len(island_results)} islands responded, best: {island_results[0][0]} (brier={island_results[0][1]:.5f})")
+
+    # Collect all game keys
+    all_keys = set()
+    for _, _, preds in island_results:
+        all_keys.update(preds.keys())
+
+    # Rank-based fusion per game
+    fused = {}
+    for key in all_keys:
+        probs = [(name, preds.get(key)) for name, _, preds in island_results if key in preds]
+        if not probs:
+            continue
+        if len(probs) == 1:
+            fused[key] = probs[0][1]
+            continue
+
+        # Convert probs to ranks (1 = lowest prob, N = highest)
+        sorted_probs = sorted(probs, key=lambda x: x[1])
+        n = len(sorted_probs)
+        ranks = {name: (i + 1) / n for i, (name, _) in enumerate(sorted_probs)}
+
+        # Average rank (uniform weight — all islands contribute equally)
+        avg_rank = sum(ranks.values()) / len(ranks)
+
+        # Convert rank back to probability using linear interpolation
+        # between the min and max probs from responding islands
+        prob_values = [p for _, p in probs]
+        min_p, max_p = min(prob_values), max(prob_values)
+        if max_p > min_p:
+            fused[key] = min_p + avg_rank * (max_p - min_p)
         else:
-            print(f"[EVOLVED] S10 returned {resp.status_code}: {resp.text[:200]}")
-    except Exception as e:
-        print(f"[EVOLVED] S10 unreachable: {e}")
-    return results
+            fused[key] = sum(prob_values) / len(prob_values)
+
+    print(f"[EVOLVED] Rank-fused {len(fused)} games from {len(island_results)} islands")
+    return fused
 
 
 def predict_game(home_team: str, away_team: str, evolution_model: Optional[Dict] = None,
