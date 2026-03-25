@@ -333,10 +333,15 @@ def fetch_todays_games_bovada() -> List[Dict]:
                         mtype = mkt.get("description", "").lower()
                         outcomes = []
                         for oc in mkt.get("outcomes", []):
+                            price_raw = oc.get("price", {})
+                            if isinstance(price_raw, str):
+                                price_raw = {"decimal": price_raw}
+                            elif not isinstance(price_raw, dict):
+                                price_raw = {}
                             o = {"name": oc.get("description", ""),
-                                 "price": float(oc.get("price", {}).get("decimal", "2.0") or "2.0")}
-                            if oc.get("price", {}).get("handicap"):
-                                o["point"] = float(oc["price"]["handicap"])
+                                 "price": float(price_raw.get("decimal", "2.0") or "2.0")}
+                            if price_raw.get("handicap"):
+                                o["point"] = float(price_raw["handicap"])
                             outcomes.append(o)
                         if "spread" in mtype:
                             markets.append({"key": "spreads", "outcomes": outcomes})

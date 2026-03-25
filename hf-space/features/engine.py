@@ -2278,6 +2278,9 @@ class NBAFeatureEngine:
         n_market = 32 if self.include_market else 0
 
         for game in games:
+            # Skip non-dict entries (corrupted data or wrapper keys)
+            if not isinstance(game, dict):
+                continue
             # Parse game
             hr, ar = game.get("home_team", ""), game.get("away_team", "")
             if "home" in game and isinstance(game["home"], dict):
