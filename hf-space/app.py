@@ -587,7 +587,7 @@ def build_features(games):
 # All model types the GA can evolve (13 total)
 ALL_MODEL_TYPES = [
     # Tree-based (fast, reliable)
-    "xgboost", "lightgbm", "catboost", "random_forest", "extra_trees",
+    "xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees",
     # Ensemble
     "stacking",
     # Neural nets (slower, potentially more powerful)
@@ -600,7 +600,18 @@ ALL_MODEL_TYPES = [
 NEURAL_NET_TYPES = {"lstm", "transformer", "tabnet", "ft_transformer", "deep_ensemble", "mlp", "autogluon"}
 
 # Fast model types (for islands that prioritize speed)
-FAST_MODEL_TYPES = ["xgboost", "lightgbm", "random_forest", "extra_trees"]
+FAST_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "random_forest", "extra_trees"]
+
+
+# ── Custom Brier objective for XGBoost ──
+def _brier_objective(y_pred, dtrain):
+    """Custom XGBoost objective that directly minimizes Brier score.
+    Brier = (sigmoid(raw) - y)^2, so gradient = 2*(p-y)*p*(1-p), hess ≈ 2*p*(1-p)."""
+    y_true = dtrain.get_label()
+    p = 1.0 / (1.0 + np.exp(-np.clip(y_pred, -30, 30)))
+    grad = 2.0 * (p - y_true) * p * (1.0 - p)
+    hess = 2.0 * p * (1.0 - p) + 1e-6  # Simplified + stability
+    return grad, hess
 
 
 class Individual:
@@ -1258,6 +1269,13 @@ def _build(hp):
                                      learning_rate=lr, subsample=hp["subsample"],
                                      colsample_bytree=hp["colsample_bytree"], min_child_weight=hp["min_child_weight"],
                                      reg_alpha=reg_a, reg_lambda=reg_l,
+                                     eval_metric="logloss", random_state=42, n_jobs=-1, tree_method="hist")
+        elif mt == "xgboost_brier":
+            return xgb.XGBClassifier(n_estimators=n_est, max_depth=depth,
+                                     learning_rate=lr, subsample=hp["subsample"],
+                                     colsample_bytree=hp["colsample_bytree"], min_child_weight=hp["min_child_weight"],
+                                     reg_alpha=reg_a, reg_lambda=reg_l,
+                                     objective=_brier_objective,
                                      eval_metric="logloss", random_state=42, n_jobs=-1, tree_method="hist")
         elif mt == "lightgbm":
             return lgbm.LGBMClassifier(n_estimators=n_est, max_depth=depth,
