@@ -604,10 +604,10 @@ FAST_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "random_forest", "ex
 
 
 # ── Custom Brier objective for XGBoost ──
-def _brier_objective(y_pred, dtrain):
+def _brier_objective(y_true, y_pred):
     """Custom XGBoost objective that directly minimizes Brier score.
-    Brier = (sigmoid(raw) - y)^2, so gradient = 2*(p-y)*p*(1-p), hess ≈ 2*p*(1-p)."""
-    y_true = dtrain.get_label()
+    Brier = (sigmoid(raw) - y)^2, so gradient = 2*(p-y)*p*(1-p), hess ≈ 2*p*(1-p).
+    Note: XGBoost sklearn API (>=2.0) passes (labels, preds) as numpy arrays."""
     p = 1.0 / (1.0 + np.exp(-np.clip(y_pred, -30, 30)))
     grad = 2.0 * (p - y_true) * p * (1.0 - p)
     hess = 2.0 * p * (1.0 - p) + 1e-6  # Simplified + stability
