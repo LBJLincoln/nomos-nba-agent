@@ -5007,7 +5007,7 @@ class NBAFeatureEngine:
                 (_h_b2b - _a_b2b) * (_h_margin5 - _a_margin5),  # b2b_diff × margin_diff
                 min(h_rest, 7) ** 2 / 49.0,             # rest squared (normalized)
                 min(a_rest, 7) ** 2 / 49.0,
-                (h_rest - a_rest) * (self._travel_dist(home, away) if hasattr(self, '_travel_dist') else 0.0),
+                (h_rest - a_rest) * (self._travel_dist(hr_, home) if hasattr(self, '_travel_dist') else 0.0),
                 (self._games_in_window(hr_, gd, 7) - self._games_in_window(ar_, gd, 7)) * (_h_margin5 - _a_margin5),
             ])
 
