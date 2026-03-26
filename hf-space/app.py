@@ -1059,6 +1059,7 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
                 num_leaves=min(2 ** depth - 1, 31),
                 reg_alpha=0.01, reg_lambda=0.1,
                 min_child_samples=20, feature_fraction=0.7,
+                boosting_type="dart", drop_rate=0.1,
                 verbose=-1, random_state=42, n_jobs=-1))
             # CatBoost — ordered boosting (FORCED CPU to avoid CUDA device conflicts)
             try:
@@ -1326,6 +1327,7 @@ def _build(hp):
                                        num_leaves=min(2 ** depth - 1, 31),
                                        reg_alpha=reg_a, reg_lambda=reg_l,
                                        min_child_samples=20, feature_fraction=0.7,
+                                       boosting_type="dart", drop_rate=0.1,
                                        verbose=-1, random_state=42, n_jobs=-1)
         elif mt == "catboost":
             from catboost import CatBoostClassifier
