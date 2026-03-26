@@ -1,0 +1,6 @@
+{
+  "command": "insert_hf_proposals",
+  "args": ["python3", "/home/termius/nomos-nba-agent/scripts/insert_hf_research_proposals.py"],
+  "description": "Insert HF March 2026 research proposals into Supabase",
+  "timestamp": "2026-03-25T10:30:00+00:00"
+}
