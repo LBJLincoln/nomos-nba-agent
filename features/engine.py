@@ -63,7 +63,7 @@ from typing import Dict, List, Tuple, Optional
 import math
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.0-35cat"
+ENGINE_VERSION = "v3.0-38cat"
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -2231,6 +2231,20 @@ class NBAFeatureEngine:
         names.extend([
             "movda_diff",                                    # MOVDA rating differential
             "movda_win_prob",                                # MOVDA-derived win probability
+        ])
+
+        # 38. VENUE-CONDITIONAL MATCHUP FEATURES (14 features)
+        # Home team's home-only stats vs away team's road-only stats
+        # This is the true matchup signal: how does home team perform AT HOME
+        # vs how does away team perform ON THE ROAD — not combined records
+        for w in [5, 10, 20]:
+            names.append(f"venue_wp_edge_{w}")              # h_home_wp - a_road_wp
+            names.append(f"venue_margin_edge_{w}")          # h_home_margin - a_road_margin
+            names.append(f"venue_ortg_edge_{w}")            # h_home_ortg - a_road_drtg
+            names.append(f"venue_drtg_edge_{w}")            # h_home_drtg - a_road_ortg
+        names.extend([
+            "venue_home_boost",                              # h_home_wp - h_overall_wp (home court effect)
+            "venue_road_penalty",                            # a_overall_wp - a_road_wp (road penalty)
         ])
 
         self.feature_names = names
@@ -5043,6 +5057,36 @@ class NBAFeatureEngine:
                 row.append(mov_surprise_ewm[_mk] / 20.0)           # mov_surprise_ewm (normalized)
             row.append(_movda_dr / 400.0)                           # movda_diff
             row.append(_movda_wp)                                    # movda_win_prob
+
+            # ── 38. VENUE-CONDITIONAL MATCHUP FEATURES (14 features) ──
+            # Use true venue-specific records: home team at home vs away team on road
+            _h_home_tr = team_home_results.get(home, [])
+            _a_away_tr = team_away_results.get(away, [])
+            for _w38 in [5, 10, 20]:
+                # WP edge: home team's home record vs away team's road record
+                _h_home_wp = self._wp(_h_home_tr, _w38) if _h_home_tr else self._wp(hr_, _w38)
+                _a_road_wp = self._wp(_a_away_tr, _w38) if _a_away_tr else self._wp(ar_, _w38)
+                row.append(_h_home_wp - _a_road_wp)
+                # Margin edge: home margin at home vs away margin on road
+                _h_home_mg = self._pd(_h_home_tr, _w38) if _h_home_tr else self._pd(hr_, _w38)
+                _a_road_mg = self._pd(_a_away_tr, _w38) if _a_away_tr else self._pd(ar_, _w38)
+                row.append(_h_home_mg - _a_road_mg)
+                # ORtg edge: home team's home offense vs away team's road defense
+                _h_home_or = self._ortg(_h_home_tr, _w38) if _h_home_tr else self._ortg(hr_, _w38)
+                _a_road_dr = self._drtg(_a_away_tr, _w38) if _a_away_tr else self._drtg(ar_, _w38)
+                row.append((_h_home_or - _a_road_dr) / 10.0)
+                # DRtg edge: home team's home defense vs away team's road offense
+                _h_home_dr = self._drtg(_h_home_tr, _w38) if _h_home_tr else self._drtg(hr_, _w38)
+                _a_road_or = self._ortg(_a_away_tr, _w38) if _a_away_tr else self._ortg(ar_, _w38)
+                row.append((_h_home_dr - _a_road_or) / 10.0)
+            # Home court boost: how much better the home team is at home vs overall
+            _h_overall_wp = self._wp(hr_, len(hr_)) if hr_ else 0.5
+            _h_home_wp_82 = self._wp(_h_home_tr, len(_h_home_tr)) if _h_home_tr else _h_overall_wp
+            row.append(_h_home_wp_82 - _h_overall_wp)
+            # Road penalty: how much worse away team is on road vs overall
+            _a_overall_wp = self._wp(ar_, len(ar_)) if ar_ else 0.5
+            _a_road_wp_82 = self._wp(_a_away_tr, len(_a_away_tr)) if _a_away_tr else _a_overall_wp
+            row.append(_a_overall_wp - _a_road_wp_82)
 
             X.append(row)
             y.append(1 if hs > as_ else 0)

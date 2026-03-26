@@ -1,10 +1,10 @@
 # Nomos42 — NBA Quant AI
 
-> Architecture v14 — Claude Code 2026 | Updated: 2026-03-24
+> Architecture v14 — Claude Code 2026 | Updated: 2026-03-25
 
 ## Mission
 Build the best NBA prediction AI in the world.
-**Best:** Brier 0.21867 (extra_trees, 142 feat, exp #734) | **Target:** Brier < 0.20, ROI > 5%, Sharpe > 1.5
+**Best:** Brier 0.22041 (S10 MOVDA-era, xgboost, gen 435) | All-time: 0.21976 | **Target:** Brier < 0.20, ROI > 5%, Sharpe > 1.5
 
 ## Architecture
 
@@ -39,11 +39,11 @@ GOOGLE COLAB (GPU, on-demand)
 
 | File | Role |
 |------|------|
-| `features/engine.py` | Canonical feature engine v3.0-35cat, 6129 candidates, 36 categories |
+| `features/engine.py` | Canonical feature engine v3.0 + Cat36 EWMA + Cat37 MOVDA = 37 categories, 6135 raw → 3216 usable |
 | `hf-space/features/engine.py` | MUST equal root engine (deploy_island.py checks parity) |
 | `hf-space/app.py` | Evolution loop v4 + Gradio UI + API endpoints (all 6 spaces) |
 | `hf-space/deploy_island.py` | Deploy any island: `python3 hf-space/deploy_island.py SPACE ROLE TOKEN` |
-| `predict_today.py` | Daily predictions (60% S10 evolved + 40% ensemble) |
+| `predict_today.py` | Daily predictions (rank-based fusion across all 6 islands) |
 | `calibration/isotonic_calibrator.py` | Probability calibration (stub — fit on HF Space) |
 
 ## S10 Public API (no auth)
@@ -67,7 +67,10 @@ GOOGLE COLAB (GPU, on-demand)
 2. **Feature engine parity** — `features/engine.py` = `hf-space/features/engine.py` always
 3. **1 fix per iteration** — never multiple simultaneous changes
 4. **All experiments tagged** with `feature_engine_version` in Supabase
-5. **ENGINE_VERSION** = `v3.0-35cat` (6129 candidates, 36 categories)
+5. **ENGINE_VERSION** = `v3.0-37cat` (6135 raw candidates, 37 categories, MOVDA live)
+6. **MAX_FEATURES=200** — hard cap enforced in all spaces
+7. **Mutation cap** — adaptive mutation capped at 0.15
+8. **CPU-only** — no neural models on CPU islands, stacking removed
 
 ## Supabase Tables
 

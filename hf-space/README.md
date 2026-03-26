@@ -13,8 +13,9 @@ pinned: true
 
 Always-running agentic loop for NBA quantitative prediction models.
 
-- **9+ ML models** trained continuously with Optuna hyperparameter search
+- **5 tree-based models** evolved via NSGA-II genetic algorithm (CPU-optimized)
 - **8 seasons** of NBA data (9,551+ games, 2018-2026)
-- **75 features** including travel fatigue, Kaunitz odds gap, clutch performance
+- **Up to 200 features** (island-specific: 55-80) from v3.0-37cat engine with MOVDA
 - **Walk-forward backtesting** with Kelly criterion sizing
-- **Isotonic calibration** improving Brier scores by 4-12%
+- **Feature engine**: v3.0 + Cat36 EWMA + Cat37 MOVDA (deployed 2026-03-25)
+- **MAX_FEATURES=200** hard cap, mutation capped at 0.15, xgboost_brier fixed
