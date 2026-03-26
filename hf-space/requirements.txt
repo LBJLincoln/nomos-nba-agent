@@ -11,4 +11,9 @@ psycopg2-binary>=2.9
 torch>=2.3 --index-url https://download.pytorch.org/whl/cpu
 pytorch_tabnet>=4.1
 mapie>=0.9
+betacal>=0.1
 # autogluon.tabular>=1.2  # OPTIONAL — large install (~2GB), uncomment if needed
+# --- Browser scraping (needs Playwright deps in Docker image, see Dockerfile.browser) ---
+# crawl4ai>=0.4  # OPTIONAL — uncomment when using Dockerfile.browser for browser-based scraping
+html2text>=2024.2  # Lightweight HTML-to-markdown for requests fallback
+beautifulsoup4>=4.12  # CSS selector extraction in requests fallback

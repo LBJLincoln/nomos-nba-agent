@@ -1,0 +1,64 @@
+# Dockerfile.browser -- Browser-enabled HF Space image for web scraping
+# ======================================================================
+#
+# NOT ACTIVE YET -- this is a template for when we need browser-based
+# scraping on HF Spaces (e.g., scraping odds pages with JS rendering).
+#
+# Current HF Spaces use the default Python runtime without browser deps.
+# To activate: rename to Dockerfile and push to the target Space.
+#
+# Requirements:
+#   - HF Space must be configured as "Docker" SDK (not Gradio SDK)
+#   - The Space will be larger (~2GB) due to Chromium
+#   - CPU-only is fine for scraping (no GPU needed)
+#
+# Size estimate: ~2.5GB image (Playwright + Chromium + Python deps)
+
+FROM python:3.11-slim-bookworm
+
+# Install system deps for Playwright/Chromium
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    ca-certificates \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user (HF Spaces requirement)
+RUN useradd -m -u 1000 user
+WORKDIR /home/user/app
+
+# Install Python deps
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Playwright and Chromium browser
+RUN pip install --no-cache-dir crawl4ai>=0.4 playwright
+RUN playwright install chromium
+RUN playwright install-deps chromium
+
+# Copy application code
+COPY . .
+
+# Fix permissions
+RUN chown -R user:user /home/user/app
+
+USER user
+
+EXPOSE 7860
+
+CMD ["python", "app.py"]

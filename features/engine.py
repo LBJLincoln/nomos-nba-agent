@@ -2223,7 +2223,7 @@ class NBAFeatureEngine:
             "dense_sched_x_margin",                   # schedule_density × margin_diff
         ])
 
-        # 37. MOVDA ELO FEATURES (6 features) — arXiv:2506.00348
+        # 37. MOVDA ELO FEATURES (13 features) — arXiv:2506.00348
         # Margin-of-Victory Differential Analysis: R' = R + K*(S-E) + λ*(MOV-E_MOV)
         for prefix in ["h", "a"]:
             names.append(f"{prefix}_movda_rating")          # MOVDA Elo rating (normalized)
@@ -2232,6 +2232,12 @@ class NBAFeatureEngine:
             "movda_diff",                                    # MOVDA rating differential
             "movda_win_prob",                                # MOVDA-derived win probability
         ])
+        # Raw delta_MOV rolling features (no EWM smoothing) — captures recent surprise momentum
+        for prefix in ["h", "a"]:
+            names.append(f"{prefix}_delta_mov_raw")         # last game's raw MOV surprise
+            names.append(f"{prefix}_delta_mov_rolling_5")   # rolling mean over last 5 games
+            names.append(f"{prefix}_delta_mov_rolling_10")  # rolling mean over last 10 games
+        names.append("delta_mov_diff")                       # h_delta_mov_rolling_5 - a_delta_mov_rolling_5
 
         # 38. VENUE-CONDITIONAL MATCHUP FEATURES (14 features)
         # Home team's home-only stats vs away team's road-only stats
@@ -2281,6 +2287,7 @@ class NBAFeatureEngine:
         # ── Category 37: MOVDA ELO state trackers ──
         team_movda = defaultdict(lambda: 1500.0)           # MOVDA Elo rating
         mov_surprise_ewm = defaultdict(float)               # Per-team EWMA of MOV surprise
+        delta_mov_history = defaultdict(list)               # Per-team raw delta_MOV history
         _MOVDA_K = 20.0; _MOVDA_C = 400.0; _MOVDA_LAMBDA = 0.3
         _MOVDA_ALPHA = 19.2511; _MOVDA_BETA = 0.002342
         _MOVDA_GAMMA = 648.0334; _MOVDA_DELTA = -645.8717
@@ -2339,6 +2346,7 @@ class NBAFeatureEngine:
                     team_home_margin_sum, team_home_games_count)
                 # Update MOVDA ELO (Cat 37)
                 self._update_movda(home, away, hs, as_, team_movda, mov_surprise_ewm,
+                                   delta_mov_history,
                                    _MOVDA_K, _MOVDA_C, _MOVDA_LAMBDA, _MOVDA_ALPHA,
                                    _MOVDA_BETA, _MOVDA_GAMMA, _MOVDA_DELTA, _MOVDA_EWM_ALPHA)
                 continue
@@ -5049,7 +5057,7 @@ class NBAFeatureEngine:
                 (self._games_in_window(hr_, gd, 7) - self._games_in_window(ar_, gd, 7)) * (_h_margin5 - _a_margin5),
             ])
 
-            # ── 37. MOVDA ELO FEATURES (6 features) ──
+            # ── 37. MOVDA ELO FEATURES (13 features) ──
             _movda_dr = team_movda[home] - team_movda[away]
             _movda_wp = 1.0 / (1.0 + 10.0 ** (-_movda_dr / _MOVDA_C))
             for _mt, _mk in [(home, home), (away, away)]:
@@ -5057,6 +5065,21 @@ class NBAFeatureEngine:
                 row.append(mov_surprise_ewm[_mk] / 20.0)           # mov_surprise_ewm (normalized)
             row.append(_movda_dr / 400.0)                           # movda_diff
             row.append(_movda_wp)                                    # movda_win_prob
+            # Raw delta_MOV rolling features (no EWM smoothing)
+            for _mk in [home, away]:
+                _dh = delta_mov_history[_mk]
+                _raw = (_dh[-1] / 20.0) if _dh else 0.0
+                _roll5 = (sum(_dh[-5:]) / len(_dh[-5:]) / 20.0) if _dh else 0.0
+                _roll10 = (sum(_dh[-10:]) / len(_dh[-10:]) / 20.0) if _dh else 0.0
+                row.append(_raw)    # {prefix}_delta_mov_raw
+                row.append(_roll5)  # {prefix}_delta_mov_rolling_5
+                row.append(_roll10) # {prefix}_delta_mov_rolling_10
+            # delta_mov_diff: home rolling_5 - away rolling_5
+            _h_dh = delta_mov_history[home]
+            _a_dh = delta_mov_history[away]
+            _h_r5 = (sum(_h_dh[-5:]) / len(_h_dh[-5:]) / 20.0) if _h_dh else 0.0
+            _a_r5 = (sum(_a_dh[-5:]) / len(_a_dh[-5:]) / 20.0) if _a_dh else 0.0
+            row.append(_h_r5 - _a_r5)                               # delta_mov_diff
 
             # ── 38. VENUE-CONDITIONAL MATCHUP FEATURES (14 features) ──
             # Use true venue-specific records: home team at home vs away team on road
@@ -5104,6 +5127,7 @@ class NBAFeatureEngine:
                 team_home_margin_sum, team_home_games_count)
             # Update MOVDA ELO (Cat 37)
             self._update_movda(home, away, hs, as_, team_movda, mov_surprise_ewm,
+                               delta_mov_history,
                                _MOVDA_K, _MOVDA_C, _MOVDA_LAMBDA, _MOVDA_ALPHA,
                                _MOVDA_BETA, _MOVDA_GAMMA, _MOVDA_DELTA, _MOVDA_EWM_ALPHA)
 
@@ -5659,8 +5683,9 @@ class NBAFeatureEngine:
         team_home_games_count[home] += 1
 
     def _update_movda(self, home, away, hs, as_, team_movda, mov_surprise_ewm,
+                      delta_mov_history,
                       K, C, lam, alpha, beta, gamma, delta_param, ewm_alpha):
-        """Update MOVDA Elo ratings (Cat 37). arXiv:2506.00348."""
+        """Update MOVDA Elo ratings and raw delta_MOV history (Cat 37). arXiv:2506.00348."""
         margin = hs - as_
         result = 1.0 if margin > 0 else (0.0 if margin < 0 else 0.5)
         delta_r = team_movda[home] - team_movda[away]
@@ -5672,6 +5697,9 @@ class NBAFeatureEngine:
         team_movda[away] -= movda_update
         mov_surprise_ewm[home] = ewm_alpha * delta_mov + (1 - ewm_alpha) * mov_surprise_ewm[home]
         mov_surprise_ewm[away] = ewm_alpha * (-delta_mov) + (1 - ewm_alpha) * mov_surprise_ewm[away]
+        # Append raw delta_MOV to rolling history (home team's perspective)
+        delta_mov_history[home].append(delta_mov)
+        delta_mov_history[away].append(-delta_mov)
 
     def _parse_stats(self, stats, pts, opp_pts, is_home=True):
         """Extract stats from game data. Uses REAL box score when available, estimates otherwise."""
