@@ -1,3 +1,8 @@
+---
+name: improve-features
+description: Read `features/engine.py` — the canonical feature engine (v3.0-35cat, 6129 candidates, 36 categori
+---
+
 # Improve Features
 
 Read `features/engine.py` — the canonical feature engine (v3.0-35cat, 6129 candidates, 36 categories).

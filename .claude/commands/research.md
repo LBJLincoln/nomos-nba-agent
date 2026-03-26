@@ -1,3 +1,8 @@
+---
+name: research
+description: Search for latest NBA prediction and sports betting ML advances (2026).
+---
+
 # Research
 
 Search for latest NBA prediction and sports betting ML advances (2026).

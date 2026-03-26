@@ -1,13 +1,18 @@
+---
+name: fix-evolution
+description: Check all 6 HF Space evolution islands for issues:
+---
+
 # Fix Evolution
 
 Check all 6 HF Space evolution islands for issues:
 
 ```bash
 for url in \
-  "https://lbjlincoln-nomos-nba-quant.hf.space/api/status" \
-  "https://lbjlincoln-nomos-nba-quant-2.hf.space/api/status" \
-  "https://lbjlincoln26-nba-evo-3.hf.space/api/status" \
-  "https://lbjlincoln26-nba-evo-4.hf.space/api/status" \
+  "https://nomos42-nba-quant.hf.space/api/status" \
+  "https://nomos42-nba-quant-2.hf.space/api/status" \
+  "https://nomos42-nba-evo-3.hf.space/api/status" \
+  "https://nomos42-nba-evo-4.hf.space/api/status" \
   "https://nomos42-nba-evo-5.hf.space/api/status" \
   "https://nomos42-nba-evo-6.hf.space/api/status"; do
   curl -s --max-time 15 "$url"

@@ -1,3 +1,8 @@
+---
+name: submit-experiment
+description: Submit a GPU experiment to Google Colab for neural model training.
+---
+
 # Submit GPU Experiment
 
 Submit a GPU experiment to Google Colab for neural model training.
