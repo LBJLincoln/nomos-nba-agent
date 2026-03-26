@@ -634,7 +634,7 @@ class Individual:
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
             "model_type": model_type or random.choice(CPU_MODEL_TYPES if not _HAS_GPU else ALL_MODEL_TYPES),
-            "calibration": random.choices(["none", "sigmoid", "venn_abers"], weights=[60, 20, 20], k=1)[0],
+            "calibration": random.choices(["none", "sigmoid", "venn_abers"], weights=[30, 20, 50], k=1)[0],
             # Neural net hyperparams (used only for NN model types)
             "nn_hidden_dims": random.choice([64, 128, 256]),
             "nn_n_layers": random.randint(2, 4),
@@ -723,10 +723,14 @@ class Individual:
 
 def _dominates(a, b):
     """Individual a dominates b if a is no worse in all objectives and strictly better in at least one.
-    Objectives: minimize brier, maximize roi, maximize sharpe, minimize calibration."""
+    Objectives: minimize brier, maximize roi, maximize sharpe, minimize calibration, minimize features.
+    Feature count is a 5th objective to prevent bloated genomes (Feat=200 takeover)."""
     fa, fb = a.fitness, b.fitness
-    a_vals = (-fa["brier"], fa["roi"], fa["sharpe"], -fa["calibration"])
-    b_vals = (-fb["brier"], fb["roi"], fb["sharpe"], -fb["calibration"])
+    # Parsimony pressure: penalize feature bloat as a real objective
+    a_feat_score = -min(a.n_features, 200) / 200.0  # lower features = higher score (negated for minimize)
+    b_feat_score = -min(b.n_features, 200) / 200.0
+    a_vals = (-fa["brier"], fa["roi"], fa["sharpe"], -fa["calibration"], a_feat_score)
+    b_vals = (-fb["brier"], fb["roi"], fb["sharpe"], -fb["calibration"], b_feat_score)
     at_least_one_better = False
     for av, bv in zip(a_vals, b_vals):
         if av < bv:
@@ -774,12 +778,13 @@ def nsga2_rank(population):
         rank += 1
         fronts.append(next_front)
 
-    # Crowding distance per front
+    # Crowding distance per front (5 objectives including parsimony)
     objectives = [
         lambda ind: ind.fitness["brier"],       # minimize
         lambda ind: -ind.fitness["roi"],         # maximize (negate for sorting)
         lambda ind: -ind.fitness["sharpe"],      # maximize
         lambda ind: ind.fitness["calibration"],  # minimize
+        lambda ind: ind.n_features / 200.0,     # minimize (parsimony pressure)
     ]
 
     for front_indices in fronts:
@@ -804,7 +809,7 @@ def nsga2_rank(population):
     # Also compute composite for backwards compatibility (weighted sum)
     for ind in population:
         f = ind.fitness
-        feature_penalty = 0.001 * max(0, ind.n_features - 65)
+        feature_penalty = 0.003 * max(0, ind.n_features - 80)  # Stronger penalty: 3x, threshold 80
         ind.fitness["composite"] = round(
             0.40 * (1 - f["brier"]) +
             0.25 * max(0, f["roi"]) +
