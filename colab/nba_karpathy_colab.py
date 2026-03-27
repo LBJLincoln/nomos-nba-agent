@@ -36,8 +36,10 @@ for key in ['HF_TOKEN', 'DATABASE_URL']:
 # Install deps
 t0 = time.time()
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q',
-    'xgboost', 'lightgbm', 'catboost', 'scikit-learn', 'tabicl',
+    'xgboost', 'lightgbm', 'catboost', 'scikit-learn',
     'psycopg2-binary', 'huggingface_hub'])
+# TabICL: install WITHOUT deps to preserve Colab's CUDA PyTorch
+subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', '--no-deps', 'tabicl'])
 print(f'Deps: {time.time()-t0:.0f}s')
 
 import torch
