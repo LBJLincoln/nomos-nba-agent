@@ -71,14 +71,14 @@ if FEATURE_CACHE.exists():
     X, y, feature_names = data['X'], data['y'], list(data['feature_names'])
 else:
     print('Building features (~30 min, cached to Drive after)...')
-    if not os.path.exists('/content/nomos-nba-agent'):
+    if not os.path.exists('/content/nba-quant-space'):
         subprocess.run(['git', 'clone', '--depth=1',
-            f'https://{os.environ.get("HF_TOKEN","")}@github.com/LBJLincoln/nomos-nba-agent.git',
-            '/content/nomos-nba-agent'], check=True)
-    sys.path.insert(0, '/content/nomos-nba-agent/hf-space')
+            f'https://user:{os.environ.get("HF_TOKEN","")}@huggingface.co/spaces/Nomos42/nba-quant',
+            '/content/nba-quant-space'], check=True)
+    sys.path.insert(0, '/content/nba-quant-space')
     from features.engine import NBAFeatureEngine
     games = []
-    for f in sorted(Path('/content/nomos-nba-agent/hf-space/data/historical').glob('games-*.json')):
+    for f in sorted(Path('/content/nba-quant-space/data/historical').glob('games-*.json')):
         raw = json.loads(f.read_text())
         if isinstance(raw, list): games.extend(raw)
         elif isinstance(raw, dict) and 'games' in raw: games.extend(raw['games'])

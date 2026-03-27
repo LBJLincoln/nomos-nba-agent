@@ -41,7 +41,7 @@ gpu_image = (
 )
 
 STATE_DIR = "/data"
-REPO_URL = "https://github.com/LBJLincoln/nomos-nba-agent.git"
+REPO_URL = "https://huggingface.co/spaces/Nomos42/nba-quant"
 
 
 @app.function(
@@ -49,10 +49,7 @@ REPO_URL = "https://github.com/LBJLincoln/nomos-nba-agent.git"
     gpu="T4",  # or "A10G", "A100" for more power
     timeout=6 * 3600,  # 6 hours max
     volumes={STATE_DIR: vol},
-    secrets=[
-        modal.Secret.from_name("hf-token"),  # HF_TOKEN
-        modal.Secret.from_name("database-url"),  # DATABASE_URL
-    ],
+    secrets=[modal.Secret.from_name("nomos42-secrets")],
 )
 def run_evolution(max_iterations: int = 200, budget_sec: int = 300):
     """Run Karpathy autoresearch loop on GPU."""
@@ -63,14 +60,14 @@ def run_evolution(max_iterations: int = 200, budget_sec: int = 300):
     from sklearn.metrics import brier_score_loss
     from sklearn.model_selection import TimeSeriesSplit
 
-    # Clone repo for feature engine
-    repo_dir = Path("/tmp/nomos-nba-agent")
+    # Clone feature engine from HF Space (not GitHub — private repos need different auth)
+    repo_dir = Path("/tmp/nba-quant-space")
     if not repo_dir.exists():
         hf_token = os.environ.get("HF_TOKEN", "")
         subprocess.run(["git", "clone", "--depth", "1",
-                        f"https://{hf_token}@github.com/LBJLincoln/nomos-nba-agent.git",
+                        f"https://user:{hf_token}@huggingface.co/spaces/Nomos42/nba-quant",
                         str(repo_dir)], check=True)
-    sys.path.insert(0, str(repo_dir / "hf-space"))
+    sys.path.insert(0, str(repo_dir))
 
     # Load or build features
     cache_file = Path(f"{STATE_DIR}/features_cache_v38.npz")
