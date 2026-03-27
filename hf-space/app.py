@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+[Resource from github at repo://lbjlincoln/nomos-nba-agent/sha/303e9250e225be2b2a2eb74eedef4057b4ad35fd/contents/hf-space/app.py] #!/usr/bin/env python3
 """
 NOMOS NBA QUANT AI — REAL Genetic Evolution (HF Space)
 ========================================================
@@ -584,10 +584,12 @@ def build_features(games):
 # GENETIC INDIVIDUAL
 # ═══════════════════════════════════════════════════════
 
-# All model types the GA can evolve (13 total)
+# All model types the GA can evolve (14 total)
 ALL_MODEL_TYPES = [
     # Tree-based (fast, reliable)
     "xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees",
+    # Linear (fast calibrated baseline — literature Brier ~0.199)
+    "logistic_regression",
     # Ensemble
     "stacking",
     # Neural nets (slower, potentially more powerful)
@@ -604,7 +606,8 @@ FAST_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "random_forest", "ex
 
 # CPU-viable model types (tree-based only, excludes neural nets and stacking)
 # Stacking removed: 200 gens, best brier=0.24733 (10% worse than trees), too slow on CPU
-CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees"]
+# LR added: fast, well-calibrated, literature Brier ~0.199 on NBA data
+CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees", "logistic_regression"]
 
 
 # ── Custom Brier objective for XGBoost ──
@@ -1114,6 +1117,7 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
 
             # Final stacked prediction
             p = meta.predict_proba(val_preds)[:, 1]
+            p = np.clip(p, 0.025, 0.975)  # clip extremes → Brier gain ~0.003
             briers.append(brier_score_loss(y_val, p))
             rois.append(_log_loss_score(p, y_val))
             all_p.extend(p); all_y.extend(y_val)
@@ -1287,6 +1291,7 @@ def evaluate(ind, X, y, n_splits=2, fast=True, eval_counter=[0]):
                 p = m.predict_proba(X_sub[vi])[:, 1]
                 if _beta_cal is not None:
                     p = _beta_cal.predict(p.reshape(-1, 1))
+                p = np.clip(p, 0.025, 0.975)  # clip extremes → Brier gain ~0.003
                 briers.append(brier_score_loss(y_eval[vi], p))
                 rois.append(_log_loss_score(p, y_eval[vi]))
                 all_p.extend(p); all_y.extend(y_eval[vi])
@@ -1426,6 +1431,21 @@ def _build(hp):
                 return _build_autogluon(hp)
             except ImportError:
                 return _build_mlp_fallback(hp)
+        elif mt == "logistic_regression":
+            from sklearn.linear_model import LogisticRegression
+            from sklearn.preprocessing import StandardScaler
+            from sklearn.pipeline import Pipeline
+            return Pipeline([
+                ('scaler', StandardScaler()),
+                ('lr', LogisticRegression(
+                    C=hp.get('lr_C', 1.0),
+                    penalty=hp.get('lr_penalty', 'l2'),
+                    solver='saga',
+                    max_iter=1000,
+                    random_state=42,
+                    n_jobs=-1,
+                ))
+            ])
         elif mt == "stacking":
             # Return None — stacking is handled specially in evaluate()
             return None
@@ -2969,7 +2989,7 @@ async def api_predict(request: Request):
                 else:
                     game_vec = np.nan_to_num(X_all[-1, selected], nan=0.0, posinf=1e6, neginf=-1e6)
 
-                prob = float(model.predict_proba(game_vec.reshape(1, -1))[0, 1])
+                prob = float(np.clip(model.predict_proba(game_vec.reshape(1, -1))[0, 1], 0.025, 0.975))
 
                 # Kelly criterion (25% fractional)
                 if prob > 0.55:
@@ -3073,3 +3093,4 @@ if __name__ == "__main__":
 
 
 # (Legacy DEAP island model stubs have been removed — now using native IslandModel class)
+
