@@ -79,19 +79,44 @@ def run_evolution(max_iterations: int = 200, budget_sec: int = 300):
     else:
         print("Building features...")
         from features.engine import NBAFeatureEngine
+
+        # Load games: try local JSON first, then Supabase
         games = []
-        data_dir = repo_dir / "hf-space" / "data" / "historical"
-        for f in sorted(data_dir.glob("games-*.json")):
-            raw = json.loads(f.read_text())
-            if isinstance(raw, list): games.extend(raw)
-            elif isinstance(raw, dict) and "games" in raw: games.extend(raw["games"])
+        for data_dir in [repo_dir / "data" / "historical", repo_dir / "hf-space" / "data" / "historical"]:
+            if data_dir.exists():
+                for f in sorted(data_dir.glob("games-*.json")):
+                    raw = json.loads(f.read_text())
+                    if isinstance(raw, list): games.extend(raw)
+                    elif isinstance(raw, dict) and "games" in raw: games.extend(raw["games"])
+                if games:
+                    print(f"Loaded {len(games)} games from {data_dir}")
+                    break
+
+        if not games:
+            print("No local game data — loading from Supabase...")
+            db_url = os.environ.get("DATABASE_URL", "")
+            if db_url:
+                import psycopg2
+                conn = psycopg2.connect(db_url, connect_timeout=30, options="-c search_path=public")
+                cur = conn.cursor()
+                cur.execute("SELECT game_data FROM nba_games ORDER BY game_date LIMIT 15000")
+                for row in cur.fetchall():
+                    if row[0]: games.append(row[0] if isinstance(row[0], dict) else json.loads(row[0]))
+                cur.close(); conn.close()
+                print(f"Loaded {len(games)} games from Supabase")
+
+        if not games:
+            raise ValueError("No game data available (local or Supabase)!")
+
+        games.sort(key=lambda g: g.get("game_date", g.get("date", "")))
         engine = NBAFeatureEngine()
         X_raw, y_raw, feature_names = engine.build(games)
         X = np.nan_to_num(np.array(X_raw, dtype=np.float32))
         y = np.array(y_raw, dtype=np.int32)
-        var = np.var(X, axis=0)
-        valid = var > 1e-10
-        X, feature_names = X[:, valid], [f for f, v in zip(feature_names, valid) if v]
+        if len(X.shape) == 2 and X.shape[1] > 0:
+            var = np.var(X, axis=0)
+            valid = var > 1e-10
+            X, feature_names = X[:, valid], [f for f, v in zip(feature_names, valid) if v]
         np.savez_compressed(str(cache_file), X=X, y=np.array(y),
                            feature_names=np.array(feature_names))
         print(f"Cached: {X.shape}")
