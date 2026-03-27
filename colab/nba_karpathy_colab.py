@@ -78,10 +78,24 @@ else:
     sys.path.insert(0, '/content/nba-quant-space')
     from features.engine import NBAFeatureEngine
     games = []
-    for f in sorted(Path('/content/nba-quant-space/data/historical').glob('games-*.json')):
-        raw = json.loads(f.read_text())
-        if isinstance(raw, list): games.extend(raw)
-        elif isinstance(raw, dict) and 'games' in raw: games.extend(raw['games'])
+    for hist_dir in [Path('/content/nba-quant-space/data/historical')]:
+        if hist_dir.exists():
+            for f in sorted(hist_dir.glob('games-*.json')):
+                raw = json.loads(f.read_text())
+                if isinstance(raw, list): games.extend(raw)
+                elif isinstance(raw, dict) and 'games' in raw: games.extend(raw['games'])
+    if not games:
+        print('No local data — loading from Supabase...')
+        db_url = os.environ.get('DATABASE_URL', '')
+        if db_url:
+            subprocess.run(['pip', 'install', '-q', 'psycopg2-binary'], check=True)
+            import psycopg2
+            conn = psycopg2.connect(db_url, connect_timeout=30, options='-c search_path=public')
+            cur = conn.cursor()
+            cur.execute('SELECT game_data FROM nba_games ORDER BY game_date LIMIT 15000')
+            for row in cur.fetchall():
+                if row[0]: games.append(row[0] if isinstance(row[0], dict) else json.loads(row[0]))
+            cur.close(); conn.close()
     print(f'Games: {len(games)}')
     engine = NBAFeatureEngine()
     X_raw, y_raw, feature_names = engine.build(games)
