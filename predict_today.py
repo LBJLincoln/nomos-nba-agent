@@ -440,14 +440,22 @@ def fetch_player_props_odds_api() -> Dict[str, List[Dict]]:
 
 
 def _load_cached_odds() -> List[Dict]:
-    """Load most recent cached odds file."""
+    """Load most recent cached odds file, filtering to today's games only."""
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     odds_files = sorted(DATA_DIR.glob("odds-*.json"), reverse=True)
     if odds_files:
         try:
             data = json.loads(odds_files[0].read_text())
             if isinstance(data, list):
-                print(f"[ODDS] Loaded cached odds: {odds_files[0].name} ({len(data)} games)")
-                return data
+                # Filter out simulated games and games not scheduled for today
+                filtered = [
+                    g for g in data
+                    if not g.get("simulated", False)
+                    and g.get("commence_time", "").startswith(today_str)
+                ]
+                print(f"[ODDS] Loaded cached odds: {odds_files[0].name} "
+                      f"({len(filtered)}/{len(data)} games match today {today_str})")
+                return filtered
         except Exception as e:
             print(f"[ODDS] Cache load error: {e}")
     return []
@@ -995,7 +1003,16 @@ def build_predictions_output(
             })
 
     # Add any odds-only games not already seen
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     for og in odds_data:
+        # Skip simulated games or games not scheduled for today
+        if og.get("simulated", False):
+            continue
+        commence = og.get("commence_time", "")
+        if commence and not commence.startswith(today_str):
+            print(f"[ODDS] Skipping stale game ({commence[:10]}): "
+                  f"{og.get('away_team', '?')} @ {og.get('home_team', '?')}")
+            continue
         home = og.get("home_team", "")
         away = og.get("away_team", "")
         home_abbrev = _match_team_name(home)
@@ -1010,7 +1027,7 @@ def build_predictions_output(
                     "home_abbrev": home_abbrev,
                     "away_abbrev": away_abbrev,
                     "game_id": og.get("id", ""),
-                    "commence_time": og.get("commence_time", ""),
+                    "commence_time": commence,
                 })
 
     # Generate predictions for each game
