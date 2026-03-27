@@ -34,6 +34,7 @@ image = (
 # GPU image with TabICL
 gpu_image = (
     modal.Image.debian_slim(python_version="3.11")
+    .apt_install("git")
     .pip_install(
         "torch", "numpy", "scikit-learn", "xgboost", "lightgbm", "catboost",
         "tabicl", "psycopg2-binary", "requests", "huggingface_hub"
