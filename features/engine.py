@@ -41,7 +41,12 @@ Categories:
   33. NETWORK/GRAPH FEATURES (220+ features — PageRank, centrality)
   34. ENSEMBLE META-FEATURES (160+ features — model uncertainty, drift)
   35. TEMPORAL DECAY FEATURES (320+ features — exponential decay, recency)
-  ≈ 6000+ feature candidates
+  39. CIRCADIAN RHYTHM & TRAVEL FATIGUE (8 features — normalized composites, rest non-linearity)
+  41. TRANSITION vs HALF-COURT EFFICIENCY SPLITS (7 features — fb_pts/pace splits)
+  43. CLUTCH PERFORMANCE (8 features — close-game win%, margin, ortg from rolling records)
+  44. GAME TOTALS PREDICTION (10 features — normalized PPG/PAPG, pace, ortg/drtg scoring environment)
+  46. REAL ODDS MARKET FEATURES (8 features — implied prob, spread, total from historical CSV)
+  ≈ 6200+ feature candidates
 
 Architecture inspired by:
   - Starlizard: 500+ features, genetic selection, real-time adjustment
@@ -61,9 +66,11 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 import math
+import csv
+import os
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.0-38cat"
+ENGINE_VERSION = "v3.1-46cat"
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -115,9 +122,21 @@ TIMEZONE_ET = {
 WINDOWS = [3, 5, 7, 10, 15, 20]  # Rolling windows
 
 
+# Alias map for non-standard team names (Bovada, international sources, etc.)
+TEAM_ALIASES = {
+    "L.A. Clippers": "LAC", "LA Clippers": "LAC",
+    "L.A. Lakers": "LAL", "LA Lakers": "LAL",
+    "NY Knicks": "NYK", "GS Warriors": "GSW",
+    "SA Spurs": "SAS", "NO Pelicans": "NOP",
+    "OKC": "OKC", "Philly": "PHI",
+}
+
+
 def resolve(name):
     if name in TEAM_MAP:
         return TEAM_MAP[name]
+    if name in TEAM_ALIASES:
+        return TEAM_ALIASES[name]
     if len(name) == 3 and name.isupper():
         return name
     for full, abbr in TEAM_MAP.items():
@@ -133,6 +152,192 @@ def haversine(lat1, lon1, lat2, lon2):
     dlon = math.radians(lon2 - lon1)
     a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
     return R * 2 * math.asin(math.sqrt(a))
+
+
+# ── Odds Data Loader (Cat 46) ──
+
+def _american_to_implied_prob(american_odds):
+    """Convert American moneyline to implied probability (no vig removal)."""
+    try:
+        ml = float(american_odds)
+    except (ValueError, TypeError):
+        return 0.5
+    if ml == 0:
+        return 0.5
+    if ml > 0:
+        return 100.0 / (ml + 100.0)
+    else:
+        return abs(ml) / (abs(ml) + 100.0)
+
+
+def _decimal_to_implied_prob(decimal_odds):
+    """Convert decimal odds to implied probability."""
+    try:
+        d = float(decimal_odds)
+    except (ValueError, TypeError):
+        return 0.5
+    if d <= 1.0:
+        return 1.0
+    return 1.0 / d
+
+
+def _is_decimal_odds(val):
+    """Heuristic: decimal odds are typically 1.01-20.0; American odds are typically < -100 or > 100."""
+    try:
+        v = float(val)
+    except (ValueError, TypeError):
+        return False
+    # Decimal odds are almost always between 1.01 and 50.0
+    # American odds are < -100 or > 100 (e.g., -250, +200)
+    return 1.0 < v < 50.0
+
+
+def load_historical_odds(csv_path=None):
+    """
+    Load historical odds CSV and return a lookup dict.
+
+    Returns:
+        dict: (date_str, home_abbrev, away_abbrev) -> {
+            'implied_home_prob': float,  # vig-inclusive implied probability
+            'implied_away_prob': float,
+            'fair_home_prob': float,     # vig-removed fair probability
+            'fair_away_prob': float,
+            'spread_home': float,        # point spread (negative = home favored)
+            'total': float,              # over/under total
+            'ml_home_raw': float,        # raw moneyline (American)
+            'ml_away_raw': float,
+            'overround': float,          # total implied prob (>1.0 = vig)
+            'book': str,
+            'source': str,
+        }
+        Multiple entries for same game (different books) are kept;
+        the first one loaded (betmgm preferred) is returned for the key.
+    """
+    if csv_path is None:
+        # Try common paths
+        candidates = [
+            os.path.join(os.path.dirname(__file__), '..', 'data', 'historical-odds', 'nba_2025-26_odds.csv'),
+            os.path.join(os.path.dirname(__file__), 'data', 'historical-odds', 'nba_2025-26_odds.csv'),
+            '/home/termius/nomos-nba-agent/data/historical-odds/nba_2025-26_odds.csv',
+        ]
+        for c in candidates:
+            if os.path.exists(c):
+                csv_path = c
+                break
+        if csv_path is None:
+            return {}
+
+    if not os.path.exists(csv_path):
+        return {}
+
+    lookup = {}
+    # Also store multi-book data for books_disagreement
+    multi_book = defaultdict(list)  # (date, home, away) -> [implied_home_prob, ...]
+
+    try:
+        with open(csv_path, 'r') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                date_str = row.get('date', '').strip()
+                home_full = row.get('home_team', '').strip()
+                away_full = row.get('away_team', '').strip()
+                book = row.get('book', '').strip()
+                source = row.get('source', '').strip()
+
+                home_abbr = resolve(home_full)
+                away_abbr = resolve(away_full)
+                if not home_abbr or not away_abbr or not date_str:
+                    continue
+
+                # Parse moneylines — handle both American and decimal formats
+                ml_home_str = row.get('moneyline_home', '').strip()
+                ml_away_str = row.get('moneyline_away', '').strip()
+
+                if not ml_home_str or not ml_away_str:
+                    continue
+
+                if _is_decimal_odds(ml_home_str) or _is_decimal_odds(ml_away_str):
+                    # Decimal odds format
+                    ip_home = _decimal_to_implied_prob(ml_home_str)
+                    ip_away = _decimal_to_implied_prob(ml_away_str)
+                    # Convert to American for storage
+                    try:
+                        dh = float(ml_home_str)
+                        ml_home_american = round((dh - 1.0) * 100) if dh >= 2.0 else round(-100 / (dh - 1.0)) if dh > 1.0 else -110
+                    except:
+                        ml_home_american = -110
+                    try:
+                        da = float(ml_away_str)
+                        ml_away_american = round((da - 1.0) * 100) if da >= 2.0 else round(-100 / (da - 1.0)) if da > 1.0 else -110
+                    except:
+                        ml_away_american = -110
+                else:
+                    # American odds format
+                    ip_home = _american_to_implied_prob(ml_home_str)
+                    ip_away = _american_to_implied_prob(ml_away_str)
+                    try:
+                        ml_home_american = float(ml_home_str)
+                    except:
+                        ml_home_american = -110
+                    try:
+                        ml_away_american = float(ml_away_str)
+                    except:
+                        ml_away_american = -110
+
+                # Overround (vig)
+                overround = ip_home + ip_away  # typically 1.04-1.08
+
+                # Fair (vig-removed) probabilities
+                if overround > 0:
+                    fair_home = ip_home / overround
+                    fair_away = ip_away / overround
+                else:
+                    fair_home = 0.5
+                    fair_away = 0.5
+
+                # Parse spread and total (may be missing)
+                spread_str = row.get('spread_home', '').strip()
+                total_str = row.get('total', '').strip()
+                try:
+                    spread_home = float(spread_str) if spread_str else None
+                except (ValueError, TypeError):
+                    spread_home = None
+                try:
+                    total = float(total_str) if total_str else None
+                except (ValueError, TypeError):
+                    total = None
+
+                key = (date_str, home_abbr, away_abbr)
+                entry = {
+                    'implied_home_prob': ip_home,
+                    'implied_away_prob': ip_away,
+                    'fair_home_prob': fair_home,
+                    'fair_away_prob': fair_away,
+                    'spread_home': spread_home,
+                    'total': total,
+                    'ml_home_raw': ml_home_american,
+                    'ml_away_raw': ml_away_american,
+                    'overround': overround,
+                    'book': book,
+                    'source': source,
+                }
+
+                multi_book[key].append(ip_home)
+
+                # Prefer betmgm over other books; first entry wins if same book
+                if key not in lookup or (book == 'betmgm' and lookup[key].get('book') != 'betmgm'):
+                    lookup[key] = entry
+
+    except Exception as e:
+        # Silently return empty on any file error
+        return {}
+
+    # Add books_disagreement where multiple books exist
+    for key, probs in multi_book.items():
+        if key in lookup and len(probs) > 1:
+            lookup[key]['books_disagreement'] = max(probs) - min(probs)
+
+    return lookup
 
 
 class NBAFeatureEngine:
@@ -2253,21 +2458,137 @@ class NBAFeatureEngine:
             "venue_road_penalty",                            # a_overall_wp - a_road_wp (road penalty)
         ])
 
+        # 39. CIRCADIAN RHYTHM & TRAVEL FATIGUE (8 features) — Chronobiology Intl 2024
+        # Novel combinations: timezone-weighted fatigue + rest non-linearity
+        # Distinct from Cat 6 (which has raw rest/travel) — these are normalized composites
+        names.extend([
+            "circ_h_travel_dist",       # Great-circle miles from last game city (home team)
+            "circ_a_travel_dist",       # Great-circle miles from last game city (away team)
+            "circ_h_tz_shift",          # Timezone hours crossed since last game (home)
+            "circ_a_tz_shift",          # Timezone hours crossed since last game (away)
+            "circ_h_fatigue_index",     # Composite: distance/500 + tz_shift*0.5 + b2b*2 - rest*0.3
+            "circ_a_fatigue_index",     # Composite: distance/500 + tz_shift*0.5 + b2b*2 - rest*0.3
+            "circ_advantage",           # away_fatigue_index - home_fatigue_index (positive = home fresher)
+            "circ_rest_nonlinear",      # (h_rest_sq - a_rest_sq) capped: captures diminishing rest benefit
+        ])
+
+        # 41. TRANSITION vs HALF-COURT EFFICIENCY SPLITS (7 features)
+        # Derived from fb_pts (fast break) and pace in existing box score stats
+        names.extend([
+            "trans41_h_fb_rate",        # Home fast-break pts as fraction of total scoring
+            "trans41_a_fb_rate",        # Away fast-break pts as fraction of total scoring
+            "trans41_h_halfcourt_eff",  # Home half-court efficiency proxy (pts - fb_pts) / poss
+            "trans41_a_halfcourt_eff",  # Away half-court efficiency proxy
+            "trans41_fb_rate_diff",     # h_fb_rate - a_fb_rate
+            "trans41_pace_x_fb",        # pace * fb_rate interaction (high pace + high transition = synergy)
+            "trans41_halfcourt_edge",   # h_halfcourt_eff - a_halfcourt_eff
+        ])
+
+        # 43. CLUTCH PERFORMANCE FEATURES (8 features)
+        # Computed from close games (|margin| <= 5) in rolling records
+        names.extend([
+            "clutch43_h_wp",            # Win % in clutch games (last 20)
+            "clutch43_a_wp",            # Win % in clutch games (last 20)
+            "clutch43_h_margin",        # Avg margin in clutch games
+            "clutch43_a_margin",        # Avg margin in clutch games
+            "clutch43_h_ortg",          # Offensive rating in clutch games
+            "clutch43_a_ortg",          # Offensive rating in clutch games
+            "clutch43_wp_diff",         # h_clutch_wp - a_clutch_wp
+            "clutch43_margin_diff",     # h_clutch_margin - a_clutch_margin
+        ])
+
+        # 44. GAME TOTALS PREDICTION FEATURES (10 features)
+        # Encodes expected game pace and scoring volume for O/U modelling.
+        # Derived entirely from rolling pts/opp_pts/ortg/drtg — no new data source.
+        # Use case: (1) direct O/U prediction; (2) interaction terms for win model
+        #           (high-total games are often closer; low-total = grind favors defense).
+        names.extend([
+            "tot44_h_ppg10",            # Home rolling PPG (last 10) normalized to league avg
+            "tot44_a_ppg10",            # Away rolling PPG (last 10) normalized
+            "tot44_h_papg10",           # Home rolling PAPG (last 10) normalized
+            "tot44_a_papg10",           # Away rolling PAPG (last 10) normalized
+            "tot44_matchup_total",      # Predicted total via PPG/PAPG interaction (normalized)
+            "tot44_pace_sum",           # (h_pace + a_pace) / 2 — expected game pace
+            "tot44_pace_mismatch",      # |h_pace - a_pace| — fast vs slow clash
+            "tot44_ortg_sum",           # (h_ortg + a_ortg) / 2 — combined offensive quality
+            "tot44_drtg_sum",           # (h_drtg + a_drtg) / 2 — combined defensive quality
+            "tot44_score_env",          # (ortg_sum - drtg_sum) / 10 — net scoring environment
+        ])
+
+        # 42. SHOT QUALITY ZONE FEATURES (10 features)
+        # From nba_api shot locations: zone FG%, shot distribution, xEFG.
+        # Montrucchio 2026 (Brier 0.199) used spatial shot embeddings.
+        # Graceful fallback to 0.0 when tracking data not loaded.
+        names.extend([
+            "shot42_h_rim_rate",         # Home restricted area shot frequency
+            "shot42_a_rim_rate",         # Away restricted area shot frequency
+            "shot42_h_mid_rate",         # Home mid-range shot frequency
+            "shot42_a_mid_rate",         # Away mid-range shot frequency
+            "shot42_h_three_rate",       # Home 3PT rate
+            "shot42_a_three_rate",       # Away 3PT rate
+            "shot42_h_xefg",            # Home expected eFG% from shot distribution
+            "shot42_a_xefg",            # Away expected eFG% from shot distribution
+            "shot42_rim_rate_diff",      # h_rim_rate - a_rim_rate (paint dominance)
+            "shot42_xefg_diff",          # h_xefg - a_xefg (shot quality edge)
+        ])
+
+        # 45. PLAYER TRACKING / HUSTLE FEATURES (12 features)
+        # From nba_api: hustle stats, speed/distance, touches, drives.
+        # Proxies effort intensity, pace profile, and defensive activity.
+        # Expected Brier delta: -0.003 to -0.006 (replaces box-score proxies).
+        names.extend([
+            "track45_h_contested",       # Home team avg contested shots per game
+            "track45_a_contested",       # Away team avg contested shots per game
+            "track45_h_deflections",     # Home team avg deflections per game
+            "track45_a_deflections",     # Away team avg deflections per game
+            "track45_h_speed",           # Home team avg player speed (mph)
+            "track45_a_speed",           # Away team avg player speed (mph)
+            "track45_h_loose_balls",     # Home team loose balls recovered per game
+            "track45_a_loose_balls",     # Away team loose balls recovered per game
+            "track45_h_drives",          # Home team drives per game
+            "track45_a_drives",          # Away team drives per game
+            "track45_contested_diff",    # h_contested - a_contested (defensive intensity edge)
+            "track45_speed_diff",        # h_speed - a_speed (pace profile mismatch)
+        ])
+
+        # 46. REAL ODDS MARKET FEATURES (8 features)
+        # From historical odds CSV: pre-game moneylines, spreads, totals.
+        # These are the strongest predictive features available — the market
+        # aggregates all public information into a single number.
+        # Expected Brier delta: -0.005 to -0.015 (market-calibrated features).
+        # Graceful fallback: 0.5 prob, 0.0 spread, 220.0 total when odds unavailable.
+        names.extend([
+            "odds46_implied_home_prob",   # Market implied home win prob (vig-inclusive)
+            "odds46_implied_away_prob",   # Market implied away win prob (vig-inclusive)
+            "odds46_fair_home_prob",      # Vig-removed fair home probability
+            "odds46_fair_away_prob",      # Vig-removed fair away probability
+            "odds46_spread_home",         # Point spread (negative = home favored), normalized /10
+            "odds46_total",               # Over/under total, normalized /220
+            "odds46_overround",           # Total implied prob (vig level, ~1.04-1.08)
+            "odds46_spread_implied_diff", # spread_implied_prob - ml_implied_prob (market consistency)
+        ])
+
         self.feature_names = names
 
-    def build(self, games, market_data=None, referee_data=None, player_data=None, quarter_data=None):
+    def build(self, games, market_data=None, referee_data=None, player_data=None, quarter_data=None, tracking_data=None, odds_data=None):
         """
         Build feature matrix from historical games.
 
         Args:
             games: List of game dicts with home/away teams, scores, stats
             market_data: Optional dict of game_id → market features
+            tracking_data: Optional dict of team → {shot42_*, track45_*} from nba_api
+            odds_data: Optional dict from load_historical_odds() — (date, home, away) → odds entry.
+                       If None, will attempt to auto-load from default CSV path.
 
         Returns:
             X: numpy array (n_games, n_features)
             y: numpy array (n_games,) — 1 if home win
             feature_names: list of feature names
         """
+        # Auto-load historical odds if not provided
+        if odds_data is None:
+            odds_data = load_historical_odds()
         # State trackers
         team_results = defaultdict(list)  # team → [(date, win, margin, opp, stats_dict)]
         team_last = {}                     # team → last game date
@@ -5110,6 +5431,239 @@ class NBAFeatureEngine:
             _a_overall_wp = self._wp(ar_, len(ar_)) if ar_ else 0.5
             _a_road_wp_82 = self._wp(_a_away_tr, len(_a_away_tr)) if _a_away_tr else _a_overall_wp
             row.append(_a_overall_wp - _a_road_wp_82)
+
+            # ── 39. CIRCADIAN RHYTHM & TRAVEL FATIGUE (8 features) ──
+            # Novel normalized composites distinct from raw Cat 6 rest/travel features
+            try:
+                _h_dist = self._travel_dist(hr_, home) / 500.0  # Normalize: ~500mi = 1 unit
+                _a_dist = self._travel_dist(ar_, away) / 500.0
+                _h_tz = abs(TIMEZONE_ET.get(home, 0) - TIMEZONE_ET.get(self._last_location(hr_), 0))
+                _a_tz = abs(TIMEZONE_ET.get(away, 0) - TIMEZONE_ET.get(self._last_location(ar_), 0))
+                _h_b2b = 1.0 if h_rest <= 1 else 0.0
+                _a_b2b = 1.0 if a_rest <= 1 else 0.0
+                # Fatigue index: travel + timezone disruption + back-to-back penalty - rest recovery
+                _h_fatigue = _h_dist + _h_tz * 0.5 + _h_b2b * 2.0 - min(h_rest, 4) * 0.3
+                _a_fatigue = _a_dist + _a_tz * 0.5 + _a_b2b * 2.0 - min(a_rest, 4) * 0.3
+                # Rest non-linearity: diminishing benefit beyond 3 days (capped at ±2)
+                _h_rest_nl = min(h_rest, 5) ** 0.5 - min(a_rest, 5) ** 0.5
+                row.extend([
+                    min(_h_dist, 6.0),                   # circ_h_travel_dist (cap at 6 = 3000mi)
+                    min(_a_dist, 6.0),                   # circ_a_travel_dist
+                    float(_h_tz),                        # circ_h_tz_shift
+                    float(_a_tz),                        # circ_a_tz_shift
+                    max(-3.0, min(5.0, _h_fatigue)),     # circ_h_fatigue_index (clipped)
+                    max(-3.0, min(5.0, _a_fatigue)),     # circ_a_fatigue_index (clipped)
+                    max(-5.0, min(5.0, _a_fatigue - _h_fatigue)),  # circ_advantage
+                    max(-2.0, min(2.0, _h_rest_nl)),     # circ_rest_nonlinear
+                ])
+            except Exception:
+                row.extend([0.0] * 8)
+
+            # ── 41. TRANSITION vs HALF-COURT EFFICIENCY SPLITS (7 features) ──
+            # Derived from fb_pts (fast break) and pace in existing box score stats
+            try:
+                _h_fb_rate = self._stat_avg(hr_, 10, "fb_pts") / max(self._ppg(hr_, 10), 1.0)
+                _a_fb_rate = self._stat_avg(ar_, 10, "fb_pts") / max(self._ppg(ar_, 10), 1.0)
+                _h_pace10 = self._pace(hr_, 10)
+                _a_pace10 = self._pace(ar_, 10)
+                # Half-court efficiency: scoring minus fast-break contribution, per possession
+                _h_hc_eff = (self._ppg(hr_, 10) * (1.0 - _h_fb_rate)) / max(_h_pace10, 60.0) * 100.0
+                _a_hc_eff = (self._ppg(ar_, 10) * (1.0 - _a_fb_rate)) / max(_a_pace10, 60.0) * 100.0
+                # pace × fb_rate interaction: high-pace + high-transition = fast-break synergy
+                _h_pace_fb = (_h_pace10 / 100.0) * _h_fb_rate
+                _a_pace_fb = (_a_pace10 / 100.0) * _a_fb_rate
+                row.extend([
+                    min(_h_fb_rate, 0.5),                # trans41_h_fb_rate
+                    min(_a_fb_rate, 0.5),                # trans41_a_fb_rate
+                    min(_h_hc_eff / 120.0, 1.2),         # trans41_h_halfcourt_eff (normalized)
+                    min(_a_hc_eff / 120.0, 1.2),         # trans41_a_halfcourt_eff
+                    _h_fb_rate - _a_fb_rate,             # trans41_fb_rate_diff
+                    _h_pace_fb - _a_pace_fb,             # trans41_pace_x_fb
+                    (_h_hc_eff - _a_hc_eff) / 20.0,     # trans41_halfcourt_edge
+                ])
+            except Exception:
+                row.extend([0.0] * 7)
+
+            # ── 43. CLUTCH PERFORMANCE FEATURES (8 features) ──
+            # Computed from close games (|margin| <= 5) in rolling records
+            try:
+                _h_clutch = [r for r in hr_[-30:] if abs(r[2]) <= 5]
+                _a_clutch = [r for r in ar_[-30:] if abs(r[2]) <= 5]
+                _h_cwp = self._wp(_h_clutch, len(_h_clutch)) if _h_clutch else 0.5
+                _a_cwp = self._wp(_a_clutch, len(_a_clutch)) if _a_clutch else 0.5
+                _h_cmg = self._pd(_h_clutch, len(_h_clutch)) if _h_clutch else 0.0
+                _a_cmg = self._pd(_a_clutch, len(_a_clutch)) if _a_clutch else 0.0
+                # Ortg in clutch games
+                _h_cortg = (sum(r[4].get("ortg", 100.0) for r in _h_clutch) / len(_h_clutch)
+                            if _h_clutch else self._ortg(hr_, 10))
+                _a_cortg = (sum(r[4].get("ortg", 100.0) for r in _a_clutch) / len(_a_clutch)
+                            if _a_clutch else self._ortg(ar_, 10))
+                row.extend([
+                    _h_cwp,                              # clutch43_h_wp
+                    _a_cwp,                              # clutch43_a_wp
+                    _h_cmg / 10.0,                       # clutch43_h_margin (normalized)
+                    _a_cmg / 10.0,                       # clutch43_a_margin
+                    (_h_cortg - 100.0) / 20.0,           # clutch43_h_ortg (normalized)
+                    (_a_cortg - 100.0) / 20.0,           # clutch43_a_ortg
+                    _h_cwp - _a_cwp,                     # clutch43_wp_diff
+                    (_h_cmg - _a_cmg) / 10.0,            # clutch43_margin_diff
+                ])
+            except Exception:
+                row.extend([0.0] * 8)
+
+            # ── 44. GAME TOTALS PREDICTION FEATURES (10 features) ──
+            # Normalized pace/scoring context to signal high-total vs grind-it-out games.
+            # High-total environments favor offense-heavy win predictions; low-total favors defense.
+            try:
+                _league_ppg = 110.0   # baseline league average PPG
+                _h_ppg10 = self._ppg(hr_, 10)
+                _a_ppg10 = self._ppg(ar_, 10)
+                _h_pap10 = self._papg(hr_, 10)
+                _a_pap10 = self._papg(ar_, 10)
+                # Normalize each PPG/PAPG to league avg (1.0 = average, >1 = high scoring)
+                _h_ppg_n = _h_ppg10 / _league_ppg
+                _a_ppg_n = _a_ppg10 / _league_ppg
+                _h_pap_n = _h_pap10 / _league_ppg
+                _a_pap_n = _a_pap10 / _league_ppg
+                # Matchup total: (H_PPG + A_PAP)/2 + (A_PPG + H_PAP)/2 = H scoring pace + A scoring pace
+                # Normalize to league average total (220.0)
+                _matchup_total = ((_h_ppg10 + _a_pap10) / 2.0 + (_a_ppg10 + _h_pap10) / 2.0) / 220.0
+                # Pace: use poss as proxy (ortg stored per 100 poss)
+                _h_pace10 = self._pace(hr_, 10)
+                _a_pace10 = self._pace(ar_, 10)
+                _avg_pace = (_h_pace10 + _a_pace10) / 2.0
+                # Normalize pace to ~97 league avg
+                _pace_sum_n = _avg_pace / 97.0
+                _pace_mismatch = abs(_h_pace10 - _a_pace10) / 10.0   # cap at ~3 sigma
+                # Offensive + defensive ratings (normalize to 110 = league avg)
+                _h_ortg10 = self._ortg(hr_, 10)
+                _a_ortg10 = self._ortg(ar_, 10)
+                _h_drtg10 = self._drtg(hr_, 10)
+                _a_drtg10 = self._drtg(ar_, 10)
+                _ortg_sum = (_h_ortg10 + _a_ortg10) / (2.0 * 110.0)  # >1 = above-avg offense
+                _drtg_sum = (_h_drtg10 + _a_drtg10) / (2.0 * 110.0)  # >1 = above-avg defense (worse)
+                # Net scoring environment: positive = high-scoring game expected
+                _score_env = ((_h_ortg10 + _a_ortg10) - (_h_drtg10 + _a_drtg10)) / 20.0
+                row.extend([
+                    max(0.5, min(2.0, _h_ppg_n)),        # tot44_h_ppg10
+                    max(0.5, min(2.0, _a_ppg_n)),        # tot44_a_ppg10
+                    max(0.5, min(2.0, _h_pap_n)),        # tot44_h_papg10
+                    max(0.5, min(2.0, _a_pap_n)),        # tot44_a_papg10
+                    max(0.7, min(1.5, _matchup_total)),  # tot44_matchup_total
+                    max(0.7, min(1.4, _pace_sum_n)),     # tot44_pace_sum
+                    min(2.0, _pace_mismatch),            # tot44_pace_mismatch
+                    max(0.7, min(1.4, _ortg_sum)),       # tot44_ortg_sum
+                    max(0.7, min(1.4, _drtg_sum)),       # tot44_drtg_sum
+                    max(-1.5, min(1.5, _score_env)),     # tot44_score_env
+                ])
+            except Exception:
+                row.extend([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0])
+
+            # ── Cat 42: Shot Quality Zone Features (10 features) ──
+            try:
+                td = tracking_data or {}
+                h_td = td.get(home, {})
+                a_td = td.get(away, {})
+                _h_rim = h_td.get('rim_rate', 0.30)
+                _a_rim = a_td.get('rim_rate', 0.30)
+                _h_mid = h_td.get('mid_rate', 0.15)
+                _a_mid = a_td.get('mid_rate', 0.15)
+                _h_three = h_td.get('three_rate', 0.40)
+                _a_three = a_td.get('three_rate', 0.40)
+                # xEFG: weighted by league-avg zone FG%
+                _h_xefg = 0.65 * _h_rim + 0.40 * _h_mid + 0.53 * _h_three * 1.5
+                _a_xefg = 0.65 * _a_rim + 0.40 * _a_mid + 0.53 * _a_three * 1.5
+                row.extend([
+                    _h_rim,                                  # shot42_h_rim_rate
+                    _a_rim,                                  # shot42_a_rim_rate
+                    _h_mid,                                  # shot42_h_mid_rate
+                    _a_mid,                                  # shot42_a_mid_rate
+                    _h_three,                                # shot42_h_three_rate
+                    _a_three,                                # shot42_a_three_rate
+                    _h_xefg,                                 # shot42_h_xefg
+                    _a_xefg,                                 # shot42_a_xefg
+                    _h_rim - _a_rim,                         # shot42_rim_rate_diff
+                    _h_xefg - _a_xefg,                       # shot42_xefg_diff
+                ])
+            except Exception:
+                row.extend([0.30, 0.30, 0.15, 0.15, 0.40, 0.40, 0.51, 0.51, 0.0, 0.0])
+
+            # ── Cat 45: Player Tracking / Hustle Features (12 features) ──
+            try:
+                td = tracking_data or {}
+                h_td = td.get(home, {})
+                a_td = td.get(away, {})
+                _h_cont = h_td.get('contested_shots', 0.0) / 50.0   # normalize (~50/game)
+                _a_cont = a_td.get('contested_shots', 0.0) / 50.0
+                _h_defl = h_td.get('deflections', 0.0) / 15.0       # normalize (~15/game)
+                _a_defl = a_td.get('deflections', 0.0) / 15.0
+                _h_spd = h_td.get('avg_speed', 0.0) / 5.0           # normalize (~4.5 mph)
+                _a_spd = a_td.get('avg_speed', 0.0) / 5.0
+                _h_lb = h_td.get('loose_balls', 0.0) / 8.0          # normalize (~8/game)
+                _a_lb = a_td.get('loose_balls', 0.0) / 8.0
+                _h_drv = h_td.get('drives', 0.0) / 50.0             # normalize (~50/game)
+                _a_drv = a_td.get('drives', 0.0) / 50.0
+                row.extend([
+                    _h_cont,                                 # track45_h_contested
+                    _a_cont,                                 # track45_a_contested
+                    _h_defl,                                 # track45_h_deflections
+                    _a_defl,                                 # track45_a_deflections
+                    _h_spd,                                  # track45_h_speed
+                    _a_spd,                                  # track45_a_speed
+                    _h_lb,                                   # track45_h_loose_balls
+                    _a_lb,                                   # track45_a_loose_balls
+                    _h_drv,                                  # track45_h_drives
+                    _a_drv,                                  # track45_a_drives
+                    _h_cont - _a_cont,                       # track45_contested_diff
+                    _h_spd - _a_spd,                         # track45_speed_diff
+                ])
+            except Exception:
+                row.extend([0.0] * 12)
+
+            # ── Cat 46: Real Odds Market Features (8 features) ──
+            try:
+                _odds_key = (gd, home, away)
+                _odds = (odds_data or {}).get(_odds_key, {})
+                if _odds:
+                    _ip_home = _odds.get('implied_home_prob', 0.5)
+                    _ip_away = _odds.get('implied_away_prob', 0.5)
+                    _fp_home = _odds.get('fair_home_prob', 0.5)
+                    _fp_away = _odds.get('fair_away_prob', 0.5)
+                    _sp_home = _odds.get('spread_home', None)
+                    _total   = _odds.get('total', None)
+                    _overr   = _odds.get('overround', 1.05)
+
+                    # Normalize spread: /10 so that a 10-point spread = 1.0
+                    _sp_norm = (_sp_home / 10.0) if _sp_home is not None else 0.0
+                    # Normalize total: /220 so that league-average total ~ 1.0
+                    _total_norm = (_total / 220.0) if _total is not None else 1.0
+
+                    # Spread-implied probability (logistic approximation):
+                    # P(home_win) ≈ 1 / (1 + 10^(spread / 7.5))
+                    # A 7.5-point spread corresponds to ~90% win probability
+                    if _sp_home is not None:
+                        _sp_implied = 1.0 / (1.0 + 10.0 ** (_sp_home / 7.5))
+                    else:
+                        _sp_implied = _fp_home  # fallback to moneyline-derived
+
+                    # Market consistency: difference between spread-implied and ML-implied
+                    _spread_ml_diff = _sp_implied - _fp_home
+
+                    row.extend([
+                        _ip_home,              # odds46_implied_home_prob
+                        _ip_away,              # odds46_implied_away_prob
+                        _fp_home,              # odds46_fair_home_prob
+                        _fp_away,              # odds46_fair_away_prob
+                        _sp_norm,              # odds46_spread_home (normalized)
+                        _total_norm,           # odds46_total (normalized)
+                        _overr,                # odds46_overround
+                        _spread_ml_diff,       # odds46_spread_implied_diff
+                    ])
+                else:
+                    # No odds data for this game — safe defaults
+                    row.extend([0.5, 0.5, 0.5, 0.5, 0.0, 1.0, 1.05, 0.0])
+            except Exception:
+                row.extend([0.5, 0.5, 0.5, 0.5, 0.0, 1.0, 1.05, 0.0])
 
             X.append(row)
             y.append(1 if hs > as_ else 0)

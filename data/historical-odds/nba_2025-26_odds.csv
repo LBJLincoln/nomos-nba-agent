@@ -1,0 +1,1129 @@
+date,home_team,away_team,moneyline_home,moneyline_away,spread_home,total,book,source
+2025-10-21,Los Angeles Lakers,Golden State Warriors,118,-145,2.5,227.5,betmgm,mgm_kaggle
+2025-10-21,Oklahoma City Thunder,Houston Rockets,-250,200,-6.5,225.5,betmgm,mgm_kaggle
+2025-10-22,Atlanta Hawks,Toronto Raptors,-220,180,-5.5,237.5,betmgm,mgm_kaggle
+2025-10-22,Boston Celtics,Philadelphia 76ers,-210,170,-6.5,230.5,betmgm,mgm_kaggle
+2025-10-22,Charlotte Hornets,Brooklyn Nets,-210,170,-5.5,227.5,betmgm,mgm_kaggle
+2025-10-22,Chicago Bulls,Detroit Pistons,125,-150,2.5,236.5,betmgm,mgm_kaggle
+2025-10-22,Dallas Mavericks,San Antonio Spurs,-160,135,-3.5,224.5,betmgm,mgm_kaggle
+2025-10-22,Memphis Grizzlies,New Orleans Pelicans,-175,145,-3.5,236.5,betmgm,mgm_kaggle
+2025-10-22,Milwaukee Bucks,Washington Wizards,-450,350,-10.5,227.5,betmgm,mgm_kaggle
+2025-10-22,New York Knicks,Cleveland Cavaliers,110,-135,1.5,228.5,betmgm,mgm_kaggle
+2025-10-22,Orlando Magic,Miami Heat,-325,260,-8.5,215.5,betmgm,mgm_kaggle
+2025-10-22,Phoenix Suns,Sacramento Kings,-160,135,-3.5,228.5,betmgm,mgm_kaggle
+2025-10-22,Portland Trail Blazers,Minnesota Timberwolves,165,-200,4.5,223.5,betmgm,mgm_kaggle
+2025-10-22,Utah Jazz,Los Angeles Clippers,340,-450,9.5,225.5,betmgm,mgm_kaggle
+2025-10-23,Golden State Warriors,Denver Nuggets,-118,-102,-1.5,233.5,betmgm,mgm_kaggle
+2025-10-23,Indiana Pacers,Oklahoma City Thunder,240,-300,7.5,231.5,betmgm,mgm_kaggle
+2025-10-24,Brooklyn Nets,Cleveland Cavaliers,450,-625,11.5,230.5,betmgm,mgm_kaggle
+2025-10-24,Dallas Mavericks,Washington Wizards,-450,340,-8.5,228.5,betmgm,mgm_kaggle
+2025-10-24,Houston Rockets,Detroit Pistons,-250,200,-6.5,226.5,betmgm,mgm_kaggle
+2025-10-24,Los Angeles Clippers,Phoenix Suns,-450,350,-10.5,223.5,betmgm,mgm_kaggle
+2025-10-24,Los Angeles Lakers,Minnesota Timberwolves,105,-125,1.5,225.5,betmgm,mgm_kaggle
+2025-10-24,Memphis Grizzlies,Miami Heat,-150,125,-3.5,232.5,betmgm,mgm_kaggle
+2025-10-24,New Orleans Pelicans,San Antonio Spurs,145,-175,3.5,233.5,betmgm,mgm_kaggle
+2025-10-24,New York Knicks,Boston Celtics,-175,145,-3.5,231.5,betmgm,mgm_kaggle
+2025-10-24,Orlando Magic,Atlanta Hawks,-225,185,-5.5,235.5,betmgm,mgm_kaggle
+2025-10-24,Portland Trail Blazers,Golden State Warriors,125,-150,2.5,227.5,betmgm,mgm_kaggle
+2025-10-24,Sacramento Kings,Utah Jazz,-220,180,-5.5,234.5,betmgm,mgm_kaggle
+2025-10-24,Toronto Raptors,Milwaukee Bucks,-135,110,-2.5,235.5,betmgm,mgm_kaggle
+2025-10-25,Atlanta Hawks,Oklahoma City Thunder,275,-350,8.5,237.5,betmgm,mgm_kaggle
+2025-10-25,Denver Nuggets,Phoenix Suns,-800,550,-12.5,234.5,betmgm,mgm_kaggle
+2025-10-25,Memphis Grizzlies,Indiana Pacers,-135,110,-2.5,240.5,betmgm,mgm_kaggle
+2025-10-25,Orlando Magic,Chicago Bulls,-250,200,-6.5,232.5,betmgm,mgm_kaggle
+2025-10-25,Philadelphia 76ers,Charlotte Hornets,-190,155,-4.5,237.5,betmgm,mgm_kaggle
+2025-10-26,Cleveland Cavaliers,Milwaukee Bucks,-250,200,-6.5,234.5,betmgm,mgm_kaggle
+2025-10-26,Dallas Mavericks,Toronto Raptors,-102,-118,1.5,231.5,betmgm,mgm_kaggle
+2025-10-26,Detroit Pistons,Boston Celtics,-140,115,-2.5,226.5,betmgm,mgm_kaggle
+2025-10-26,Los Angeles Clippers,Portland Trail Blazers,-325,260,-8.5,224.5,betmgm,mgm_kaggle
+2025-10-26,Miami Heat,New York Knicks,135,-160,3.5,230.5,betmgm,mgm_kaggle
+2025-10-26,Minnesota Timberwolves,Indiana Pacers,-625,450,-11.5,228.5,betmgm,mgm_kaggle
+2025-10-26,Sacramento Kings,Los Angeles Lakers,-175,145,-4.5,225.5,betmgm,mgm_kaggle
+2025-10-26,San Antonio Spurs,Brooklyn Nets,-500,375,-10.5,227.5,betmgm,mgm_kaggle
+2025-10-26,Washington Wizards,Charlotte Hornets,-125,105,-1.5,240.5,betmgm,mgm_kaggle
+2025-10-27,Chicago Bulls,Atlanta Hawks,115,-140,2.5,244.5,betmgm,mgm_kaggle
+2025-10-27,Dallas Mavericks,Oklahoma City Thunder,300,-375,8.5,225.5,betmgm,mgm_kaggle
+2025-10-27,Detroit Pistons,Cleveland Cavaliers,105,-130,1.5,231.5,betmgm,mgm_kaggle
+2025-10-27,Golden State Warriors,Memphis Grizzlies,-325,260,-8.5,240.5,betmgm,mgm_kaggle
+2025-10-27,Houston Rockets,Brooklyn Nets,-1400,800,-15.5,225.5,betmgm,mgm_kaggle
+2025-10-27,Los Angeles Lakers,Portland Trail Blazers,125,-155,3.5,227.5,betmgm,mgm_kaggle
+2025-10-27,Minnesota Timberwolves,Denver Nuggets,190,-235,6.5,229.5,betmgm,mgm_kaggle
+2025-10-27,New Orleans Pelicans,Boston Celtics,155,-190,4.5,231.5,betmgm,mgm_kaggle
+2025-10-27,Philadelphia 76ers,Orlando Magic,200,-250,6.5,227.5,betmgm,mgm_kaggle
+2025-10-27,San Antonio Spurs,Toronto Raptors,-185,150,-4.5,232.5,betmgm,mgm_kaggle
+2025-10-27,Utah Jazz,Phoenix Suns,-130,105,-1.5,230.5,betmgm,mgm_kaggle
+2025-10-28,Golden State Warriors,Los Angeles Clippers,100,-120,1.5,223.5,betmgm,mgm_kaggle
+2025-10-28,Miami Heat,Charlotte Hornets,-190,155,-4.5,240.5,betmgm,mgm_kaggle
+2025-10-28,Milwaukee Bucks,New York Knicks,110,-135,2.5,230.5,betmgm,mgm_kaggle
+2025-10-28,Oklahoma City Thunder,Sacramento Kings,-400,310,-8.5,226.5,betmgm,mgm_kaggle
+2025-10-28,Washington Wizards,Philadelphia 76ers,155,-190,4.5,239.5,betmgm,mgm_kaggle
+2025-10-29,Boston Celtics,Cleveland Cavaliers,140,-170,3.5,234.5,betmgm,mgm_kaggle
+2025-10-29,Brooklyn Nets,Atlanta Hawks,260,-325,8.5,239.5,betmgm,mgm_kaggle
+2025-10-29,Chicago Bulls,Sacramento Kings,-190,155,-4.5,238.5,betmgm,mgm_kaggle
+2025-10-29,Dallas Mavericks,Indiana Pacers,-235,190,-5.5,229.5,betmgm,mgm_kaggle
+2025-10-29,Denver Nuggets,New Orleans Pelicans,-700,500,-11.5,238.5,betmgm,mgm_kaggle
+2025-10-29,Detroit Pistons,Orlando Magic,105,-125,1.5,227.5,betmgm,mgm_kaggle
+2025-10-29,Minnesota Timberwolves,Los Angeles Lakers,-300,240,-7.5,224.5,betmgm,mgm_kaggle
+2025-10-29,Phoenix Suns,Memphis Grizzlies,110,-135,1.5,242.5,betmgm,mgm_kaggle
+2025-10-29,Toronto Raptors,Houston Rockets,185,-225,5.5,233.5,betmgm,mgm_kaggle
+2025-10-29,Utah Jazz,Portland Trail Blazers,125,-155,3.5,235.5,betmgm,mgm_kaggle
+2025-10-30,Charlotte Hornets,Orlando Magic,135,-160,3.5,238.5,betmgm,mgm_kaggle
+2025-10-30,Milwaukee Bucks,Golden State Warriors,240,-300,7.5,228.5,betmgm,mgm_kaggle
+2025-10-30,Oklahoma City Thunder,Washington Wizards,-1400,775,-15.5,231.5,betmgm,mgm_kaggle
+2025-10-30,San Antonio Spurs,Miami Heat,-235,190,-5.5,228.5,betmgm,mgm_kaggle
+2025-10-31,Chicago Bulls,New York Knicks,165,-200,4.5,233.5,betmgm,mgm_kaggle
+2025-10-31,Cleveland Cavaliers,Toronto Raptors,-190,155,-4.5,236.5,betmgm,mgm_kaggle
+2025-10-31,Indiana Pacers,Atlanta Hawks,110,-135,2.5,232.5,betmgm,mgm_kaggle
+2025-10-31,Los Angeles Clippers,New Orleans Pelicans,-550,400,-11.5,222.5,betmgm,mgm_kaggle
+2025-10-31,Memphis Grizzlies,Los Angeles Lakers,105,-130,1.5,238.5,betmgm,mgm_kaggle
+2025-10-31,Philadelphia 76ers,Boston Celtics,105,-125,1.5,233.5,betmgm,mgm_kaggle
+2025-10-31,Phoenix Suns,Utah Jazz,-160,135,-3.5,237.5,betmgm,mgm_kaggle
+2025-10-31,Portland Trail Blazers,Denver Nuggets,190,-235,5.5,239.5,betmgm,mgm_kaggle
+2025-11-01,Boston Celtics,Houston Rockets,155,-190,4.5,226.5,betmgm,mgm_kaggle
+2025-11-01,Charlotte Hornets,Minnesota Timberwolves,154,-190,4.5,234.5,betmgm,mgm_kaggle
+2025-11-01,Detroit Pistons,Dallas Mavericks,-295,230,-7.5,227.5,betmgm,mgm_kaggle
+2025-11-01,Indiana Pacers,Golden State Warriors,375,-500,10.5,229.5,betmgm,mgm_kaggle
+2025-11-01,Milwaukee Bucks,Sacramento Kings,-250,200,-6.5,233.5,betmgm,mgm_kaggle
+2025-11-01,Washington Wizards,Orlando Magic,300,-375,8.5,233.5,betmgm,mgm_kaggle
+2025-11-02,Brooklyn Nets,Philadelphia 76ers,155,-190,4.5,232.5,betmgm,mgm_kaggle
+2025-11-02,Charlotte Hornets,Utah Jazz,-102,-118,1.5,233.5,betmgm,mgm_kaggle
+2025-11-02,Cleveland Cavaliers,Atlanta Hawks,-250,200,-6.5,229.5,betmgm,mgm_kaggle
+2025-11-02,Los Angeles Lakers,Miami Heat,-210,170,-5.5,232.5,betmgm,mgm_kaggle
+2025-11-02,New York Knicks,Chicago Bulls,-300,240,-7.5,235.5,betmgm,mgm_kaggle
+2025-11-02,Oklahoma City Thunder,New Orleans Pelicans,-800,550,-13.5,229.5,betmgm,mgm_kaggle
+2025-11-02,Phoenix Suns,San Antonio Spurs,170,-210,4.5,227.5,betmgm,mgm_kaggle
+2025-11-02,Toronto Raptors,Memphis Grizzlies,-185,150,-4.5,238.5,betmgm,mgm_kaggle
+2025-11-03,Boston Celtics,Utah Jazz,-500,375,-10.5,232.5,betmgm,mgm_kaggle
+2025-11-03,Brooklyn Nets,Minnesota Timberwolves,340,-450,9.5,226.5,betmgm,mgm_kaggle
+2025-11-03,Denver Nuggets,Sacramento Kings,-550,400,-11.5,236.5,betmgm,mgm_kaggle
+2025-11-03,Houston Rockets,Dallas Mavericks,-650,475,-12.5,226.5,betmgm,mgm_kaggle
+2025-11-03,Indiana Pacers,Milwaukee Bucks,195,-235,6.5,235.5,betmgm,mgm_kaggle
+2025-11-03,Los Angeles Clippers,Miami Heat,-300,240,-7.5,227.5,betmgm,mgm_kaggle
+2025-11-03,Memphis Grizzlies,Detroit Pistons,145,-175,3.5,235.5,betmgm,mgm_kaggle
+2025-11-03,New York Knicks,Washington Wizards,-800,550,-13.5,234.5,betmgm,mgm_kaggle
+2025-11-03,Portland Trail Blazers,Los Angeles Lakers,-425,325,-9.5,228.5,betmgm,mgm_kaggle
+2025-11-04,Atlanta Hawks,Orlando Magic,135,-165,3.5,228.5,betmgm,mgm_kaggle
+2025-11-04,Chicago Bulls,Philadelphia 76ers,-130,105,-2.5,240.5,betmgm,mgm_kaggle
+2025-11-04,Golden State Warriors,Phoenix Suns,-500,375,-10.5,235.5,betmgm,mgm_kaggle
+2025-11-04,Los Angeles Clippers,Oklahoma City Thunder,260,-325,8.5,219.5,betmgm,mgm_kaggle
+2025-11-04,New Orleans Pelicans,Charlotte Hornets,-150,125,-2.5,229.5,betmgm,mgm_kaggle
+2025-11-04,Toronto Raptors,Milwaukee Bucks,-135,110,-2.5,237.5,betmgm,mgm_kaggle
+2025-11-05,Boston Celtics,Washington Wizards,-750,525,-12.5,232.5,betmgm,mgm_kaggle
+2025-11-05,Cleveland Cavaliers,Philadelphia 76ers,-650,475,-12.5,234.5,betmgm,mgm_kaggle
+2025-11-05,Dallas Mavericks,New Orleans Pelicans,-300,240,-7.5,225.5,betmgm,mgm_kaggle
+2025-11-05,Denver Nuggets,Miami Heat,-375,300,-8.5,242.5,betmgm,mgm_kaggle
+2025-11-05,Detroit Pistons,Utah Jazz,-450,350,-9.5,232.5,betmgm,mgm_kaggle
+2025-11-05,Indiana Pacers,Brooklyn Nets,-275,220,-6.5,233.5,betmgm,mgm_kaggle
+2025-11-05,Los Angeles Lakers,San Antonio Spurs,100,-120,1.5,227.5,betmgm,mgm_kaggle
+2025-11-05,Memphis Grizzlies,Houston Rockets,240,-300,7.5,232.5,betmgm,mgm_kaggle
+2025-11-05,New York Knicks,Minnesota Timberwolves,-165,135,-3.5,229.5,betmgm,mgm_kaggle
+2025-11-05,Portland Trail Blazers,Oklahoma City Thunder,145,-175,3.5,231.5,betmgm,mgm_kaggle
+2025-11-05,Sacramento Kings,Golden State Warriors,-145,118,-2.5,225.5,betmgm,mgm_kaggle
+2025-11-06,Phoenix Suns,Los Angeles Clippers,-145,120,-2.5,224.5,betmgm,mgm_kaggle
+2025-11-07,Atlanta Hawks,Toronto Raptors,-135,110,-2.5,235.5,betmgm,mgm_kaggle
+2025-11-07,Brooklyn Nets,Detroit Pistons,360,-475,10.5,227.5,betmgm,mgm_kaggle
+2025-11-07,Denver Nuggets,Golden State Warriors,-450,350,-9.5,230.5,betmgm,mgm_kaggle
+2025-11-07,Memphis Grizzlies,Dallas Mavericks,-185,150,-4.5,232.5,betmgm,mgm_kaggle
+2025-11-07,Miami Heat,Charlotte Hornets,-295,230,-7.5,235.5,betmgm,mgm_kaggle
+2025-11-07,Milwaukee Bucks,Chicago Bulls,-175,145,-4.5,240.5,betmgm,mgm_kaggle
+2025-11-07,Minnesota Timberwolves,Utah Jazz,-700,500,-12.5,233.5,betmgm,mgm_kaggle
+2025-11-07,Orlando Magic,Boston Celtics,-165,135,-3.5,226.5,betmgm,mgm_kaggle
+2025-11-07,Sacramento Kings,Oklahoma City Thunder,450,-625,11.5,234.5,betmgm,mgm_kaggle
+2025-11-07,San Antonio Spurs,Houston Rockets,135,-165,3.5,224.5,betmgm,mgm_kaggle
+2025-11-07,Washington Wizards,Cleveland Cavaliers,650,-1000,13.5,241.5,betmgm,mgm_kaggle
+2025-11-08,Atlanta Hawks,Los Angeles Lakers,180,-220,5.5,228.5,betmgm,mgm_kaggle
+2025-11-08,Cleveland Cavaliers,Chicago Bulls,-375,290,-8.5,239.5,betmgm,mgm_kaggle
+2025-11-08,Denver Nuggets,Indiana Pacers,-450,340,-8.5,234.5,betmgm,mgm_kaggle
+2025-11-08,Los Angeles Clippers,Phoenix Suns,-190,155,-4.5,226.5,betmgm,mgm_kaggle
+2025-11-08,Miami Heat,Portland Trail Blazers,140,-170,3.5,242.5,betmgm,mgm_kaggle
+2025-11-08,Philadelphia 76ers,Toronto Raptors,-200,165,-4.5,236.5,betmgm,mgm_kaggle
+2025-11-08,San Antonio Spurs,New Orleans Pelicans,-600,425,-11.5,224.5,betmgm,mgm_kaggle
+2025-11-08,Washington Wizards,Dallas Mavericks,145,-175,4.5,233.5,betmgm,mgm_kaggle
+2025-11-09,Golden State Warriors,Indiana Pacers,-750,525,-12.5,221.5,betmgm,mgm_kaggle
+2025-11-09,Memphis Grizzlies,Oklahoma City Thunder,400,-550,10.5,230.5,betmgm,mgm_kaggle
+2025-11-09,Milwaukee Bucks,Houston Rockets,135,-165,3.5,232.5,betmgm,mgm_kaggle
+2025-11-09,New York Knicks,Brooklyn Nets,-1400,775,-15.5,226.5,betmgm,mgm_kaggle
+2025-11-09,Orlando Magic,Boston Celtics,-160,135,-3.5,227.5,betmgm,mgm_kaggle
+2025-11-09,Philadelphia 76ers,Detroit Pistons,155,-190,4.5,234.5,betmgm,mgm_kaggle
+2025-11-09,Sacramento Kings,Minnesota Timberwolves,154,-190,4.5,238.5,betmgm,mgm_kaggle
+2025-11-10,Charlotte Hornets,Los Angeles Lakers,275,-350,8.5,230.5,betmgm,mgm_kaggle
+2025-11-10,Chicago Bulls,San Antonio Spurs,165,-200,5.5,235.5,betmgm,mgm_kaggle
+2025-11-10,Dallas Mavericks,Milwaukee Bucks,135,-160,3.5,229.5,betmgm,mgm_kaggle
+2025-11-10,Detroit Pistons,Washington Wizards,-600,425,-11.5,236.5,betmgm,mgm_kaggle
+2025-11-10,Los Angeles Clippers,Atlanta Hawks,-200,165,-4.5,220.5,betmgm,mgm_kaggle
+2025-11-10,Miami Heat,Cleveland Cavaliers,240,-300,7.5,248.5,betmgm,mgm_kaggle
+2025-11-10,Orlando Magic,Portland Trail Blazers,-130,105,-2.5,235.5,betmgm,mgm_kaggle
+2025-11-10,Phoenix Suns,New Orleans Pelicans,-350,275,-8.5,226.5,betmgm,mgm_kaggle
+2025-11-10,Utah Jazz,Minnesota Timberwolves,240,-300,7.5,234.5,betmgm,mgm_kaggle
+2025-11-11,Brooklyn Nets,Toronto Raptors,340,-450,10.5,231.5,betmgm,mgm_kaggle
+2025-11-11,New York Knicks,Memphis Grizzlies,-450,333,-9.5,232.5,betmgm,mgm_kaggle
+2025-11-11,Oklahoma City Thunder,Golden State Warriors,-325,260,-8.5,227.5,betmgm,mgm_kaggle
+2025-11-11,Philadelphia 76ers,Boston Celtics,105,-125,1.5,230.5,betmgm,mgm_kaggle
+2025-11-11,Sacramento Kings,Denver Nuggets,260,-325,8.5,243.5,betmgm,mgm_kaggle
+2025-11-11,Utah Jazz,Indiana Pacers,115,-140,2.5,233.5,betmgm,mgm_kaggle
+2025-11-12,Boston Celtics,Memphis Grizzlies,-325,260,-8.5,227.5,betmgm,mgm_kaggle
+2025-11-12,Charlotte Hornets,Milwaukee Bucks,120,-145,2.5,228.5,betmgm,mgm_kaggle
+2025-11-12,Dallas Mavericks,Phoenix Suns,105,-130,1.5,227.5,betmgm,mgm_kaggle
+2025-11-12,Detroit Pistons,Chicago Bulls,125,-150,2.5,230.5,betmgm,mgm_kaggle
+2025-11-12,Houston Rockets,Washington Wizards,-1600,900,-16.5,237.5,betmgm,mgm_kaggle
+2025-11-12,Los Angeles Clippers,Denver Nuggets,165,-200,4.5,224.5,betmgm,mgm_kaggle
+2025-11-12,Miami Heat,Cleveland Cavaliers,-200,165,-4.5,239.5,betmgm,mgm_kaggle
+2025-11-12,New Orleans Pelicans,Portland Trail Blazers,280,-350,8.5,232.5,betmgm,mgm_kaggle
+2025-11-12,New York Knicks,Orlando Magic,-175,145,-3.5,227.5,betmgm,mgm_kaggle
+2025-11-12,Oklahoma City Thunder,Los Angeles Lakers,-325,260,-8.5,229.5,betmgm,mgm_kaggle
+2025-11-12,Sacramento Kings,Atlanta Hawks,150,-185,4.5,230.5,betmgm,mgm_kaggle
+2025-11-12,San Antonio Spurs,Golden State Warriors,-160,135,-3.5,232.5,betmgm,mgm_kaggle
+2025-11-13,Cleveland Cavaliers,Toronto Raptors,-295,230,-7.5,238.5,betmgm,mgm_kaggle
+2025-11-13,Phoenix Suns,Indiana Pacers,-160,135,-3.5,233.5,betmgm,mgm_kaggle
+2025-11-13,Utah Jazz,Atlanta Hawks,105,-125,1.5,234.5,betmgm,mgm_kaggle
+2025-11-14,Dallas Mavericks,Los Angeles Clippers,135,-160,3.5,221.5,betmgm,mgm_kaggle
+2025-11-14,Detroit Pistons,Philadelphia 76ers,-118,-102,-1.5,229.5,betmgm,mgm_kaggle
+2025-11-14,Houston Rockets,Portland Trail Blazers,-300,240,-7.5,236.5,betmgm,mgm_kaggle
+2025-11-14,Milwaukee Bucks,Charlotte Hornets,-375,300,-8.5,237.5,betmgm,mgm_kaggle
+2025-11-14,Minnesota Timberwolves,Sacramento Kings,-600,425,-11.5,240.5,betmgm,mgm_kaggle
+2025-11-14,New Orleans Pelicans,Los Angeles Lakers,340,-450,9.5,227.5,betmgm,mgm_kaggle
+2025-11-14,New York Knicks,Miami Heat,-250,200,-6.5,240.5,betmgm,mgm_kaggle
+2025-11-14,Orlando Magic,Brooklyn Nets,-1100,650,-14.5,224.5,betmgm,mgm_kaggle
+2025-11-14,San Antonio Spurs,Golden State Warriors,-150,125,-2.5,233.5,betmgm,mgm_kaggle
+2025-11-15,Charlotte Hornets,Oklahoma City Thunder,1000,-2000,17.5,224.5,betmgm,mgm_kaggle
+2025-11-15,Cleveland Cavaliers,Memphis Grizzlies,-550,400,-10.5,241.5,betmgm,mgm_kaggle
+2025-11-15,Indiana Pacers,Toronto Raptors,200,-250,5.5,236.5,betmgm,mgm_kaggle
+2025-11-15,Milwaukee Bucks,Los Angeles Lakers,-135,110,-2.5,229.5,betmgm,mgm_kaggle
+2025-11-15,Minnesota Timberwolves,Denver Nuggets,-105,-115,1.5,236.5,betmgm,mgm_kaggle
+2025-11-16,Boston Celtics,Los Angeles Clippers,-210,170,-5.5,219.5,betmgm,mgm_kaggle
+2025-11-16,Dallas Mavericks,Portland Trail Blazers,120,-145,2.5,236.5,betmgm,mgm_kaggle
+2025-11-16,Houston Rockets,Orlando Magic,-325,260,-7.5,224.5,betmgm,mgm_kaggle
+2025-11-16,New Orleans Pelicans,Golden State Warriors,400,-550,10.5,226.5,betmgm,mgm_kaggle
+2025-11-16,Phoenix Suns,Atlanta Hawks,-120,100,-1.5,226.5,betmgm,mgm_kaggle
+2025-11-16,San Antonio Spurs,Sacramento Kings,-250,200,-6.5,243.5,betmgm,mgm_kaggle
+2025-11-16,Utah Jazz,Chicago Bulls,155,-190,4.5,244.5,betmgm,mgm_kaggle
+2025-11-16,Washington Wizards,Brooklyn Nets,-145,118,-2.5,231.5,betmgm,mgm_kaggle
+2025-11-17,Cleveland Cavaliers,Milwaukee Bucks,-250,200,-6.5,234.5,betmgm,mgm_kaggle
+2025-11-17,Denver Nuggets,Chicago Bulls,-750,525,-12.5,240.5,betmgm,mgm_kaggle
+2025-11-17,Detroit Pistons,Indiana Pacers,-325,260,-7.5,230.5,betmgm,mgm_kaggle
+2025-11-17,Miami Heat,New York Knicks,-115,-105,-1.5,244.5,betmgm,mgm_kaggle
+2025-11-17,Minnesota Timberwolves,Dallas Mavericks,-1000,650,-14.5,232.5,betmgm,mgm_kaggle
+2025-11-17,New Orleans Pelicans,Oklahoma City Thunder,1150,-2500,18.5,223.5,betmgm,mgm_kaggle
+2025-11-17,Philadelphia 76ers,Los Angeles Clippers,-200,165,-5.5,222.5,betmgm,mgm_kaggle
+2025-11-17,Toronto Raptors,Charlotte Hornets,-325,260,-7.5,240.5,betmgm,mgm_kaggle
+2025-11-18,Atlanta Hawks,Detroit Pistons,105,-125,1.5,227.5,betmgm,mgm_kaggle
+2025-11-18,Brooklyn Nets,Boston Celtics,425,-600,11.5,223.5,betmgm,mgm_kaggle
+2025-11-18,Los Angeles Lakers,Utah Jazz,-750,525,-12.5,239.5,betmgm,mgm_kaggle
+2025-11-18,Orlando Magic,Golden State Warriors,120,-145,2.5,223.5,betmgm,mgm_kaggle
+2025-11-18,Portland Trail Blazers,Phoenix Suns,-130,105,-1.5,235.5,betmgm,mgm_kaggle
+2025-11-18,San Antonio Spurs,Memphis Grizzlies,-250,200,-6.5,233.5,betmgm,mgm_kaggle
+2025-11-19,Cleveland Cavaliers,Houston Rockets,105,-125,1.5,233.5,betmgm,mgm_kaggle
+2025-11-19,Dallas Mavericks,New York Knicks,280,-350,8.5,233.5,betmgm,mgm_kaggle
+2025-11-19,Indiana Pacers,Charlotte Hornets,105,-130,1.5,238.5,betmgm,mgm_kaggle
+2025-11-19,Miami Heat,Golden State Warriors,-450,340,-9.5,234.5,betmgm,mgm_kaggle
+2025-11-19,Minnesota Timberwolves,Washington Wizards,-2000,950,-16.5,239.5,betmgm,mgm_kaggle
+2025-11-19,New Orleans Pelicans,Denver Nuggets,425,-600,10.5,235.5,betmgm,mgm_kaggle
+2025-11-19,Oklahoma City Thunder,Sacramento Kings,-3000,1250,-18.5,232.5,betmgm,mgm_kaggle
+2025-11-19,Philadelphia 76ers,Toronto Raptors,115,-140,2.5,234.5,betmgm,mgm_kaggle
+2025-11-19,Portland Trail Blazers,Chicago Bulls,135,-160,3.5,245.5,betmgm,mgm_kaggle
+2025-11-20,Memphis Grizzlies,Sacramento Kings,-155,125,-3.5,234.5,betmgm,mgm_kaggle
+2025-11-20,Milwaukee Bucks,Philadelphia 76ers,105,-130,1.5,223.5,betmgm,mgm_kaggle
+2025-11-20,Orlando Magic,Los Angeles Clippers,-250,200,-6.5,218.5,betmgm,mgm_kaggle
+2025-11-20,San Antonio Spurs,Atlanta Hawks,-118,-102,-1.5,233.5,betmgm,mgm_kaggle
+2025-11-21,Boston Celtics,Brooklyn Nets,-900,575,-13.5,222.5,betmgm,mgm_kaggle
+2025-11-21,Chicago Bulls,Miami Heat,-140,115,-2.5,250.5,betmgm,mgm_kaggle
+2025-11-21,Cleveland Cavaliers,Indiana Pacers,-1000,625,-13.5,241.5,betmgm,mgm_kaggle
+2025-11-21,Dallas Mavericks,New Orleans Pelicans,-165,135,-3.5,234.5,betmgm,mgm_kaggle
+2025-11-21,Golden State Warriors,Portland Trail Blazers,-475,350,-10.5,236.5,betmgm,mgm_kaggle
+2025-11-21,Houston Rockets,Denver Nuggets,-155,125,-3.5,234.5,betmgm,mgm_kaggle
+2025-11-21,Phoenix Suns,Minnesota Timberwolves,155,-190,4.5,230.5,betmgm,mgm_kaggle
+2025-11-21,Toronto Raptors,Washington Wizards,-1100,675,-14.5,238.5,betmgm,mgm_kaggle
+2025-11-21,Utah Jazz,Oklahoma City Thunder,950,-2000,16.5,234.5,betmgm,mgm_kaggle
+2025-11-22,Charlotte Hornets,Los Angeles Clippers,-118,-102,-1.5,227.5,betmgm,mgm_kaggle
+2025-11-22,Chicago Bulls,Washington Wizards,-750,525,-12.5,246.5,betmgm,mgm_kaggle
+2025-11-22,Dallas Mavericks,Memphis Grizzlies,-105,-115,1.5,230.5,betmgm,mgm_kaggle
+2025-11-22,Denver Nuggets,Sacramento Kings,-550,400,-10.5,239.5,betmgm,mgm_kaggle
+2025-11-22,Milwaukee Bucks,Detroit Pistons,275,-350,8.5,226.5,betmgm,mgm_kaggle
+2025-11-22,New Orleans Pelicans,Atlanta Hawks,340,-450,9.5,232.5,betmgm,mgm_kaggle
+2025-11-22,Orlando Magic,New York Knicks,-125,105,-1.5,231.5,betmgm,mgm_kaggle
+2025-11-23,Atlanta Hawks,Charlotte Hornets,-325,260,-8.5,228.5,betmgm,mgm_kaggle
+2025-11-23,Boston Celtics,Orlando Magic,-190,155,-4.5,223.5,betmgm,mgm_kaggle
+2025-11-23,Cleveland Cavaliers,Los Angeles Clippers,-300,240,-7.5,229.5,betmgm,mgm_kaggle
+2025-11-23,Oklahoma City Thunder,Portland Trail Blazers,-1600,850,-15.5,232.5,betmgm,mgm_kaggle
+2025-11-23,Philadelphia 76ers,Miami Heat,-110,-110,1.5,241.5,betmgm,mgm_kaggle
+2025-11-23,Phoenix Suns,San Antonio Spurs,-120,100,-1.5,234.5,betmgm,mgm_kaggle
+2025-11-23,Toronto Raptors,Brooklyn Nets,-625,450,-11.5,229.5,betmgm,mgm_kaggle
+2025-11-23,Utah Jazz,Los Angeles Lakers,310,-400,9.5,244.5,betmgm,mgm_kaggle
+2025-11-24,Brooklyn Nets,New York Knicks,525,-750,12.5,229.5,betmgm,mgm_kaggle
+2025-11-24,Golden State Warriors,Utah Jazz,-900,600,-13.5,239.5,betmgm,mgm_kaggle
+2025-11-24,Indiana Pacers,Detroit Pistons,333,-450,9.5,236.5,betmgm,mgm_kaggle
+2025-11-24,Memphis Grizzlies,Denver Nuggets,220,-275,6.5,235.5,betmgm,mgm_kaggle
+2025-11-24,Miami Heat,Dallas Mavericks,-295,230,-7.5,240.5,betmgm,mgm_kaggle
+2025-11-24,Milwaukee Bucks,Portland Trail Blazers,-115,-105,-1.5,230.5,betmgm,mgm_kaggle
+2025-11-24,New Orleans Pelicans,Chicago Bulls,165,-200,4.5,243.5,betmgm,mgm_kaggle
+2025-11-24,Phoenix Suns,Houston Rockets,200,-250,6.5,222.5,betmgm,mgm_kaggle
+2025-11-24,Sacramento Kings,Minnesota Timberwolves,375,-500,10.5,238.5,betmgm,mgm_kaggle
+2025-11-24,Toronto Raptors,Cleveland Cavaliers,-125,105,-1.5,231.5,betmgm,mgm_kaggle
+2025-11-25,Los Angeles Lakers,Los Angeles Clippers,-235,195,-5.5,227.5,betmgm,mgm_kaggle
+2025-11-25,Philadelphia 76ers,Orlando Magic,165,-200,4.5,229.5,betmgm,mgm_kaggle
+2025-11-25,Washington Wizards,Atlanta Hawks,400,-550,10.5,239.5,betmgm,mgm_kaggle
+2025-11-26,Boston Celtics,Detroit Pistons,105,-130,1.5,233.5,betmgm,mgm_kaggle
+2025-11-26,Charlotte Hornets,New York Knicks,220,-275,6.5,242.5,betmgm,mgm_kaggle
+2025-11-26,Golden State Warriors,Houston Rockets,-175,145,-4.5,224.5,betmgm,mgm_kaggle
+2025-11-26,Miami Heat,Milwaukee Bucks,-475,360,-10.5,236.5,betmgm,mgm_kaggle
+2025-11-26,New Orleans Pelicans,Memphis Grizzlies,135,-165,3.5,236.5,betmgm,mgm_kaggle
+2025-11-26,Oklahoma City Thunder,Minnesota Timberwolves,-500,375,-10.5,225.5,betmgm,mgm_kaggle
+2025-11-26,Portland Trail Blazers,San Antonio Spurs,-105,-115,1.5,239.5,betmgm,mgm_kaggle
+2025-11-26,Sacramento Kings,Phoenix Suns,150,-185,4.5,233.5,betmgm,mgm_kaggle
+2025-11-26,Toronto Raptors,Indiana Pacers,-450,340,-9.5,234.5,betmgm,mgm_kaggle
+2025-11-28,Atlanta Hawks,Cleveland Cavaliers,200,-250,6.5,236.5,betmgm,mgm_kaggle
+2025-11-28,Brooklyn Nets,Philadelphia 76ers,220,-275,7.5,222.5,betmgm,mgm_kaggle
+2025-11-28,Charlotte Hornets,Chicago Bulls,125,-150,2.5,249.5,betmgm,mgm_kaggle
+2025-11-28,Denver Nuggets,San Antonio Spurs,-300,240,-7.5,238.5,betmgm,mgm_kaggle
+2025-11-28,Detroit Pistons,Orlando Magic,-160,135,-3.5,230.5,betmgm,mgm_kaggle
+2025-11-28,Indiana Pacers,Washington Wizards,-250,200,-6.5,239.5,betmgm,mgm_kaggle
+2025-11-28,Los Angeles Clippers,Memphis Grizzlies,-275,220,-6.5,224.5,betmgm,mgm_kaggle
+2025-11-28,Los Angeles Lakers,Dallas Mavericks,-475,350,-10.5,232.5,betmgm,mgm_kaggle
+2025-11-28,New York Knicks,Milwaukee Bucks,-300,240,-7.5,232.5,betmgm,mgm_kaggle
+2025-11-28,Oklahoma City Thunder,Phoenix Suns,-1100,675,-14.5,223.5,betmgm,mgm_kaggle
+2025-11-28,Utah Jazz,Sacramento Kings,-145,118,-2.5,242.5,betmgm,mgm_kaggle
+2025-11-29,Charlotte Hornets,Toronto Raptors,230,-285,6.5,233.5,betmgm,mgm_kaggle
+2025-11-29,Golden State Warriors,New Orleans Pelicans,-450,340,-9.5,228.5,betmgm,mgm_kaggle
+2025-11-29,Indiana Pacers,Chicago Bulls,120,-145,2.5,240.5,betmgm,mgm_kaggle
+2025-11-29,Los Angeles Clippers,Dallas Mavericks,-400,310,-9.5,224.5,betmgm,mgm_kaggle
+2025-11-29,Miami Heat,Detroit Pistons,-170,140,-3.5,239.5,betmgm,mgm_kaggle
+2025-11-29,Milwaukee Bucks,Brooklyn Nets,-600,425,-11.5,218.5,betmgm,mgm_kaggle
+2025-11-29,Minnesota Timberwolves,Boston Celtics,-235,190,-5.5,228.5,betmgm,mgm_kaggle
+2025-11-29,Phoenix Suns,Denver Nuggets,135,-165,3.5,234.5,betmgm,mgm_kaggle
+2025-11-30,Cleveland Cavaliers,Boston Celtics,-295,230,-7.5,233.5,betmgm,mgm_kaggle
+2025-11-30,Los Angeles Lakers,New Orleans Pelicans,-1400,825,-15.5,228.5,betmgm,mgm_kaggle
+2025-11-30,Minnesota Timberwolves,San Antonio Spurs,-190,155,-4.5,233.5,betmgm,mgm_kaggle
+2025-11-30,New York Knicks,Toronto Raptors,-350,275,-8.5,229.5,betmgm,mgm_kaggle
+2025-11-30,Philadelphia 76ers,Atlanta Hawks,-150,125,-2.5,232.5,betmgm,mgm_kaggle
+2025-11-30,Portland Trail Blazers,Oklahoma City Thunder,450,-625,11.5,234.5,betmgm,mgm_kaggle
+2025-11-30,Sacramento Kings,Memphis Grizzlies,120,-145,3.5,233.5,betmgm,mgm_kaggle
+2025-11-30,Utah Jazz,Houston Rockets,425,-600,11.5,233.5,betmgm,mgm_kaggle
+2025-12-01,Brooklyn Nets,Charlotte Hornets,155,-190,4.5,228.5,betmgm,mgm_kaggle
+2025-12-01,Denver Nuggets,Dallas Mavericks,-550,400,-11.5,235.5,betmgm,mgm_kaggle
+2025-12-01,Detroit Pistons,Atlanta Hawks,-400,310,-9.5,232.5,betmgm,mgm_kaggle
+2025-12-01,Indiana Pacers,Cleveland Cavaliers,155,-190,4.5,231.5,betmgm,mgm_kaggle
+2025-12-01,Los Angeles Lakers,Phoenix Suns,-235,190,-5.5,231.5,betmgm,mgm_kaggle
+2025-12-01,Miami Heat,Los Angeles Clippers,-250,200,-6.5,235.5,betmgm,mgm_kaggle
+2025-12-01,Orlando Magic,Chicago Bulls,-425,325,-9.5,239.5,betmgm,mgm_kaggle
+2025-12-01,Utah Jazz,Houston Rockets,425,-600,11.5,234.5,betmgm,mgm_kaggle
+2025-12-01,Washington Wizards,Milwaukee Bucks,360,-475,10.5,232.5,betmgm,mgm_kaggle
+2025-12-02,Boston Celtics,New York Knicks,-105,-115,1.5,230.5,betmgm,mgm_kaggle
+2025-12-02,Golden State Warriors,Oklahoma City Thunder,425,-600,11.5,223.5,betmgm,mgm_kaggle
+2025-12-02,New Orleans Pelicans,Minnesota Timberwolves,500,-700,12.5,229.5,betmgm,mgm_kaggle
+2025-12-02,Philadelphia 76ers,Washington Wizards,-800,550,-13.5,234.5,betmgm,mgm_kaggle
+2025-12-02,San Antonio Spurs,Memphis Grizzlies,-210,170,-5.5,232.5,betmgm,mgm_kaggle
+2025-12-02,Toronto Raptors,Portland Trail Blazers,-200,165,-4.5,230.5,betmgm,mgm_kaggle
+2025-12-03,Atlanta Hawks,Los Angeles Clippers,-130,105,-1.5,225.5,betmgm,mgm_kaggle
+2025-12-03,Chicago Bulls,Brooklyn Nets,-325,260,-7.5,232.5,betmgm,mgm_kaggle
+2025-12-03,Cleveland Cavaliers,Portland Trail Blazers,-475,360,-10.5,244.5,betmgm,mgm_kaggle
+2025-12-03,Dallas Mavericks,Miami Heat,155,-190,4.5,238.5,betmgm,mgm_kaggle
+2025-12-03,Houston Rockets,Sacramento Kings,-1400,800,-15.5,230.5,betmgm,mgm_kaggle
+2025-12-03,Indiana Pacers,Denver Nuggets,260,-325,8.5,238.5,betmgm,mgm_kaggle
+2025-12-03,Milwaukee Bucks,Detroit Pistons,155,-190,4.5,228.5,betmgm,mgm_kaggle
+2025-12-03,New York Knicks,Charlotte Hornets,-400,310,-9.5,235.5,betmgm,mgm_kaggle
+2025-12-03,Orlando Magic,San Antonio Spurs,-350,275,-8.5,235.5,betmgm,mgm_kaggle
+2025-12-04,Brooklyn Nets,Utah Jazz,165,-200,5.5,231.5,betmgm,mgm_kaggle
+2025-12-04,New Orleans Pelicans,Minnesota Timberwolves,450,-625,11.5,234.5,betmgm,mgm_kaggle
+2025-12-04,Philadelphia 76ers,Golden State Warriors,-170,140,-4.5,223.5,betmgm,mgm_kaggle
+2025-12-04,Toronto Raptors,Los Angeles Lakers,-135,110,-2.5,228.5,betmgm,mgm_kaggle
+2025-12-04,Washington Wizards,Boston Celtics,375,-500,10.5,231.5,betmgm,mgm_kaggle
+2025-12-05,Atlanta Hawks,Denver Nuggets,135,-160,3.5,238.5,betmgm,mgm_kaggle
+2025-12-05,Boston Celtics,Los Angeles Lakers,-350,280,-8.5,227.5,betmgm,mgm_kaggle
+2025-12-05,Chicago Bulls,Indiana Pacers,-190,155,-4.5,235.5,betmgm,mgm_kaggle
+2025-12-05,Cleveland Cavaliers,San Antonio Spurs,-200,165,-5.5,239.5,betmgm,mgm_kaggle
+2025-12-05,Detroit Pistons,Portland Trail Blazers,-350,275,-8.5,236.5,betmgm,mgm_kaggle
+2025-12-05,Houston Rockets,Phoenix Suns,-350,280,-8.5,218.5,betmgm,mgm_kaggle
+2025-12-05,Memphis Grizzlies,Los Angeles Clippers,110,-135,2.5,223.5,betmgm,mgm_kaggle
+2025-12-05,Milwaukee Bucks,Philadelphia 76ers,-105,-115,1.5,221.5,betmgm,mgm_kaggle
+2025-12-05,New York Knicks,Utah Jazz,-1600,900,-16.5,243.5,betmgm,mgm_kaggle
+2025-12-05,Oklahoma City Thunder,Dallas Mavericks,-1400,800,-15.5,229.5,betmgm,mgm_kaggle
+2025-12-05,Orlando Magic,Miami Heat,-235,195,-6.5,241.5,betmgm,mgm_kaggle
+2025-12-05,Toronto Raptors,Charlotte Hornets,-275,220,-6.5,230.5,betmgm,mgm_kaggle
+2025-12-06,Brooklyn Nets,New Orleans Pelicans,-170,140,-3.5,227.5,betmgm,mgm_kaggle
+2025-12-06,Cleveland Cavaliers,Golden State Warriors,-375,300,-8.5,230.5,betmgm,mgm_kaggle
+2025-12-06,Dallas Mavericks,Houston Rockets,220,-275,6.5,221.5,betmgm,mgm_kaggle
+2025-12-06,Detroit Pistons,Milwaukee Bucks,-700,500,-12.5,223.5,betmgm,mgm_kaggle
+2025-12-06,Miami Heat,Sacramento Kings,-375,300,-8.5,241.5,betmgm,mgm_kaggle
+2025-12-06,Minnesota Timberwolves,Los Angeles Clippers,-350,280,-8.5,228.5,betmgm,mgm_kaggle
+2025-12-06,Washington Wizards,Atlanta Hawks,333,-450,9.5,237.5,betmgm,mgm_kaggle
+2025-12-07,Charlotte Hornets,Denver Nuggets,375,-500,10.5,235.5,betmgm,mgm_kaggle
+2025-12-07,Chicago Bulls,Golden State Warriors,-102,-118,1.5,229.5,betmgm,mgm_kaggle
+2025-12-07,Memphis Grizzlies,Portland Trail Blazers,-130,105,-1.5,232.5,betmgm,mgm_kaggle
+2025-12-07,New York Knicks,Orlando Magic,-118,-102,-1.5,229.5,betmgm,mgm_kaggle
+2025-12-07,Philadelphia 76ers,Los Angeles Lakers,120,-145,2.5,233.5,betmgm,mgm_kaggle
+2025-12-07,Toronto Raptors,Boston Celtics,135,-160,3.5,224.5,betmgm,mgm_kaggle
+2025-12-07,Utah Jazz,Oklahoma City Thunder,425,-600,11.5,233.5,betmgm,mgm_kaggle
+2025-12-08,Indiana Pacers,Sacramento Kings,-170,140,-3.5,231.5,betmgm,mgm_kaggle
+2025-12-08,Minnesota Timberwolves,Phoenix Suns,-375,290,-8.5,226.5,betmgm,mgm_kaggle
+2025-12-08,New Orleans Pelicans,San Antonio Spurs,300,-400,8.5,238.5,betmgm,mgm_kaggle
+2025-12-09,Orlando Magic,Miami Heat,-120,100,-1.5,235.5,betmgm,mgm_kaggle
+2025-12-09,Toronto Raptors,New York Knicks,200,-250,6.5,226.5,betmgm,mgm_kaggle
+2025-12-10,Los Angeles Lakers,San Antonio Spurs,-285,230,-7.5,242.5,betmgm,mgm_kaggle
+2025-12-10,Oklahoma City Thunder,Phoenix Suns,-1100,700,-15.5,221.5,betmgm,mgm_kaggle
+2025-12-11,Houston Rockets,Los Angeles Clippers,-400,310,-8.5,221.5,betmgm,mgm_kaggle
+2025-12-11,Milwaukee Bucks,Boston Celtics,325,-425,9.5,223.5,betmgm,mgm_kaggle
+2025-12-11,New Orleans Pelicans,Portland Trail Blazers,145,-175,3.5,241.5,betmgm,mgm_kaggle
+2025-12-11,Sacramento Kings,Denver Nuggets,360,-475,10.5,239.5,betmgm,mgm_kaggle
+2025-12-12,Charlotte Hornets,Chicago Bulls,118,-145,2.5,229.5,betmgm,mgm_kaggle
+2025-12-12,Dallas Mavericks,Brooklyn Nets,-300,240,-7.5,218.5,betmgm,mgm_kaggle
+2025-12-12,Detroit Pistons,Atlanta Hawks,-285,225,-6.5,233.5,betmgm,mgm_kaggle
+2025-12-12,Golden State Warriors,Minnesota Timberwolves,-190,155,-5.5,228.5,betmgm,mgm_kaggle
+2025-12-12,Memphis Grizzlies,Utah Jazz,-275,220,-7.5,243.5,betmgm,mgm_kaggle
+2025-12-12,Philadelphia 76ers,Indiana Pacers,-225,185,-5.5,221.5,betmgm,mgm_kaggle
+2025-12-12,Washington Wizards,Cleveland Cavaliers,900,-1600,16.5,245.5,betmgm,mgm_kaggle
+2025-12-13,Oklahoma City Thunder,San Antonio Spurs,-500,375,-10.5,233.5,betmgm,mgm_kaggle
+2025-12-13,Orlando Magic,New York Knicks,150,-185,3.5,225.5,betmgm,mgm_kaggle
+2025-12-14,Atlanta Hawks,Philadelphia 76ers,-185,150,-4.5,226.5,betmgm,mgm_kaggle
+2025-12-14,Brooklyn Nets,Milwaukee Bucks,105,-125,2.5,216.5,betmgm,mgm_kaggle
+2025-12-14,Chicago Bulls,New Orleans Pelicans,-190,154,-4.5,248.5,betmgm,mgm_kaggle
+2025-12-14,Cleveland Cavaliers,Charlotte Hornets,-625,450,-12.5,232.5,betmgm,mgm_kaggle
+2025-12-14,Indiana Pacers,Washington Wizards,-450,350,-10.5,233.5,betmgm,mgm_kaggle
+2025-12-14,Minnesota Timberwolves,Sacramento Kings,-425,320,-9.5,235.5,betmgm,mgm_kaggle
+2025-12-14,Phoenix Suns,Los Angeles Lakers,-120,100,-1.5,231.5,betmgm,mgm_kaggle
+2025-12-14,Portland Trail Blazers,Golden State Warriors,170,-210,5.5,237.5,betmgm,mgm_kaggle
+2025-12-15,Boston Celtics,Detroit Pistons,-110,-110,1.5,231.5,betmgm,mgm_kaggle
+2025-12-15,Denver Nuggets,Houston Rockets,-102,-118,1.5,236.5,betmgm,mgm_kaggle
+2025-12-15,Los Angeles Clippers,Memphis Grizzlies,-220,180,-5.5,229.5,betmgm,mgm_kaggle
+2025-12-15,Miami Heat,Toronto Raptors,-190,155,-4.5,233.5,betmgm,mgm_kaggle
+2025-12-15,Utah Jazz,Dallas Mavericks,-105,-115,1.5,241.5,betmgm,mgm_kaggle
+2025-12-16,New York Knicks,San Antonio Spurs,-135,110,-2.5,234.5,betmgm,mgm_kaggle
+2025-12-17,Chicago Bulls,Cleveland Cavaliers,180,-220,5.5,242.5,betmgm,mgm_kaggle
+2025-12-17,Minnesota Timberwolves,Memphis Grizzlies,-275,220,-6.5,227.5,betmgm,mgm_kaggle
+2025-12-18,Brooklyn Nets,Miami Heat,225,-285,7.5,228.5,betmgm,mgm_kaggle
+2025-12-18,Charlotte Hornets,Atlanta Hawks,150,-185,4.5,240.5,betmgm,mgm_kaggle
+2025-12-18,Dallas Mavericks,Detroit Pistons,185,-225,5.5,230.5,betmgm,mgm_kaggle
+2025-12-18,Denver Nuggets,Orlando Magic,-275,220,-6.5,237.5,betmgm,mgm_kaggle
+2025-12-18,Indiana Pacers,New York Knicks,140,-170,3.5,226.5,betmgm,mgm_kaggle
+2025-12-18,Milwaukee Bucks,Toronto Raptors,150,-185,4.5,218.5,betmgm,mgm_kaggle
+2025-12-18,New Orleans Pelicans,Houston Rockets,320,-425,9.5,235.5,betmgm,mgm_kaggle
+2025-12-18,Oklahoma City Thunder,Los Angeles Clippers,-1600,900,-16.5,222.5,betmgm,mgm_kaggle
+2025-12-18,Phoenix Suns,Golden State Warriors,110,-135,1.5,228.5,betmgm,mgm_kaggle
+2025-12-18,Portland Trail Blazers,Sacramento Kings,-350,275,-8.5,239.5,betmgm,mgm_kaggle
+2025-12-18,San Antonio Spurs,Washington Wizards,-1200,725,-15.5,241.5,betmgm,mgm_kaggle
+2025-12-18,Utah Jazz,Los Angeles Lakers,310,-400,9.5,242.5,betmgm,mgm_kaggle
+2025-12-19,Atlanta Hawks,San Antonio Spurs,140,-170,3.5,237.5,betmgm,mgm_kaggle
+2025-12-19,Boston Celtics,Miami Heat,-300,240,-7.5,233.5,betmgm,mgm_kaggle
+2025-12-19,Cleveland Cavaliers,Chicago Bulls,-185,150,-4.5,237.5,betmgm,mgm_kaggle
+2025-12-19,Minnesota Timberwolves,Oklahoma City Thunder,195,-235,5.5,232.5,betmgm,mgm_kaggle
+2025-12-19,New York Knicks,Philadelphia 76ers,-250,200,-6.5,230.5,betmgm,mgm_kaggle
+2025-12-20,Denver Nuggets,Houston Rockets,105,-125,1.5,235.5,betmgm,mgm_kaggle
+2025-12-20,Detroit Pistons,Charlotte Hornets,-500,375,-10.5,235.5,betmgm,mgm_kaggle
+2025-12-20,Golden State Warriors,Phoenix Suns,-235,195,-6.5,226.5,betmgm,mgm_kaggle
+2025-12-20,Los Angeles Clippers,Los Angeles Lakers,105,-130,1.5,229.5,betmgm,mgm_kaggle
+2025-12-20,Memphis Grizzlies,Washington Wizards,-600,425,-11.5,233.5,betmgm,mgm_kaggle
+2025-12-20,New Orleans Pelicans,Indiana Pacers,-140,115,-2.5,235.5,betmgm,mgm_kaggle
+2025-12-20,Philadelphia 76ers,Dallas Mavericks,-118,-102,-1.5,226.5,betmgm,mgm_kaggle
+2025-12-20,Sacramento Kings,Portland Trail Blazers,145,-175,3.5,235.5,betmgm,mgm_kaggle
+2025-12-20,Toronto Raptors,Boston Celtics,-120,100,-1.5,221.5,betmgm,mgm_kaggle
+2025-12-20,Utah Jazz,Orlando Magic,240,-300,7.5,240.5,betmgm,mgm_kaggle
+2025-12-21,Atlanta Hawks,Chicago Bulls,-175,145,-4.5,248.5,betmgm,mgm_kaggle
+2025-12-21,Brooklyn Nets,Toronto Raptors,135,-165,3.5,216.5,betmgm,mgm_kaggle
+2025-12-21,Minnesota Timberwolves,Milwaukee Bucks,-650,475,-11.5,227.5,betmgm,mgm_kaggle
+2025-12-21,New York Knicks,Miami Heat,-285,225,-7.5,236.5,betmgm,mgm_kaggle
+2025-12-21,Sacramento Kings,Houston Rockets,475,-650,12.5,223.5,betmgm,mgm_kaggle
+2025-12-21,Washington Wizards,San Antonio Spurs,750,-1200,15.5,237.5,betmgm,mgm_kaggle
+2025-12-22,Boston Celtics,Indiana Pacers,-625,450,-11.5,224.5,betmgm,mgm_kaggle
+2025-12-22,Cleveland Cavaliers,Charlotte Hornets,-375,300,-10.5,239.5,betmgm,mgm_kaggle
+2025-12-22,Denver Nuggets,Utah Jazz,-750,525,-12.5,250.5,betmgm,mgm_kaggle
+2025-12-22,Golden State Warriors,Orlando Magic,-225,185,-6.5,227.5,betmgm,mgm_kaggle
+2025-12-22,New Orleans Pelicans,Dallas Mavericks,-105,-115,1.5,240.5,betmgm,mgm_kaggle
+2025-12-22,Oklahoma City Thunder,Memphis Grizzlies,-1200,725,-15.5,234.5,betmgm,mgm_kaggle
+2025-12-22,Portland Trail Blazers,Detroit Pistons,200,-250,6.5,235.5,betmgm,mgm_kaggle
+2025-12-23,Atlanta Hawks,Chicago Bulls,-160,135,-3.5,254.5,betmgm,mgm_kaggle
+2025-12-23,Charlotte Hornets,Washington Wizards,-250,200,-6.5,239.5,betmgm,mgm_kaggle
+2025-12-23,Cleveland Cavaliers,New Orleans Pelicans,-450,333,-9.5,249.5,betmgm,mgm_kaggle
+2025-12-23,Dallas Mavericks,Denver Nuggets,195,-235,6.5,236.5,betmgm,mgm_kaggle
+2025-12-23,Indiana Pacers,Milwaukee Bucks,-110,-110,-1.5,217.5,betmgm,mgm_kaggle
+2025-12-23,Los Angeles Clippers,Houston Rockets,220,-275,6.5,220.5,betmgm,mgm_kaggle
+2025-12-23,Miami Heat,Toronto Raptors,-220,180,-5.5,227.5,betmgm,mgm_kaggle
+2025-12-23,Philadelphia 76ers,Brooklyn Nets,-425,320,-9.5,220.5,betmgm,mgm_kaggle
+2025-12-23,Phoenix Suns,Los Angeles Lakers,-150,125,-3.5,226.5,betmgm,mgm_kaggle
+2025-12-23,Portland Trail Blazers,Orlando Magic,100,-120,1.5,231.5,betmgm,mgm_kaggle
+2025-12-23,Sacramento Kings,Detroit Pistons,333,-450,9.5,226.5,betmgm,mgm_kaggle
+2025-12-23,San Antonio Spurs,Oklahoma City Thunder,200,-250,6.5,237.5,betmgm,mgm_kaggle
+2025-12-23,Utah Jazz,Memphis Grizzlies,150,-185,4.5,241.5,betmgm,mgm_kaggle
+2025-12-25,Denver Nuggets,Minnesota Timberwolves,-105,-115,1.5,238.5,betmgm,mgm_kaggle
+2025-12-25,Golden State Warriors,Dallas Mavericks,-325,260,-9.5,231.5,betmgm,mgm_kaggle
+2025-12-25,Los Angeles Lakers,Houston Rockets,105,-125,2.5,231.5,betmgm,mgm_kaggle
+2025-12-25,New York Knicks,Cleveland Cavaliers,-190,160,-4.5,241.5,betmgm,mgm_kaggle
+2025-12-25,Oklahoma City Thunder,San Antonio Spurs,-425,325,-10.5,234.5,betmgm,mgm_kaggle
+2025-12-26,Atlanta Hawks,Miami Heat,-150,125,-2.5,250.5,betmgm,mgm_kaggle
+2025-12-26,Chicago Bulls,Philadelphia 76ers,105,-125,1.5,241.5,betmgm,mgm_kaggle
+2025-12-26,Indiana Pacers,Boston Celtics,260,-325,8.5,221.5,betmgm,mgm_kaggle
+2025-12-26,Memphis Grizzlies,Milwaukee Bucks,-190,154,-5.5,228.5,betmgm,mgm_kaggle
+2025-12-26,New Orleans Pelicans,Phoenix Suns,150,-185,5.5,241.5,betmgm,mgm_kaggle
+2025-12-26,Orlando Magic,Charlotte Hornets,-235,190,-5.5,228.5,betmgm,mgm_kaggle
+2025-12-26,Portland Trail Blazers,Los Angeles Clippers,110,-135,2.5,227.5,betmgm,mgm_kaggle
+2025-12-26,Utah Jazz,Detroit Pistons,310,-400,9.5,246.5,betmgm,mgm_kaggle
+2025-12-26,Washington Wizards,Toronto Raptors,260,-325,8.5,226.5,betmgm,mgm_kaggle
+2025-12-27,Atlanta Hawks,New York Knicks,180,-220,6.5,244.5,betmgm,mgm_kaggle
+2025-12-27,Chicago Bulls,Milwaukee Bucks,-135,110,-2.5,234.5,betmgm,mgm_kaggle
+2025-12-27,Houston Rockets,Cleveland Cavaliers,-135,110,-2.5,231.5,betmgm,mgm_kaggle
+2025-12-27,Miami Heat,Indiana Pacers,-275,220,-6.5,234.5,betmgm,mgm_kaggle
+2025-12-27,Minnesota Timberwolves,Brooklyn Nets,-625,450,-12.5,224.5,betmgm,mgm_kaggle
+2025-12-27,New Orleans Pelicans,Phoenix Suns,155,-190,4.5,241.5,betmgm,mgm_kaggle
+2025-12-27,Orlando Magic,Denver Nuggets,140,-170,3.5,235.5,betmgm,mgm_kaggle
+2025-12-27,Sacramento Kings,Dallas Mavericks,125,-150,2.5,233.5,betmgm,mgm_kaggle
+2025-12-27,San Antonio Spurs,Utah Jazz,-750,525,-14.5,243.5,betmgm,mgm_kaggle
+2025-12-28,Los Angeles Clippers,Detroit Pistons,140,-170,4.5,224.5,betmgm,mgm_kaggle
+2025-12-28,Los Angeles Lakers,Sacramento Kings,-600,425,-12.5,231.5,betmgm,mgm_kaggle
+2025-12-28,Oklahoma City Thunder,Philadelphia 76ers,-900,600,-15.5,226.5,betmgm,mgm_kaggle
+2025-12-28,Portland Trail Blazers,Boston Celtics,200,-250,6.5,232.5,betmgm,mgm_kaggle
+2025-12-28,Toronto Raptors,Golden State Warriors,150,-185,4.5,228.5,betmgm,mgm_kaggle
+2025-12-28,Washington Wizards,Memphis Grizzlies,240,-300,7.5,241.5,betmgm,mgm_kaggle
+2025-12-29,Brooklyn Nets,Golden State Warriors,180,-220,6.5,226.5,betmgm,mgm_kaggle
+2025-12-29,Charlotte Hornets,Milwaukee Bucks,125,-150,2.5,227.5,betmgm,mgm_kaggle
+2025-12-29,Chicago Bulls,Minnesota Timberwolves,185,-225,6.5,243.5,betmgm,mgm_kaggle
+2025-12-29,Houston Rockets,Indiana Pacers,-625,450,-12.5,223.5,betmgm,mgm_kaggle
+2025-12-29,Miami Heat,Denver Nuggets,105,-130,1.5,233.5,betmgm,mgm_kaggle
+2025-12-29,New Orleans Pelicans,New York Knicks,260,-325,8.5,246.5,betmgm,mgm_kaggle
+2025-12-29,Oklahoma City Thunder,Atlanta Hawks,-1200,725,-16.5,232.5,betmgm,mgm_kaggle
+2025-12-29,Portland Trail Blazers,Dallas Mavericks,-140,115,-2.5,232.5,betmgm,mgm_kaggle
+2025-12-29,San Antonio Spurs,Cleveland Cavaliers,-155,125,-3.5,243.5,betmgm,mgm_kaggle
+2025-12-29,Toronto Raptors,Orlando Magic,105,-125,1.5,220.5,betmgm,mgm_kaggle
+2025-12-29,Washington Wizards,Phoenix Suns,320,-425,10.5,233.5,betmgm,mgm_kaggle
+2025-12-30,Los Angeles Clippers,Sacramento Kings,-375,290,-9.5,218.5,betmgm,mgm_kaggle
+2025-12-30,Los Angeles Lakers,Detroit Pistons,120,-145,2.5,232.5,betmgm,mgm_kaggle
+2025-12-30,Memphis Grizzlies,Philadelphia 76ers,105,-130,2.5,235.5,betmgm,mgm_kaggle
+2025-12-30,Utah Jazz,Boston Celtics,230,-285,8.5,244.5,betmgm,mgm_kaggle
+2025-12-31,Atlanta Hawks,Minnesota Timberwolves,170,-210,5.5,240.5,betmgm,mgm_kaggle
+2025-12-31,Charlotte Hornets,Golden State Warriors,240,-300,7.5,234.5,betmgm,mgm_kaggle
+2025-12-31,Chicago Bulls,New Orleans Pelicans,-130,105,-2.5,249.5,betmgm,mgm_kaggle
+2025-12-31,Cleveland Cavaliers,Phoenix Suns,-275,220,-6.5,233.5,betmgm,mgm_kaggle
+2025-12-31,Indiana Pacers,Orlando Magic,155,-190,4.5,230.5,betmgm,mgm_kaggle
+2025-12-31,Milwaukee Bucks,Washington Wizards,-500,375,-10.5,234.5,betmgm,mgm_kaggle
+2025-12-31,Oklahoma City Thunder,Portland Trail Blazers,-1100,675,-16.5,232.5,betmgm,mgm_kaggle
+2025-12-31,San Antonio Spurs,New York Knicks,-170,140,-3.5,236.5,betmgm,mgm_kaggle
+2025-12-31,Toronto Raptors,Denver Nuggets,-275,220,-7.5,229.5,betmgm,mgm_kaggle
+2026-01-01,Brooklyn Nets,Houston Rockets,500,-700,13.5,216.5,betmgm,mgm_kaggle
+2026-01-01,Dallas Mavericks,Philadelphia 76ers,115,-140,2.5,220.5,betmgm,mgm_kaggle
+2026-01-01,Detroit Pistons,Miami Heat,-185,150,-4.5,235.5,betmgm,mgm_kaggle
+2026-01-01,Los Angeles Clippers,Utah Jazz,-900,575,-13.5,230.5,betmgm,mgm_kaggle
+2026-01-01,Sacramento Kings,Boston Celtics,350,-450,10.5,229.5,betmgm,mgm_kaggle
+2026-01-02,Chicago Bulls,Orlando Magic,165,-200,4.5,233.5,betmgm,mgm_kaggle
+2026-01-02,Cleveland Cavaliers,Denver Nuggets,-800,550,-13.5,241.5,betmgm,mgm_kaggle
+2026-01-02,Golden State Warriors,Oklahoma City Thunder,550,-800,13.5,226.5,betmgm,mgm_kaggle
+2026-01-02,Indiana Pacers,San Antonio Spurs,170,-210,4.5,238.5,betmgm,mgm_kaggle
+2026-01-02,Los Angeles Lakers,Memphis Grizzlies,-200,165,-5.5,241.5,betmgm,mgm_kaggle
+2026-01-02,Milwaukee Bucks,Charlotte Hornets,-235,190,-5.5,234.5,betmgm,mgm_kaggle
+2026-01-02,New Orleans Pelicans,Portland Trail Blazers,140,-170,3.5,240.5,betmgm,mgm_kaggle
+2026-01-02,New York Knicks,Atlanta Hawks,-190,154,-4.5,239.5,betmgm,mgm_kaggle
+2026-01-02,Phoenix Suns,Sacramento Kings,-750,525,-13.5,224.5,betmgm,mgm_kaggle
+2026-01-02,Washington Wizards,Brooklyn Nets,-150,125,-2.5,224.5,betmgm,mgm_kaggle
+2026-01-03,Chicago Bulls,Charlotte Hornets,-135,110,-2.5,240.5,betmgm,mgm_kaggle
+2026-01-03,Dallas Mavericks,Houston Rockets,260,-325,7.5,228.5,betmgm,mgm_kaggle
+2026-01-03,Golden State Warriors,Utah Jazz,-625,450,-12.5,248.5,betmgm,mgm_kaggle
+2026-01-03,Los Angeles Clippers,Boston Celtics,-135,110,-1.5,220.5,betmgm,mgm_kaggle
+2026-01-03,Miami Heat,Minnesota Timberwolves,120,-145,2.5,235.5,betmgm,mgm_kaggle
+2026-01-03,New York Knicks,Philadelphia 76ers,-165,135,-3.5,233.5,betmgm,mgm_kaggle
+2026-01-03,San Antonio Spurs,Portland Trail Blazers,-325,260,-8.5,236.5,betmgm,mgm_kaggle
+2026-01-03,Toronto Raptors,Atlanta Hawks,-210,170,-5.5,232.5,betmgm,mgm_kaggle
+2026-01-04,Brooklyn Nets,Denver Nuggets,115,-140,2.5,224.5,betmgm,mgm_kaggle
+2026-01-04,Cleveland Cavaliers,Detroit Pistons,-155,125,-2.5,239.5,betmgm,mgm_kaggle
+2026-01-04,Los Angeles Lakers,Memphis Grizzlies,-225,185,-5.5,239.5,betmgm,mgm_kaggle
+2026-01-04,Miami Heat,New Orleans Pelicans,-300,240,-7.5,246.5,betmgm,mgm_kaggle
+2026-01-04,Orlando Magic,Indiana Pacers,-250,200,-6.5,228.5,betmgm,mgm_kaggle
+2026-01-04,Phoenix Suns,Oklahoma City Thunder,320,-425,10.5,229.5,betmgm,mgm_kaggle
+2026-01-04,Sacramento Kings,Milwaukee Bucks,195,-235,6.5,227.5,betmgm,mgm_kaggle
+2026-01-04,Washington Wizards,Minnesota Timberwolves,340,-450,10.5,239.5,betmgm,mgm_kaggle
+2026-01-05,Boston Celtics,Chicago Bulls,-475,360,-10.5,236.5,betmgm,mgm_kaggle
+2026-01-05,Detroit Pistons,New York Knicks,-110,-110,-1.5,232.5,betmgm,mgm_kaggle
+2026-01-05,Houston Rockets,Phoenix Suns,-300,240,-8.5,222.5,betmgm,mgm_kaggle
+2026-01-05,Los Angeles Clippers,Golden State Warriors,145,-175,3.5,222.5,betmgm,mgm_kaggle
+2026-01-05,Oklahoma City Thunder,Charlotte Hornets,-1200,725,-15.5,235.5,betmgm,mgm_kaggle
+2026-01-05,Philadelphia 76ers,Denver Nuggets,-900,600,-15.5,227.5,betmgm,mgm_kaggle
+2026-01-05,Portland Trail Blazers,Utah Jazz,-220,180,-6.5,242.5,betmgm,mgm_kaggle
+2026-01-05,Toronto Raptors,Atlanta Hawks,-140,115,-2.5,237.5,betmgm,mgm_kaggle
+2026-01-06,Indiana Pacers,Cleveland Cavaliers,200,-250,6.5,237.5,betmgm,mgm_kaggle
+2026-01-06,Memphis Grizzlies,San Antonio Spurs,195,-235,5.5,237.5,betmgm,mgm_kaggle
+2026-01-06,Minnesota Timberwolves,Miami Heat,-210,170,-5.5,238.5,betmgm,mgm_kaggle
+2026-01-06,New Orleans Pelicans,Los Angeles Lakers,185,-225,5.5,244.5,betmgm,mgm_kaggle
+2026-01-06,Sacramento Kings,Dallas Mavericks,155,-190,4.5,233.5,betmgm,mgm_kaggle
+2026-01-06,Washington Wizards,Orlando Magic,230,-285,7.5,235.5,betmgm,mgm_kaggle
+2026-01-07,Atlanta Hawks,New Orleans Pelicans,-450,340,-10.5,246.5,betmgm,mgm_kaggle
+2026-01-07,Boston Celtics,Denver Nuggets,-375,290,-10.5,230.5,betmgm,mgm_kaggle
+2026-01-07,Brooklyn Nets,Orlando Magic,105,-130,2.5,221.5,betmgm,mgm_kaggle
+2026-01-07,Charlotte Hornets,Toronto Raptors,115,-140,2.5,229.5,betmgm,mgm_kaggle
+2026-01-07,Detroit Pistons,Chicago Bulls,-325,260,-7.5,227.5,betmgm,mgm_kaggle
+2026-01-07,Golden State Warriors,Milwaukee Bucks,-250,200,-6.5,229.5,betmgm,mgm_kaggle
+2026-01-07,Memphis Grizzlies,Phoenix Suns,180,-220,5.5,231.5,betmgm,mgm_kaggle
+2026-01-07,New York Knicks,Los Angeles Clippers,-200,165,-4.5,223.5,betmgm,mgm_kaggle
+2026-01-07,Oklahoma City Thunder,Utah Jazz,-2000,950,-18.5,243.5,betmgm,mgm_kaggle
+2026-01-07,Philadelphia 76ers,Washington Wizards,-1100,675,-15.5,234.5,betmgm,mgm_kaggle
+2026-01-07,Portland Trail Blazers,Houston Rockets,220,-275,7.5,222.5,betmgm,mgm_kaggle
+2026-01-07,San Antonio Spurs,Los Angeles Lakers,-325,260,-8.5,233.5,betmgm,mgm_kaggle
+2026-01-08,Charlotte Hornets,Indiana Pacers,-190,154,-4.5,232.5,betmgm,mgm_kaggle
+2026-01-08,Minnesota Timberwolves,Cleveland Cavaliers,-145,120,-2.5,239.5,betmgm,mgm_kaggle
+2026-01-08,Utah Jazz,Dallas Mavericks,155,-190,5.5,243.5,betmgm,mgm_kaggle
+2026-01-09,Boston Celtics,Toronto Raptors,-350,275,-9.5,224.5,betmgm,mgm_kaggle
+2026-01-09,Brooklyn Nets,Los Angeles Clippers,180,-220,5.5,215.5,betmgm,mgm_kaggle
+2026-01-09,Denver Nuggets,Atlanta Hawks,125,-150,3.5,229.5,betmgm,mgm_kaggle
+2026-01-09,Golden State Warriors,Sacramento Kings,-900,575,-14.5,231.5,betmgm,mgm_kaggle
+2026-01-09,Los Angeles Lakers,Milwaukee Bucks,-155,125,-3.5,228.5,betmgm,mgm_kaggle
+2026-01-09,Memphis Grizzlies,Oklahoma City Thunder,180,-220,5.5,229.5,betmgm,mgm_kaggle
+2026-01-09,Orlando Magic,Philadelphia 76ers,125,-155,3.5,227.5,betmgm,mgm_kaggle
+2026-01-09,Phoenix Suns,New York Knicks,-105,-115,1.5,229.5,betmgm,mgm_kaggle
+2026-01-09,Portland Trail Blazers,Houston Rockets,200,-250,6.5,222.5,betmgm,mgm_kaggle
+2026-01-09,Washington Wizards,New Orleans Pelicans,125,-150,3.5,243.5,betmgm,mgm_kaggle
+2026-01-10,Boston Celtics,San Antonio Spurs,-105,-115,1.5,231.5,betmgm,mgm_kaggle
+2026-01-10,Chicago Bulls,Dallas Mavericks,-175,145,-3.5,233.5,betmgm,mgm_kaggle
+2026-01-10,Cleveland Cavaliers,Minnesota Timberwolves,-150,125,-2.5,240.5,betmgm,mgm_kaggle
+2026-01-10,Detroit Pistons,Los Angeles Clippers,-115,-105,-1.5,214.5,betmgm,mgm_kaggle
+2026-01-10,Indiana Pacers,Miami Heat,195,-235,6.5,236.5,betmgm,mgm_kaggle
+2026-01-10,Utah Jazz,Charlotte Hornets,180,-220,6.5,241.5,betmgm,mgm_kaggle
+2026-01-11,Denver Nuggets,Milwaukee Bucks,185,-225,6.5,218.5,betmgm,mgm_kaggle
+2026-01-11,Golden State Warriors,Atlanta Hawks,-275,220,-7.5,236.5,betmgm,mgm_kaggle
+2026-01-11,Memphis Grizzlies,Brooklyn Nets,-275,225,-7.5,220.5,betmgm,mgm_kaggle
+2026-01-11,Minnesota Timberwolves,San Antonio Spurs,-145,118,-2.5,232.5,betmgm,mgm_kaggle
+2026-01-11,Oklahoma City Thunder,Miami Heat,-1000,625,-15.5,234.5,betmgm,mgm_kaggle
+2026-01-11,Orlando Magic,New Orleans Pelicans,-275,220,-7.5,236.5,betmgm,mgm_kaggle
+2026-01-11,Phoenix Suns,Washington Wizards,-900,575,-14.5,229.5,betmgm,mgm_kaggle
+2026-01-11,Portland Trail Blazers,New York Knicks,180,-220,5.5,229.5,betmgm,mgm_kaggle
+2026-01-11,Sacramento Kings,Houston Rockets,550,-800,14.5,223.5,betmgm,mgm_kaggle
+2026-01-11,Toronto Raptors,Philadelphia 76ers,-105,-115,1.5,220.5,betmgm,mgm_kaggle
+2026-01-12,Cleveland Cavaliers,Utah Jazz,-625,450,-13.5,249.5,betmgm,mgm_kaggle
+2026-01-12,Dallas Mavericks,Brooklyn Nets,-150,125,-3.5,219.5,betmgm,mgm_kaggle
+2026-01-12,Indiana Pacers,Boston Celtics,170,-210,5.5,227.5,betmgm,mgm_kaggle
+2026-01-12,Los Angeles Clippers,Charlotte Hornets,-190,155,-4.5,221.5,betmgm,mgm_kaggle
+2026-01-12,Sacramento Kings,Los Angeles Lakers,280,-350,9.5,231.5,betmgm,mgm_kaggle
+2026-01-12,Toronto Raptors,Philadelphia 76ers,125,-155,3.5,220.5,betmgm,mgm_kaggle
+2026-01-13,Golden State Warriors,Portland Trail Blazers,-475,360,-10.5,225.5,betmgm,mgm_kaggle
+2026-01-13,Houston Rockets,Chicago Bulls,-600,425,-12.5,224.5,betmgm,mgm_kaggle
+2026-01-13,Los Angeles Lakers,Atlanta Hawks,-130,105,-2.5,234.5,betmgm,mgm_kaggle
+2026-01-13,Miami Heat,Phoenix Suns,-130,105,-1.5,230.5,betmgm,mgm_kaggle
+2026-01-13,Milwaukee Bucks,Minnesota Timberwolves,-125,105,-1.5,229.5,betmgm,mgm_kaggle
+2026-01-13,New Orleans Pelicans,Denver Nuggets,115,-140,2.5,235.5,betmgm,mgm_kaggle
+2026-01-13,Oklahoma City Thunder,San Antonio Spurs,-300,240,-8.5,230.5,betmgm,mgm_kaggle
+2026-01-14,Chicago Bulls,Utah Jazz,-220,180,-5.5,241.5,betmgm,mgm_kaggle
+2026-01-14,Dallas Mavericks,Denver Nuggets,-120,100,-1.5,224.5,betmgm,mgm_kaggle
+2026-01-14,Indiana Pacers,Toronto Raptors,-120,100,-1.5,220.5,betmgm,mgm_kaggle
+2026-01-14,Los Angeles Clippers,Washington Wizards,-550,400,-11.5,226.5,betmgm,mgm_kaggle
+2026-01-14,New Orleans Pelicans,Brooklyn Nets,-118,-102,-1.5,232.5,betmgm,mgm_kaggle
+2026-01-14,Philadelphia 76ers,Cleveland Cavaliers,-118,-102,-1.5,235.5,betmgm,mgm_kaggle
+2026-01-14,Sacramento Kings,New York Knicks,340,-450,10.5,229.5,betmgm,mgm_kaggle
+2026-01-15,Dallas Mavericks,Utah Jazz,-140,115,-2.5,238.5,betmgm,mgm_kaggle
+2026-01-15,Detroit Pistons,Phoenix Suns,-275,225,-7.5,218.5,betmgm,mgm_kaggle
+2026-01-15,Golden State Warriors,New York Knicks,-275,225,-7.5,228.5,betmgm,mgm_kaggle
+2026-01-15,Houston Rockets,Oklahoma City Thunder,145,-180,4.5,221.5,betmgm,mgm_kaggle
+2026-01-15,Los Angeles Lakers,Charlotte Hornets,-165,135,-3.5,234.5,betmgm,mgm_kaggle
+2026-01-15,Miami Heat,Boston Celtics,125,-150,2.5,235.5,betmgm,mgm_kaggle
+2026-01-15,Orlando Magic,Memphis Grizzlies,-220,180,-5.5,227.5,betmgm,mgm_kaggle
+2026-01-15,Portland Trail Blazers,Atlanta Hawks,140,-170,3.5,230.5,betmgm,mgm_kaggle
+2026-01-15,San Antonio Spurs,Milwaukee Bucks,-235,195,-7.5,225.5,betmgm,mgm_kaggle
+2026-01-16,Brooklyn Nets,Chicago Bulls,-120,100,-1.5,224.5,betmgm,mgm_kaggle
+2026-01-16,Houston Rockets,Minnesota Timberwolves,-165,135,-4.5,221.5,betmgm,mgm_kaggle
+2026-01-16,Indiana Pacers,New Orleans Pelicans,-185,150,-4.5,241.5,betmgm,mgm_kaggle
+2026-01-16,Philadelphia 76ers,Cleveland Cavaliers,-140,115,-2.5,232.5,betmgm,mgm_kaggle
+2026-01-16,Sacramento Kings,Washington Wizards,-275,220,-7.5,234.5,betmgm,mgm_kaggle
+2026-01-16,Toronto Raptors,Los Angeles Clippers,-145,120,-2.5,213.5,betmgm,mgm_kaggle
+2026-01-17,Atlanta Hawks,Boston Celtics,135,-160,3.5,230.5,betmgm,mgm_kaggle
+2026-01-17,Dallas Mavericks,Utah Jazz,-160,135,-3.5,240.5,betmgm,mgm_kaggle
+2026-01-17,Denver Nuggets,Washington Wizards,-500,375,-10.5,227.5,betmgm,mgm_kaggle
+2026-01-17,Detroit Pistons,Indiana Pacers,-1100,675,-15.5,225.5,betmgm,mgm_kaggle
+2026-01-17,Golden State Warriors,Charlotte Hornets,-295,230,-7.5,235.5,betmgm,mgm_kaggle
+2026-01-17,Miami Heat,Oklahoma City Thunder,375,-500,11.5,234.5,betmgm,mgm_kaggle
+2026-01-17,New York Knicks,Phoenix Suns,-118,-102,-1.5,223.5,betmgm,mgm_kaggle
+2026-01-17,Portland Trail Blazers,Los Angeles Lakers,-155,125,-3.5,223.5,betmgm,mgm_kaggle
+2026-01-17,San Antonio Spurs,Minnesota Timberwolves,-200,165,-4.5,234.5,betmgm,mgm_kaggle
+2026-01-18,Chicago Bulls,Brooklyn Nets,-250,200,-6.5,223.5,betmgm,mgm_kaggle
+2026-01-18,Denver Nuggets,Charlotte Hornets,118,-145,2.5,226.5,betmgm,mgm_kaggle
+2026-01-18,Houston Rockets,New Orleans Pelicans,-800,550,-14.5,233.5,betmgm,mgm_kaggle
+2026-01-18,Los Angeles Lakers,Toronto Raptors,-140,115,-2.5,227.5,betmgm,mgm_kaggle
+2026-01-18,Memphis Grizzlies,Orlando Magic,120,-145,2.5,228.5,betmgm,mgm_kaggle
+2026-01-18,Sacramento Kings,Portland Trail Blazers,100,-120,1.5,230.5,betmgm,mgm_kaggle
+2026-01-19,Atlanta Hawks,Milwaukee Bucks,-120,100,-1.5,232.5,betmgm,mgm_kaggle
+2026-01-19,Brooklyn Nets,Phoenix Suns,300,-375,9.5,214.5,betmgm,mgm_kaggle
+2026-01-19,Cleveland Cavaliers,Oklahoma City Thunder,185,-225,6.5,229.5,betmgm,mgm_kaggle
+2026-01-19,Detroit Pistons,Boston Celtics,-140,115,-2.5,223.5,betmgm,mgm_kaggle
+2026-01-19,Golden State Warriors,Miami Heat,-200,165,-5.5,239.5,betmgm,mgm_kaggle
+2026-01-19,New York Knicks,Dallas Mavericks,-625,450,-12.5,231.5,betmgm,mgm_kaggle
+2026-01-19,Philadelphia 76ers,Indiana Pacers,-275,220,-6.5,230.5,betmgm,mgm_kaggle
+2026-01-19,San Antonio Spurs,Utah Jazz,-1100,700,-16.5,236.5,betmgm,mgm_kaggle
+2026-01-19,Washington Wizards,Los Angeles Clippers,200,-250,6.5,227.5,betmgm,mgm_kaggle
+2026-01-20,Chicago Bulls,Los Angeles Clippers,-145,120,-2.5,224.5,betmgm,mgm_kaggle
+2026-01-20,Denver Nuggets,Los Angeles Lakers,135,-165,3.5,229.5,betmgm,mgm_kaggle
+2026-01-20,Golden State Warriors,Toronto Raptors,-180,145,-4.5,224.5,betmgm,mgm_kaggle
+2026-01-20,Houston Rockets,San Antonio Spurs,-175,145,-4.5,220.5,betmgm,mgm_kaggle
+2026-01-20,Philadelphia 76ers,Phoenix Suns,118,-145,2.5,223.5,betmgm,mgm_kaggle
+2026-01-20,Sacramento Kings,Miami Heat,150,-185,4.5,238.5,betmgm,mgm_kaggle
+2026-01-20,Utah Jazz,Minnesota Timberwolves,475,-650,12.5,239.5,betmgm,mgm_kaggle
+2026-01-21,Boston Celtics,Indiana Pacers,-450,333,-10.5,225.5,betmgm,mgm_kaggle
+2026-01-21,Charlotte Hornets,Cleveland Cavaliers,125,-150,3.5,238.5,betmgm,mgm_kaggle
+2026-01-21,Memphis Grizzlies,Atlanta Hawks,-130,105,-1.5,239.5,betmgm,mgm_kaggle
+2026-01-21,Milwaukee Bucks,Oklahoma City Thunder,400,-550,11.5,225.5,betmgm,mgm_kaggle
+2026-01-21,New Orleans Pelicans,Detroit Pistons,320,-425,9.5,233.5,betmgm,mgm_kaggle
+2026-01-21,New York Knicks,Brooklyn Nets,-650,475,-12.5,219.5,betmgm,mgm_kaggle
+2026-01-21,Sacramento Kings,Toronto Raptors,165,-200,4.5,226.5,betmgm,mgm_kaggle
+2026-01-22,Dallas Mavericks,Golden State Warriors,200,-250,6.5,235.5,betmgm,mgm_kaggle
+2026-01-22,Los Angeles Clippers,Los Angeles Lakers,-145,120,-2.5,224.5,betmgm,mgm_kaggle
+2026-01-22,Minnesota Timberwolves,Chicago Bulls,-375,290,-9.5,239.5,betmgm,mgm_kaggle
+2026-01-22,Orlando Magic,Charlotte Hornets,-165,135,-3.5,225.5,betmgm,mgm_kaggle
+2026-01-22,Philadelphia 76ers,Houston Rockets,110,-135,1.5,222.5,betmgm,mgm_kaggle
+2026-01-22,Portland Trail Blazers,Miami Heat,-155,125,-3.5,235.5,betmgm,mgm_kaggle
+2026-01-22,Utah Jazz,San Antonio Spurs,425,-600,12.5,238.5,betmgm,mgm_kaggle
+2026-01-22,Washington Wizards,Denver Nuggets,220,-275,6.5,227.5,betmgm,mgm_kaggle
+2026-01-23,Atlanta Hawks,Phoenix Suns,125,-150,2.5,233.5,betmgm,mgm_kaggle
+2026-01-23,Brooklyn Nets,Boston Celtics,275,-350,8.5,215.5,betmgm,mgm_kaggle
+2026-01-23,Cleveland Cavaliers,Sacramento Kings,-625,450,-12.5,233.5,betmgm,mgm_kaggle
+2026-01-23,Detroit Pistons,Houston Rockets,-180,145,-4.5,217.5,betmgm,mgm_kaggle
+2026-01-23,Memphis Grizzlies,New Orleans Pelicans,-200,165,-4.5,240.5,betmgm,mgm_kaggle
+2026-01-23,Milwaukee Bucks,Denver Nuggets,-325,260,-8.5,213.5,betmgm,mgm_kaggle
+2026-01-23,Oklahoma City Thunder,Indiana Pacers,-1000,650,-15.5,226.5,betmgm,mgm_kaggle
+2026-01-23,Portland Trail Blazers,Toronto Raptors,140,-170,3.5,225.5,betmgm,mgm_kaggle
+2026-01-24,Charlotte Hornets,Washington Wizards,-550,400,-11.5,231.5,betmgm,mgm_kaggle
+2026-01-24,Chicago Bulls,Boston Celtics,135,-160,3.5,232.5,betmgm,mgm_kaggle
+2026-01-24,Dallas Mavericks,Los Angeles Lakers,145,-175,3.5,234.5,betmgm,mgm_kaggle
+2026-01-24,Philadelphia 76ers,New York Knicks,-110,-110,1.5,228.5,betmgm,mgm_kaggle
+2026-01-24,Utah Jazz,Miami Heat,200,-250,6.5,244.5,betmgm,mgm_kaggle
+2026-01-25,Detroit Pistons,Sacramento Kings,-625,450,-12.5,215.5,betmgm,mgm_kaggle
+2026-01-25,Los Angeles Clippers,Brooklyn Nets,-450,340,-10.5,211.5,betmgm,mgm_kaggle
+2026-01-25,Minnesota Timberwolves,Golden State Warriors,-200,165,-5.5,237.5,betmgm,mgm_kaggle
+2026-01-25,Oklahoma City Thunder,Toronto Raptors,-550,400,-11.5,225.5,betmgm,mgm_kaggle
+2026-01-25,Phoenix Suns,Miami Heat,-185,150,-4.5,225.5,betmgm,mgm_kaggle
+2026-01-25,San Antonio Spurs,New Orleans Pelicans,-550,400,-11.5,240.5,betmgm,mgm_kaggle
+2026-01-26,Atlanta Hawks,Indiana Pacers,-210,170,-5.5,233.5,betmgm,mgm_kaggle
+2026-01-26,Boston Celtics,Portland Trail Blazers,-325,260,-8.5,223.5,betmgm,mgm_kaggle
+2026-01-26,Charlotte Hornets,Philadelphia 76ers,-130,105,-2.5,229.5,betmgm,mgm_kaggle
+2026-01-26,Chicago Bulls,Los Angeles Lakers,100,-120,1.5,236.5,betmgm,mgm_kaggle
+2026-01-26,Houston Rockets,Memphis Grizzlies,-550,400,-11.5,226.5,betmgm,mgm_kaggle
+2026-01-26,Minnesota Timberwolves,Golden State Warriors,-300,240,-8.5,226.5,betmgm,mgm_kaggle
+2026-01-27,Denver Nuggets,Detroit Pistons,220,-275,7.5,215.5,betmgm,mgm_kaggle
+2026-01-27,New York Knicks,Sacramento Kings,-900,600,-14.5,225.5,betmgm,mgm_kaggle
+2026-01-27,Oklahoma City Thunder,New Orleans Pelicans,-800,550,-14.5,233.5,betmgm,mgm_kaggle
+2026-01-27,Philadelphia 76ers,Milwaukee Bucks,-400,300,-9.5,220.5,betmgm,mgm_kaggle
+2026-01-27,Phoenix Suns,Brooklyn Nets,-375,290,-8.5,210.5,betmgm,mgm_kaggle
+2026-01-27,Utah Jazz,Los Angeles Clippers,280,-350,8.5,234.5,betmgm,mgm_kaggle
+2026-01-27,Washington Wizards,Portland Trail Blazers,200,-250,7.5,233.5,betmgm,mgm_kaggle
+2026-01-28,Boston Celtics,Atlanta Hawks,-210,170,-5.5,232.5,betmgm,mgm_kaggle
+2026-01-28,Cleveland Cavaliers,Los Angeles Lakers,-170,140,-3.5,233.5,betmgm,mgm_kaggle
+2026-01-28,Dallas Mavericks,Minnesota Timberwolves,260,-325,8.5,229.5,betmgm,mgm_kaggle
+2026-01-28,Houston Rockets,San Antonio Spurs,-145,118,-2.5,220.5,betmgm,mgm_kaggle
+2026-01-28,Memphis Grizzlies,Charlotte Hornets,110,-135,2.5,231.5,betmgm,mgm_kaggle
+2026-01-28,Miami Heat,Orlando Magic,-150,125,-3.5,224.5,betmgm,mgm_kaggle
+2026-01-28,Toronto Raptors,New York Knicks,-130,105,-1.5,220.5,betmgm,mgm_kaggle
+2026-01-28,Utah Jazz,Golden State Warriors,240,-300,8.5,241.5,betmgm,mgm_kaggle
+2026-01-29,Atlanta Hawks,Houston Rockets,200,-250,6.5,225.5,betmgm,mgm_kaggle
+2026-01-29,Chicago Bulls,Miami Heat,110,-135,2.5,237.5,betmgm,mgm_kaggle
+2026-01-29,Dallas Mavericks,Charlotte Hornets,125,-150,3.5,226.5,betmgm,mgm_kaggle
+2026-01-29,Denver Nuggets,Brooklyn Nets,-250,200,-6.5,210.5,betmgm,mgm_kaggle
+2026-01-29,Minnesota Timberwolves,Oklahoma City Thunder,170,-210,5.5,228.5,betmgm,mgm_kaggle
+2026-01-29,Philadelphia 76ers,Sacramento Kings,-400,310,-9.5,228.5,betmgm,mgm_kaggle
+2026-01-29,Phoenix Suns,Detroit Pistons,125,-150,3.5,214.5,betmgm,mgm_kaggle
+2026-01-29,Washington Wizards,Milwaukee Bucks,105,-130,2.5,224.5,betmgm,mgm_kaggle
+2026-01-30,Boston Celtics,Sacramento Kings,-500,375,-11.5,216.5,betmgm,mgm_kaggle
+2026-01-30,Denver Nuggets,Los Angeles Clippers,120,-145,2.5,219.5,betmgm,mgm_kaggle
+2026-01-30,Golden State Warriors,Detroit Pistons,-135,110,-2.5,226.5,betmgm,mgm_kaggle
+2026-01-30,New Orleans Pelicans,Memphis Grizzlies,-155,125,-3.5,231.5,betmgm,mgm_kaggle
+2026-01-30,New York Knicks,Portland Trail Blazers,-250,200,-6.5,224.5,betmgm,mgm_kaggle
+2026-01-30,Orlando Magic,Toronto Raptors,-145,118,-2.5,222.5,betmgm,mgm_kaggle
+2026-01-30,Phoenix Suns,Cleveland Cavaliers,105,-125,1.5,221.5,betmgm,mgm_kaggle
+2026-01-30,Utah Jazz,Brooklyn Nets,-160,135,-4.5,225.5,betmgm,mgm_kaggle
+2026-01-30,Washington Wizards,Los Angeles Lakers,375,-500,10.5,229.5,betmgm,mgm_kaggle
+2026-01-31,Charlotte Hornets,San Antonio Spurs,140,-170,3.5,228.5,betmgm,mgm_kaggle
+2026-01-31,Houston Rockets,Dallas Mavericks,-475,350,-10.5,222.5,betmgm,mgm_kaggle
+2026-01-31,Indiana Pacers,Atlanta Hawks,105,-125,1.5,235.5,betmgm,mgm_kaggle
+2026-01-31,Memphis Grizzlies,Minnesota Timberwolves,375,-500,11.5,229.5,betmgm,mgm_kaggle
+2026-01-31,Miami Heat,Chicago Bulls,-210,170,-5.5,231.5,betmgm,mgm_kaggle
+2026-01-31,Philadelphia 76ers,New Orleans Pelicans,-225,185,-6.5,234.5,betmgm,mgm_kaggle
+2026-02-01,Boston Celtics,Milwaukee Bucks,-800,550,-13.5,217.5,betmgm,mgm_kaggle
+2026-02-01,Phoenix Suns,Los Angeles Clippers,-120,100,-1.5,214.5,betmgm,mgm_kaggle
+2026-02-02,Charlotte Hornets,New Orleans Pelicans,-235,195,-6.5,230.5,betmgm,mgm_kaggle
+2026-02-02,Indiana Pacers,Houston Rockets,200,-250,6.5,218.5,betmgm,mgm_kaggle
+2026-02-02,Los Angeles Clippers,Philadelphia 76ers,100,-118,1.5,219.5,betmgm,mgm_kaggle
+2026-02-02,Memphis Grizzlies,Minnesota Timberwolves,240,-300,7.5,231.5,betmgm,mgm_kaggle
+2026-02-03,Brooklyn Nets,Los Angeles Lakers,260,-325,7.5,223.5,betmgm,mgm_kaggle
+2026-02-03,Dallas Mavericks,Boston Celtics,200,-250,7.5,223.5,betmgm,mgm_kaggle
+2026-02-03,Detroit Pistons,Denver Nuggets,-200,165,-5.5,229.5,betmgm,mgm_kaggle
+2026-02-03,Golden State Warriors,Philadelphia 76ers,-185,150,-4.5,223.5,betmgm,mgm_kaggle
+2026-02-03,Indiana Pacers,Utah Jazz,125,-155,3.5,232.5,betmgm,mgm_kaggle
+2026-02-03,Miami Heat,Atlanta Hawks,-120,100,-1.5,237.5,betmgm,mgm_kaggle
+2026-02-03,Milwaukee Bucks,Chicago Bulls,105,-125,1.5,222.5,betmgm,mgm_kaggle
+2026-02-03,Oklahoma City Thunder,Orlando Magic,-500,375,-11.5,222.5,betmgm,mgm_kaggle
+2026-02-03,Portland Trail Blazers,Phoenix Suns,125,-155,2.5,219.5,betmgm,mgm_kaggle
+2026-02-03,Washington Wizards,New York Knicks,450,-625,12.5,227.5,betmgm,mgm_kaggle
+2026-02-04,Houston Rockets,Boston Celtics,-300,240,-8.5,210.5,betmgm,mgm_kaggle
+2026-02-04,Los Angeles Clippers,Cleveland Cavaliers,125,-155,3.5,221.5,betmgm,mgm_kaggle
+2026-02-04,Milwaukee Bucks,New Orleans Pelicans,150,-185,4.5,222.5,betmgm,mgm_kaggle
+2026-02-04,New York Knicks,Denver Nuggets,-185,150,-4.5,228.5,betmgm,mgm_kaggle
+2026-02-04,Sacramento Kings,Memphis Grizzlies,-155,125,-2.5,235.5,betmgm,mgm_kaggle
+2026-02-04,San Antonio Spurs,Oklahoma City Thunder,-400,310,-9.5,221.5,betmgm,mgm_kaggle
+2026-02-04,Toronto Raptors,Minnesota Timberwolves,115,-140,2.5,228.5,betmgm,mgm_kaggle
+2026-02-05,Atlanta Hawks,Utah Jazz,-300,240,-8.5,245.5,betmgm,mgm_kaggle
+2026-02-05,Dallas Mavericks,San Antonio Spurs,260,-325,7.5,219.5,betmgm,mgm_kaggle
+2026-02-05,Detroit Pistons,Washington Wizards,-1200,725,-16.5,227.5,betmgm,mgm_kaggle
+2026-02-05,Houston Rockets,Charlotte Hornets,-175,145,-4.5,218.5,betmgm,mgm_kaggle
+2026-02-05,Los Angeles Lakers,Philadelphia 76ers,-140,115,-2.5,236.5,betmgm,mgm_kaggle
+2026-02-05,Orlando Magic,Brooklyn Nets,-425,320,-9.5,214.5,betmgm,mgm_kaggle
+2026-02-05,Phoenix Suns,Golden State Warriors,-220,180,-5.5,213.5,betmgm,mgm_kaggle
+2026-02-05,Toronto Raptors,Chicago Bulls,-300,240,-7.5,214.5,betmgm,mgm_kaggle
+2026-02-06,Boston Celtics,Miami Heat,-225,185,-5.5,227.5,betmgm,mgm_kaggle
+2026-02-06,Detroit Pistons,New York Knicks,-220,180,-5.5,219.5,betmgm,mgm_kaggle
+2026-02-06,Milwaukee Bucks,Indiana Pacers,105,-125,1.5,223.5,betmgm,mgm_kaggle
+2026-02-06,Minnesota Timberwolves,New Orleans Pelicans,-325,260,-8.5,237.5,betmgm,mgm_kaggle
+2026-02-06,Portland Trail Blazers,Memphis Grizzlies,-325,260,-9.5,235.5,betmgm,mgm_kaggle
+2026-02-06,Sacramento Kings,Los Angeles Clippers,135,-165,3.5,222.5,betmgm,mgm_kaggle
+2026-02-07,Atlanta Hawks,Charlotte Hornets,110,-135,1.5,232.5,betmgm,mgm_kaggle
+2026-02-07,Brooklyn Nets,Washington Wizards,-300,240,-8.5,216.5,betmgm,mgm_kaggle
+2026-02-07,Chicago Bulls,Denver Nuggets,260,-325,8.5,235.5,betmgm,mgm_kaggle
+2026-02-07,Los Angeles Lakers,Golden State Warriors,-140,115,-2.5,219.5,betmgm,mgm_kaggle
+2026-02-07,Oklahoma City Thunder,Houston Rockets,-160,135,-3.5,213.5,betmgm,mgm_kaggle
+2026-02-07,Orlando Magic,Utah Jazz,-300,240,-7.5,234.5,betmgm,mgm_kaggle
+2026-02-07,Phoenix Suns,Philadelphia 76ers,-140,115,-2.5,224.5,betmgm,mgm_kaggle
+2026-02-07,Portland Trail Blazers,Memphis Grizzlies,-325,260,-9.5,222.5,betmgm,mgm_kaggle
+2026-02-07,Sacramento Kings,Cleveland Cavaliers,500,-700,13.5,229.5,betmgm,mgm_kaggle
+2026-02-07,San Antonio Spurs,Dallas Mavericks,-475,350,-11.5,221.5,betmgm,mgm_kaggle
+2026-02-08,Boston Celtics,New York Knicks,-155,125,-3.5,215.5,betmgm,mgm_kaggle
+2026-02-08,Minnesota Timberwolves,Los Angeles Clippers,-350,275,-8.5,222.5,betmgm,mgm_kaggle
+2026-02-08,Toronto Raptors,Indiana Pacers,-325,260,-7.5,226.5,betmgm,mgm_kaggle
+2026-02-08,Washington Wizards,Miami Heat,475,-650,12.5,236.5,betmgm,mgm_kaggle
+2026-02-09,Brooklyn Nets,Chicago Bulls,125,-155,3.5,218.5,betmgm,mgm_kaggle
+2026-02-09,Charlotte Hornets,Detroit Pistons,110,-135,2.5,222.5,betmgm,mgm_kaggle
+2026-02-09,Denver Nuggets,Cleveland Cavaliers,-150,125,-2.5,242.5,betmgm,mgm_kaggle
+2026-02-09,Golden State Warriors,Memphis Grizzlies,-350,280,-8.5,219.5,betmgm,mgm_kaggle
+2026-02-09,Los Angeles Lakers,Oklahoma City Thunder,200,-250,6.5,223.5,betmgm,mgm_kaggle
+2026-02-09,Miami Heat,Utah Jazz,-250,200,-5.5,233.5,betmgm,mgm_kaggle
+2026-02-09,Minnesota Timberwolves,Atlanta Hawks,-325,260,-8.5,238.5,betmgm,mgm_kaggle
+2026-02-09,New Orleans Pelicans,Sacramento Kings,-400,300,-9.5,228.5,betmgm,mgm_kaggle
+2026-02-09,Orlando Magic,Milwaukee Bucks,-400,310,-9.5,219.5,betmgm,mgm_kaggle
+2026-02-09,Portland Trail Blazers,Philadelphia 76ers,-170,140,-3.5,231.5,betmgm,mgm_kaggle
+2026-02-10,Houston Rockets,Los Angeles Clippers,-325,260,-9.5,213.5,betmgm,mgm_kaggle
+2026-02-10,Los Angeles Lakers,San Antonio Spurs,475,-650,13.5,225.5,betmgm,mgm_kaggle
+2026-02-10,New York Knicks,Indiana Pacers,-550,400,-11.5,227.5,betmgm,mgm_kaggle
+2026-02-10,Phoenix Suns,Dallas Mavericks,-295,230,-8.5,229.5,betmgm,mgm_kaggle
+2026-02-11,Boston Celtics,Chicago Bulls,-700,500,-13.5,226.5,betmgm,mgm_kaggle
+2026-02-11,Brooklyn Nets,Indiana Pacers,-225,185,-6.5,214.5,betmgm,mgm_kaggle
+2026-02-11,Charlotte Hornets,Atlanta Hawks,-135,110,-2.5,235.5,betmgm,mgm_kaggle
+2026-02-11,Cleveland Cavaliers,Washington Wizards,-1400,825,-17.5,239.5,betmgm,mgm_kaggle
+2026-02-11,Denver Nuggets,Memphis Grizzlies,-800,550,-14.5,240.5,betmgm,mgm_kaggle
+2026-02-11,Golden State Warriors,San Antonio Spurs,180,-220,6.5,220.5,betmgm,mgm_kaggle
+2026-02-11,Houston Rockets,Los Angeles Clippers,-325,260,-8.5,212.5,betmgm,mgm_kaggle
+2026-02-11,Minnesota Timberwolves,Portland Trail Blazers,-275,220,-7.5,238.5,betmgm,mgm_kaggle
+2026-02-11,New Orleans Pelicans,Miami Heat,-130,105,-1.5,233.5,betmgm,mgm_kaggle
+2026-02-11,Orlando Magic,Milwaukee Bucks,-500,375,-10.5,220.5,betmgm,mgm_kaggle
+2026-02-11,Philadelphia 76ers,New York Knicks,115,-140,2.5,225.5,betmgm,mgm_kaggle
+2026-02-11,Phoenix Suns,Oklahoma City Thunder,225,-285,7.5,212.5,betmgm,mgm_kaggle
+2026-02-11,Toronto Raptors,Detroit Pistons,-118,-102,-1.5,223.5,betmgm,mgm_kaggle
+2026-02-11,Utah Jazz,Sacramento Kings,-210,170,-5.5,228.5,betmgm,mgm_kaggle
+2026-02-12,Los Angeles Lakers,Dallas Mavericks,-250,200,-6.5,237.5,betmgm,mgm_kaggle
+2026-02-12,Oklahoma City Thunder,Milwaukee Bucks,-650,475,-13.5,214.5,betmgm,mgm_kaggle
+2026-02-12,Utah Jazz,Portland Trail Blazers,195,-235,6.5,236.5,betmgm,mgm_kaggle
+2026-02-19,Charlotte Hornets,Houston Rockets,154,-190,,,betmgm,sbr_scrape
+2026-02-19,Chicago Bulls,Toronto Raptors,185,-225,,,betmgm,sbr_scrape
+2026-02-19,Cleveland Cavaliers,Brooklyn Nets,-1099,675,,,betmgm,sbr_scrape
+2026-02-19,Golden State Warriors,Boston Celtics,190,-235,,,betmgm,sbr_scrape
+2026-02-19,Los Angeles Clippers,Denver Nuggets,150,-185,,,betmgm,sbr_scrape
+2026-02-19,New York Knicks,Detroit Pistons,-160,135,,,betmgm,sbr_scrape
+2026-02-19,Philadelphia 76ers,Atlanta Hawks,-115,-105,,,betmgm,sbr_scrape
+2026-02-19,Sacramento Kings,Orlando Magic,275,-350,,,betmgm,sbr_scrape
+2026-02-19,San Antonio Spurs,Phoenix Suns,-285,230,,,betmgm,sbr_scrape
+2026-02-19,Washington Wizards,Indiana Pacers,110,-135,,,betmgm,sbr_scrape
+2026-02-20,Atlanta Hawks,Miami Heat,120,-145,,,betmgm,sbr_scrape
+2026-02-20,Charlotte Hornets,Cleveland Cavaliers,180,-220,,,betmgm,sbr_scrape
+2026-02-20,Los Angeles Lakers,Los Angeles Clippers,-250,200,,,betmgm,sbr_scrape
+2026-02-20,Memphis Grizzlies,Utah Jazz,-140,115,,,betmgm,sbr_scrape
+2026-02-20,Minnesota Timberwolves,Dallas Mavericks,-699,500,,,betmgm,sbr_scrape
+2026-02-20,New Orleans Pelicans,Milwaukee Bucks,-185,150,,,betmgm,sbr_scrape
+2026-02-20,Oklahoma City Thunder,Brooklyn Nets,-1205,750,,,betmgm,sbr_scrape
+2026-02-20,Portland Trail Blazers,Denver Nuggets,100,-120,,,betmgm,sbr_scrape
+2026-02-20,Washington Wizards,Indiana Pacers,-120,100,,,betmgm,sbr_scrape
+2026-02-21,Chicago Bulls,Detroit Pistons,425,-599,,,betmgm,sbr_scrape
+2026-02-21,Miami Heat,Memphis Grizzlies,-549,400,,,betmgm,sbr_scrape
+2026-02-21,New Orleans Pelicans,Philadelphia 76ers,140,-170,,,betmgm,sbr_scrape
+2026-02-21,New York Knicks,Houston Rockets,-160,135,,,betmgm,sbr_scrape
+2026-02-21,Phoenix Suns,Orlando Magic,-160,135,,,betmgm,sbr_scrape
+2026-02-21,San Antonio Spurs,Sacramento Kings,-2000,1000,,,betmgm,sbr_scrape
+2026-02-22,Atlanta Hawks,Brooklyn Nets,-400,310,,,betmgm,sbr_scrape
+2026-02-22,Chicago Bulls,New York Knicks,300,-400,,,betmgm,sbr_scrape
+2026-02-22,Golden State Warriors,Denver Nuggets,195,-235,,,betmgm,sbr_scrape
+2026-02-22,Indiana Pacers,Dallas Mavericks,-102,-118,,,betmgm,sbr_scrape
+2026-02-22,Los Angeles Clippers,Orlando Magic,-190,154,,,betmgm,sbr_scrape
+2026-02-22,Los Angeles Lakers,Boston Celtics,-105,-115,,,betmgm,sbr_scrape
+2026-02-22,Milwaukee Bucks,Toronto Raptors,140,-170,,,betmgm,sbr_scrape
+2026-02-22,Minnesota Timberwolves,Philadelphia 76ers,-375,290,,,betmgm,sbr_scrape
+2026-02-22,Oklahoma City Thunder,Cleveland Cavaliers,145,-180,,,betmgm,sbr_scrape
+2026-02-22,Phoenix Suns,Portland Trail Blazers,135,-165,,,betmgm,sbr_scrape
+2026-02-22,Washington Wizards,Charlotte Hornets,375,-500,,,betmgm,sbr_scrape
+2026-02-23,Detroit Pistons,San Antonio Spurs,-125,105,,,betmgm,sbr_scrape
+2026-02-23,Houston Rockets,Utah Jazz,-901,600,,,betmgm,sbr_scrape
+2026-02-23,Memphis Grizzlies,Sacramento Kings,-145,118,,,betmgm,sbr_scrape
+2026-02-24,Atlanta Hawks,Washington Wizards,-649,475,,,betmgm,sbr_scrape
+2026-02-24,Brooklyn Nets,Dallas Mavericks,105,-125,,,betmgm,sbr_scrape
+2026-02-24,Chicago Bulls,Charlotte Hornets,260,-325,,,betmgm,sbr_scrape
+2026-02-24,Cleveland Cavaliers,New York Knicks,-170,140,,,betmgm,sbr_scrape
+2026-02-24,Indiana Pacers,Philadelphia 76ers,400,-549,,,betmgm,sbr_scrape
+2026-02-24,Los Angeles Lakers,Orlando Magic,-235,195,,,betmgm,sbr_scrape
+2026-02-24,Milwaukee Bucks,Miami Heat,180,-220,,,betmgm,sbr_scrape
+2026-02-24,New Orleans Pelicans,Golden State Warriors,100,-120,,,betmgm,sbr_scrape
+2026-02-24,Phoenix Suns,Boston Celtics,170,-210,,,betmgm,sbr_scrape
+2026-02-24,Portland Trail Blazers,Minnesota Timberwolves,200,-250,,,betmgm,sbr_scrape
+2026-02-24,Toronto Raptors,Oklahoma City Thunder,-105,-115,,,betmgm,sbr_scrape
+2026-02-25,Denver Nuggets,Boston Celtics,-155,125,,,betmgm,sbr_scrape
+2026-02-25,Detroit Pistons,Oklahoma City Thunder,-450,350,,,betmgm,sbr_scrape
+2026-02-25,Houston Rockets,Sacramento Kings,-1000,625,,,betmgm,sbr_scrape
+2026-02-25,Memphis Grizzlies,Golden State Warriors,150,-185,,,betmgm,sbr_scrape
+2026-02-25,Milwaukee Bucks,Cleveland Cavaliers,125,-155,,,betmgm,sbr_scrape
+2026-02-25,Toronto Raptors,San Antonio Spurs,180,-220,,,betmgm,sbr_scrape
+2026-02-26,Atlanta Hawks,Washington Wizards,-500,375,,,betmgm,sbr_scrape
+2026-02-26,Brooklyn Nets,San Antonio Spurs,425,-599,,,betmgm,sbr_scrape
+2026-02-26,Chicago Bulls,Portland Trail Blazers,140,-170,,,betmgm,sbr_scrape
+2026-02-26,Dallas Mavericks,Sacramento Kings,-325,260,,,betmgm,sbr_scrape
+2026-02-26,Indiana Pacers,Charlotte Hornets,525,-752,,,betmgm,sbr_scrape
+2026-02-26,Los Angeles Clippers,Minnesota Timberwolves,260,-325,,,betmgm,sbr_scrape
+2026-02-26,Orlando Magic,Houston Rockets,120,-145,,,betmgm,sbr_scrape
+2026-02-26,Philadelphia 76ers,Miami Heat,-140,115,,,betmgm,sbr_scrape
+2026-02-26,Phoenix Suns,Los Angeles Lakers,180,-220,,,betmgm,sbr_scrape
+2026-02-26,Utah Jazz,New Orleans Pelicans,200,-250,,,betmgm,sbr_scrape
+2026-02-27,Boston Celtics,Brooklyn Nets,-1408,825,,,betmgm,sbr_scrape
+2026-02-27,Dallas Mavericks,Memphis Grizzlies,-190,155,,,betmgm,sbr_scrape
+2026-02-27,Detroit Pistons,Cleveland Cavaliers,-325,260,,,betmgm,sbr_scrape
+2026-02-27,Milwaukee Bucks,New York Knicks,260,-325,,,betmgm,sbr_scrape
+2026-02-27,Oklahoma City Thunder,Denver Nuggets,-250,200,,,betmgm,sbr_scrape
+2026-02-28,Charlotte Hornets,Portland Trail Blazers,-285,230,,,betmgm,sbr_scrape
+2026-02-28,Golden State Warriors,Los Angeles Lakers,140,-170,,,betmgm,sbr_scrape
+2026-02-28,Miami Heat,Houston Rockets,115,-140,,,betmgm,sbr_scrape
+2026-02-28,Utah Jazz,New Orleans Pelicans,180,-220,,,betmgm,sbr_scrape
+2026-02-28,Washington Wizards,Toronto Raptors,575,-901,,,betmgm,sbr_scrape
+2026-03-01,Atlanta Hawks,Portland Trail Blazers,-235,190,,,betmgm,sbr_scrape
+2026-03-01,Boston Celtics,Philadelphia 76ers,-350,280,,,betmgm,sbr_scrape
+2026-03-01,Brooklyn Nets,Cleveland Cavaliers,450,-625,,,betmgm,sbr_scrape
+2026-03-01,Chicago Bulls,Milwaukee Bucks,115,-140,,,betmgm,sbr_scrape
+2026-03-01,Dallas Mavericks,Oklahoma City Thunder,725,-1205,,,betmgm,sbr_scrape
+2026-03-01,Denver Nuggets,Minnesota Timberwolves,-140,120,,,betmgm,sbr_scrape
+2026-03-01,Indiana Pacers,Memphis Grizzlies,-115,-105,,,betmgm,sbr_scrape
+2026-03-01,Los Angeles Clippers,New Orleans Pelicans,-325,260,,,betmgm,sbr_scrape
+2026-03-01,Los Angeles Lakers,Sacramento Kings,-699,500,,,betmgm,sbr_scrape
+2026-03-01,New York Knicks,San Antonio Spurs,-110,-110,,,betmgm,sbr_scrape
+2026-03-01,Orlando Magic,Detroit Pistons,180,-220,,,betmgm,sbr_scrape
+2026-03-02,Golden State Warriors,Los Angeles Clippers,-105,-115,,,betmgm,sbr_scrape
+2026-03-02,Milwaukee Bucks,Boston Celtics,115,-140,,,betmgm,sbr_scrape
+2026-03-02,Utah Jazz,Denver Nuggets,425,-599,,,betmgm,sbr_scrape
+2026-03-02,Washington Wizards,Houston Rockets,675,-1099,,,betmgm,sbr_scrape
+2026-03-03,Charlotte Hornets,Dallas Mavericks,-699,500,,,betmgm,sbr_scrape
+2026-03-03,Chicago Bulls,Oklahoma City Thunder,290,-375,,,betmgm,sbr_scrape
+2026-03-03,Cleveland Cavaliers,Detroit Pistons,125,-155,,,betmgm,sbr_scrape
+2026-03-03,Los Angeles Lakers,New Orleans Pelicans,-350,280,,,betmgm,sbr_scrape
+2026-03-03,Miami Heat,Brooklyn Nets,-752,525,,,betmgm,sbr_scrape
+2026-03-03,Minnesota Timberwolves,Memphis Grizzlies,-901,600,,,betmgm,sbr_scrape
+2026-03-03,Orlando Magic,Washington Wizards,-1408,800,,,betmgm,sbr_scrape
+2026-03-03,Philadelphia 76ers,San Antonio Spurs,260,-325,,,betmgm,sbr_scrape
+2026-03-03,Sacramento Kings,Phoenix Suns,290,-375,,,betmgm,sbr_scrape
+2026-03-03,Toronto Raptors,New York Knicks,118,-145,,,betmgm,sbr_scrape
+2026-03-04,Boston Celtics,Charlotte Hornets,-250,200,,,betmgm,sbr_scrape
+2026-03-04,Los Angeles Clippers,Indiana Pacers,-625,450,,,betmgm,sbr_scrape
+2026-03-04,Memphis Grizzlies,Portland Trail Blazers,310,-400,,,betmgm,sbr_scrape
+2026-03-04,Milwaukee Bucks,Atlanta Hawks,-115,-105,,,betmgm,sbr_scrape
+2026-03-04,New York Knicks,Oklahoma City Thunder,145,-175,,,betmgm,sbr_scrape
+2026-03-04,Philadelphia 76ers,Utah Jazz,-325,260,,,betmgm,sbr_scrape
+2026-03-05,Denver Nuggets,Los Angeles Lakers,-170,140,,,betmgm,sbr_scrape
+2026-03-05,Houston Rockets,Golden State Warriors,-426,320,,,betmgm,sbr_scrape
+2026-03-05,Miami Heat,Brooklyn Nets,-901,575,,,betmgm,sbr_scrape
+2026-03-05,Minnesota Timberwolves,Toronto Raptors,-220,180,,,betmgm,sbr_scrape
+2026-03-05,Orlando Magic,Dallas Mavericks,-325,260,,,betmgm,sbr_scrape
+2026-03-05,Phoenix Suns,Chicago Bulls,-649,475,,,betmgm,sbr_scrape
+2026-03-05,Sacramento Kings,New Orleans Pelicans,220,-275,,,betmgm,sbr_scrape
+2026-03-05,San Antonio Spurs,Detroit Pistons,-150,125,,,betmgm,sbr_scrape
+2026-03-05,Washington Wizards,Utah Jazz,-170,140,,,betmgm,sbr_scrape
+2026-03-06,Boston Celtics,Dallas Mavericks,-1205,750,,,betmgm,sbr_scrape
+2026-03-06,Charlotte Hornets,Miami Heat,-295,230,,,betmgm,sbr_scrape
+2026-03-06,Denver Nuggets,New York Knicks,-118,-102,,,betmgm,sbr_scrape
+2026-03-06,Houston Rockets,Portland Trail Blazers,-275,220,,,betmgm,sbr_scrape
+2026-03-06,Los Angeles Lakers,Indiana Pacers,-426,320,,,betmgm,sbr_scrape
+2026-03-06,Phoenix Suns,New Orleans Pelicans,-185,150,,,betmgm,sbr_scrape
+2026-03-06,San Antonio Spurs,Los Angeles Clippers,-285,225,,,betmgm,sbr_scrape
+2026-03-07,Atlanta Hawks,Philadelphia 76ers,-275,220,,,betmgm,sbr_scrape
+2026-03-07,Detroit Pistons,Brooklyn Nets,-901,575,,,betmgm,sbr_scrape
+2026-03-07,Memphis Grizzlies,Los Angeles Clippers,240,-300,,,betmgm,sbr_scrape
+2026-03-07,Milwaukee Bucks,Utah Jazz,-450,350,,,betmgm,sbr_scrape
+2026-03-07,Minnesota Timberwolves,Orlando Magic,-275,220,,,betmgm,sbr_scrape
+2026-03-07,Oklahoma City Thunder,Golden State Warriors,-649,475,,,betmgm,sbr_scrape
+2026-03-08,Cleveland Cavaliers,Boston Celtics,-118,-102,,,betmgm,sbr_scrape
+2026-03-08,Los Angeles Lakers,New York Knicks,165,-200,,,betmgm,sbr_scrape
+2026-03-08,Miami Heat,Detroit Pistons,100,-120,,,betmgm,sbr_scrape
+2026-03-08,Milwaukee Bucks,Orlando Magic,180,-220,,,betmgm,sbr_scrape
+2026-03-08,New Orleans Pelicans,Washington Wizards,-549,400,,,betmgm,sbr_scrape
+2026-03-08,Phoenix Suns,Charlotte Hornets,170,-210,,,betmgm,sbr_scrape
+2026-03-08,Portland Trail Blazers,Indiana Pacers,-426,320,,,betmgm,sbr_scrape
+2026-03-08,Sacramento Kings,Chicago Bulls,170,-210,,,betmgm,sbr_scrape
+2026-03-08,San Antonio Spurs,Houston Rockets,-225,185,,,betmgm,sbr_scrape
+2026-03-08,Toronto Raptors,Dallas Mavericks,-400,310,,,betmgm,sbr_scrape
+2026-03-09,Brooklyn Nets,Memphis Grizzlies,-125,105,,,betmgm,sbr_scrape
+2026-03-09,Cleveland Cavaliers,Philadelphia 76ers,-800,550,,,betmgm,sbr_scrape
+2026-03-09,Los Angeles Clippers,New York Knicks,105,-130,,,betmgm,sbr_scrape
+2026-03-09,Oklahoma City Thunder,Denver Nuggets,-165,140,,,betmgm,sbr_scrape
+2026-03-09,Utah Jazz,Golden State Warriors,220,-275,,,betmgm,sbr_scrape
+2026-03-10,Atlanta Hawks,Dallas Mavericks,-426,320,,,betmgm,sbr_scrape
+2026-03-10,Brooklyn Nets,Detroit Pistons,725,-1205,,,betmgm,sbr_scrape
+2026-03-10,Golden State Warriors,Chicago Bulls,-235,190,,,betmgm,sbr_scrape
+2026-03-10,Houston Rockets,Toronto Raptors,-190,155,,,betmgm,sbr_scrape
+2026-03-10,Los Angeles Lakers,Minnesota Timberwolves,118,-145,,,betmgm,sbr_scrape
+2026-03-10,Miami Heat,Washington Wizards,-1205,725,,,betmgm,sbr_scrape
+2026-03-10,Milwaukee Bucks,Phoenix Suns,110,-135,,,betmgm,sbr_scrape
+2026-03-10,Philadelphia 76ers,Memphis Grizzlies,-190,155,,,betmgm,sbr_scrape
+2026-03-10,Portland Trail Blazers,Charlotte Hornets,125,-150,,,betmgm,sbr_scrape
+2026-03-10,Sacramento Kings,Indiana Pacers,-160,135,,,betmgm,sbr_scrape
+2026-03-10,San Antonio Spurs,Boston Celtics,-170,140,,,betmgm,sbr_scrape
+2026-03-11,Denver Nuggets,Houston Rockets,-250,200,,,betmgm,sbr_scrape
+2026-03-11,Los Angeles Clippers,Minnesota Timberwolves,-130,105,,,betmgm,sbr_scrape
+2026-03-11,New Orleans Pelicans,Toronto Raptors,120,-145,,,betmgm,sbr_scrape
+2026-03-11,Orlando Magic,Cleveland Cavaliers,135,-160,,,betmgm,sbr_scrape
+2026-03-11,Sacramento Kings,Charlotte Hornets,675,-1099,,,betmgm,sbr_scrape
+2026-03-11,Utah Jazz,New York Knicks,625,-1000,,,betmgm,sbr_scrape
+2026-03-12,Atlanta Hawks,Brooklyn Nets,-1205,750,,,betmgm,sbr_scrape
+2026-03-12,Detroit Pistons,Philadelphia 76ers,-1099,700,,,betmgm,sbr_scrape
+2026-03-12,Indiana Pacers,Phoenix Suns,333,-450,,,betmgm,sbr_scrape
+2026-03-12,Los Angeles Lakers,Chicago Bulls,-599,425,,,betmgm,sbr_scrape
+2026-03-12,Memphis Grizzlies,Dallas Mavericks,180,-220,,,betmgm,sbr_scrape
+2026-03-12,Miami Heat,Milwaukee Bucks,-235,195,,,betmgm,sbr_scrape
+2026-03-12,Oklahoma City Thunder,Boston Celtics,-350,275,,,betmgm,sbr_scrape
+2026-03-12,Orlando Magic,Washington Wizards,-1000,625,,,betmgm,sbr_scrape
+2026-03-12,San Antonio Spurs,Denver Nuggets,-170,140,,,betmgm,sbr_scrape
+2026-03-13,Dallas Mavericks,Cleveland Cavaliers,500,-699,,,betmgm,sbr_scrape
+2026-03-13,Detroit Pistons,Memphis Grizzlies,-1587,900,,,betmgm,sbr_scrape
+2026-03-13,Golden State Warriors,Minnesota Timberwolves,170,-210,,,betmgm,sbr_scrape
+2026-03-13,Houston Rockets,New Orleans Pelicans,-220,180,,,betmgm,sbr_scrape
+2026-03-13,Indiana Pacers,New York Knicks,500,-699,,,betmgm,sbr_scrape
+2026-03-13,Los Angeles Clippers,Chicago Bulls,-800,550,,,betmgm,sbr_scrape
+2026-03-13,Portland Trail Blazers,Utah Jazz,-1408,775,,,betmgm,sbr_scrape
+2026-03-13,Toronto Raptors,Phoenix Suns,-210,170,,,betmgm,sbr_scrape
+2026-03-14,Atlanta Hawks,Milwaukee Bucks,-474,360,,,betmgm,sbr_scrape
+2026-03-14,Boston Celtics,Washington Wizards,-3030,1250,,,betmgm,sbr_scrape
+2026-03-14,Los Angeles Clippers,Sacramento Kings,-1000,650,,,betmgm,sbr_scrape
+2026-03-14,Los Angeles Lakers,Denver Nuggets,100,-120,,,betmgm,sbr_scrape
+2026-03-14,Miami Heat,Orlando Magic,-185,150,,,betmgm,sbr_scrape
+2026-03-14,Philadelphia 76ers,Brooklyn Nets,-375,300,,,betmgm,sbr_scrape
+2026-03-14,San Antonio Spurs,Charlotte Hornets,-250,200,,,betmgm,sbr_scrape
+2026-03-15,Cleveland Cavaliers,Dallas Mavericks,-1205,725,,,betmgm,sbr_scrape
+2026-03-15,Milwaukee Bucks,Indiana Pacers,-300,240,,,betmgm,sbr_scrape
+2026-03-15,New York Knicks,Golden State Warriors,-1000,650,,,betmgm,sbr_scrape
+2026-03-15,Oklahoma City Thunder,Minnesota Timberwolves,-375,300,,,betmgm,sbr_scrape
+2026-03-15,Philadelphia 76ers,Portland Trail Blazers,275,-350,,,betmgm,sbr_scrape
+2026-03-15,Sacramento Kings,Utah Jazz,-155,125,,,betmgm,sbr_scrape
+2026-03-15,Toronto Raptors,Detroit Pistons,125,-150,,,betmgm,sbr_scrape
+2026-03-16,Atlanta Hawks,Orlando Magic,-160,135,,,betmgm,sbr_scrape
+2026-03-16,Boston Celtics,Phoenix Suns,-400,300,,,betmgm,sbr_scrape
+2026-03-16,Brooklyn Nets,Portland Trail Blazers,375,-500,,,betmgm,sbr_scrape
+2026-03-16,Chicago Bulls,Memphis Grizzlies,-285,230,,,betmgm,sbr_scrape
+2026-03-16,Houston Rockets,Los Angeles Lakers,100,-120,,,betmgm,sbr_scrape
+2026-03-16,Los Angeles Clippers,San Antonio Spurs,260,-325,,,betmgm,sbr_scrape
+2026-03-16,New Orleans Pelicans,Dallas Mavericks,-325,260,,,betmgm,sbr_scrape
+2026-03-16,New York Knicks,Golden State Warriors,1.33,3.3,,,pinnacle,local_snapshot_decimal
+2026-03-16,Sacramento Kings,Utah Jazz,1.08,7.08,,,pinnacle,local_snapshot_decimal
+2026-03-16,Washington Wizards,Golden State Warriors,240,-300,,,betmgm,sbr_scrape
+2026-03-17,Charlotte Hornets,Miami Heat,-210,170,,,betmgm,sbr_scrape
+2026-03-17,Chicago Bulls,Memphis Grizzlies,1.43,3.0,,,pinnacle,local_snapshot_decimal
+2026-03-17,Denver Nuggets,Philadelphia 76ers,-1205,750,,,betmgm,sbr_scrape
+2026-03-17,Houston Rockets,Los Angeles Lakers,1.71,2.25,,,pinnacle,local_snapshot_decimal
+2026-03-17,Los Angeles Clippers,San Antonio Spurs,4.06,1.26,,,pinnacle,local_snapshot_decimal
+2026-03-17,Milwaukee Bucks,Cleveland Cavaliers,450,-625,,,betmgm,sbr_scrape
+2026-03-17,Minnesota Timberwolves,Phoenix Suns,-170,140,,,betmgm,sbr_scrape
+2026-03-17,New Orleans Pelicans,Dallas Mavericks,1.29,3.8,,,pinnacle,local_snapshot_decimal
+2026-03-17,New York Knicks,Indiana Pacers,-800,550,,,betmgm,sbr_scrape
+2026-03-17,Orlando Magic,Oklahoma City Thunder,350,-450,,,betmgm,sbr_scrape
+2026-03-17,Sacramento Kings,San Antonio Spurs,600,-901,,,betmgm,sbr_scrape
+2026-03-17,Washington Wizards,Detroit Pistons,1100,-2500,,,betmgm,sbr_scrape
+2026-03-18,Boston Celtics,Golden State Warriors,-649,475,,,betmgm,sbr_scrape
+2026-03-18,Brooklyn Nets,Oklahoma City Thunder,1150,-2500,,,betmgm,sbr_scrape
+2026-03-18,Chicago Bulls,Toronto Raptors,240,-300,,,betmgm,sbr_scrape
+2026-03-18,Dallas Mavericks,Atlanta Hawks,260,-325,,,betmgm,sbr_scrape
+2026-03-18,Houston Rockets,Los Angeles Lakers,-130,110,,,betmgm,sbr_scrape
+2026-03-18,Indiana Pacers,Portland Trail Blazers,525,-752,,,betmgm,sbr_scrape
+2026-03-18,Memphis Grizzlies,Denver Nuggets,575,-901,,,betmgm,sbr_scrape
+2026-03-18,Minnesota Timberwolves,Utah Jazz,-800,550,,,betmgm,sbr_scrape
+2026-03-18,New Orleans Pelicans,Los Angeles Clippers,110,-135,,,betmgm,sbr_scrape
+2026-03-19,Charlotte Hornets,Orlando Magic,-220,180,,,betmgm,sbr_scrape
+2026-03-19,Chicago Bulls,Cleveland Cavaliers,375,-500,,,betmgm,sbr_scrape
+2026-03-19,Miami Heat,Los Angeles Lakers,-155,125,,,betmgm,sbr_scrape
+2026-03-19,New Orleans Pelicans,Los Angeles Clippers,-165,135,,,betmgm,sbr_scrape
+2026-03-19,Sacramento Kings,Philadelphia 76ers,125,-155,,,betmgm,sbr_scrape
+2026-03-19,San Antonio Spurs,Phoenix Suns,-474,350,,,betmgm,sbr_scrape
+2026-03-19,Utah Jazz,Milwaukee Bucks,195,-235,,,betmgm,sbr_scrape
+2026-03-19,Washington Wizards,Detroit Pistons,725,-1205,,,betmgm,sbr_scrape
+2026-03-20,Brooklyn Nets,New York Knicks,1100,-2500,,,betmgm,sbr_scrape
+2026-03-20,Denver Nuggets,Toronto Raptors,-275,220,,,betmgm,sbr_scrape
+2026-03-20,Detroit Pistons,Golden State Warriors,-235,190,,,betmgm,sbr_scrape
+2026-03-20,Houston Rockets,Atlanta Hawks,-150,125,,,betmgm,sbr_scrape
+2026-03-20,Memphis Grizzlies,Boston Celtics,775,-1408,,,betmgm,sbr_scrape
+2026-03-20,Minnesota Timberwolves,Portland Trail Blazers,-115,-105,,,betmgm,sbr_scrape
+2026-03-21,Atlanta Hawks,Golden State Warriors,-300,240,,,betmgm,sbr_scrape
+2026-03-21,Charlotte Hornets,Memphis Grizzlies,-2000,950,,,betmgm,sbr_scrape
+2026-03-21,Dallas Mavericks,Los Angeles Clippers,225,-275,,,betmgm,sbr_scrape
+2026-03-21,Houston Rockets,Miami Heat,-145,118,,,betmgm,sbr_scrape
+2026-03-21,New Orleans Pelicans,Cleveland Cavaliers,170,-210,,,betmgm,sbr_scrape
+2026-03-21,Orlando Magic,Los Angeles Lakers,125,-155,,,betmgm,sbr_scrape
+2026-03-21,Phoenix Suns,Milwaukee Bucks,-599,425,,,betmgm,sbr_scrape
+2026-03-21,San Antonio Spurs,Indiana Pacers,-1587,900,,,betmgm,sbr_scrape
+2026-03-21,Utah Jazz,Philadelphia 76ers,190,-235,,,betmgm,sbr_scrape
+2026-03-21,Washington Wizards,Oklahoma City Thunder,1350,-5000,,,betmgm,sbr_scrape
+2026-03-22,Atlanta Hawks,Golden State Warriors,1.208333,4.5,,,bovada,local_snapshot_decimal
+2026-03-22,Boston Celtics,Minnesota Timberwolves,-450,340,,,betmgm,sbr_scrape
+2026-03-22,Dallas Mavericks,L.A. Clippers,3.15,1.384615,,,bovada,local_snapshot_decimal
+2026-03-22,Denver Nuggets,Portland Trail Blazers,-350,275,,,betmgm,sbr_scrape
+2026-03-22,Houston Rockets,Miami Heat,1.76923,2.1,,,bovada,local_snapshot_decimal
+2026-03-22,New York Knicks,Washington Wizards,-5000,1450,,,betmgm,sbr_scrape
+2026-03-22,Phoenix Suns,Milwaukee Bucks,1.16,5.3,,,bovada,local_snapshot_decimal
+2026-03-22,Phoenix Suns,Toronto Raptors,155,-190,,,betmgm,sbr_scrape
+2026-03-22,Sacramento Kings,Brooklyn Nets,-250,200,,,betmgm,sbr_scrape
+2026-03-22,San Antonio Spurs,Indiana Pacers,1.04,11.0,,,bovada,local_snapshot_decimal
+2026-03-22,Utah Jazz,Philadelphia 76ers,2.95,1.425532,,,bovada,local_snapshot_decimal
+2026-03-23,Atlanta Hawks,Memphis Grizzlies,-901,600,,,betmgm,sbr_scrape
+2026-03-23,Chicago Bulls,Houston Rockets,310,-400,,,betmgm,sbr_scrape
+2026-03-23,Dallas Mavericks,Golden State Warriors,118,-145,,,betmgm,sbr_scrape
+2026-03-23,Detroit Pistons,Los Angeles Lakers,-102,-118,,,betmgm,sbr_scrape
+2026-03-23,Los Angeles Clippers,Milwaukee Bucks,-901,575,,,betmgm,sbr_scrape
+2026-03-23,Miami Heat,San Antonio Spurs,140,-170,,,betmgm,sbr_scrape
+2026-03-23,Orlando Magic,Indiana Pacers,-625,450,,,betmgm,sbr_scrape
+2026-03-23,Philadelphia 76ers,Oklahoma City Thunder,775,-1408,,,betmgm,sbr_scrape
+2026-03-23,Portland Trail Blazers,Brooklyn Nets,-1099,675,,,betmgm,sbr_scrape
+2026-03-23,Utah Jazz,Toronto Raptors,375,-500,,,betmgm,sbr_scrape
+2026-03-24,Charlotte Hornets,Sacramento Kings,-2000,1000,,,betmgm,sbr_scrape
+2026-03-24,Cleveland Cavaliers,Orlando Magic,-474,360,,,betmgm,sbr_scrape
+2026-03-24,New York Knicks,New Orleans Pelicans,-350,275,,,betmgm,sbr_scrape
+2026-03-24,Phoenix Suns,Denver Nuggets,200,-250,,,betmgm,sbr_scrape
+2026-03-25,Boston Celtics,Oklahoma City Thunder,115,-140,,,betmgm,sbr_scrape
+2026-03-25,Cleveland Cavaliers,Orlando Magic,1.05,10.0,,,bovada,local_snapshot_decimal
+2026-03-25,Cleveland Cavaliers,Miami Heat,-150,125,,,betmgm,sbr_scrape
+2026-03-25,Denver Nuggets,Dallas Mavericks,-625,450,,,betmgm,sbr_scrape
+2026-03-25,Detroit Pistons,Atlanta Hawks,-150,125,,,betmgm,sbr_scrape
+2026-03-25,Golden State Warriors,Brooklyn Nets,-625,450,,,betmgm,sbr_scrape
+2026-03-25,Indiana Pacers,Los Angeles Lakers,320,-426,,,betmgm,sbr_scrape
+2026-03-25,Los Angeles Clippers,Toronto Raptors,-185,150,,,betmgm,sbr_scrape
+2026-03-25,Memphis Grizzlies,San Antonio Spurs,1000,-2000,,,betmgm,sbr_scrape
+2026-03-25,Minnesota Timberwolves,Houston Rockets,105,-130,,,betmgm,sbr_scrape
+2026-03-25,Philadelphia 76ers,Chicago Bulls,-275,220,,,betmgm,sbr_scrape
+2026-03-25,Phoenix Suns,Denver Nuggets,8.5,1.0625,,,bovada,local_snapshot_decimal
+2026-03-25,Portland Trail Blazers,Milwaukee Bucks,-1000,650,,,betmgm,sbr_scrape
+2026-03-25,Utah Jazz,Washington Wizards,-155,125,,,betmgm,sbr_scrape
+2026-03-26,Charlotte Hornets,New York Knicks,-140,115,,,betmgm,sbr_scrape
+2026-03-26,Denver Nuggets,Dallas Mavericks,1.055556,9.0,,,bovada,local_snapshot_decimal
+2026-03-26,Detroit Pistons,New Orleans Pelicans,-220,180,,,betmgm,sbr_scrape
+2026-03-26,Golden State Warriors,Brooklyn Nets,1.741,2.05,,,bovada,local_snapshot_decimal
+2026-03-26,L.A. Clippers,Toronto Raptors,1.05,10.0,,,bovada,local_snapshot_decimal
+2026-03-26,Memphis Grizzlies,San Antonio Spurs,11.0,1.04,,,bovada,local_snapshot_decimal
+2026-03-26,Minnesota Timberwolves,Houston Rockets,1.111111,6.0,,,bovada,local_snapshot_decimal
+2026-03-26,Orlando Magic,Sacramento Kings,-1408,775,,,betmgm,sbr_scrape
+2026-03-26,Portland Trail Blazers,Milwaukee Bucks,1.035714,12.0,,,bovada,local_snapshot_decimal
+2026-03-26,Utah Jazz,Washington Wizards,12.0,1.035714,,,bovada,local_snapshot_decimal
+2026-03-27,Boston Celtics,Atlanta Hawks,-220,180,,,betmgm,sbr_scrape
+2026-03-27,Cleveland Cavaliers,Miami Heat,-225,185,,,betmgm,sbr_scrape
+2026-03-27,Denver Nuggets,Utah Jazz,-2500,1100,,,betmgm,sbr_scrape
+2026-03-27,Golden State Warriors,Washington Wizards,-752,525,,,betmgm,sbr_scrape
+2026-03-27,Indiana Pacers,L.A. Clippers,2.4,1.540541,,,bovada,local_snapshot_decimal
+2026-03-27,Indiana Pacers,Los Angeles Clippers,300,-375,,,betmgm,sbr_scrape
+2026-03-27,Los Angeles Lakers,Brooklyn Nets,-2500,1050,,,betmgm,sbr_scrape
+2026-03-27,Memphis Grizzlies,Houston Rockets,625,-1000,,,betmgm,sbr_scrape
+2026-03-27,Oklahoma City Thunder,Chicago Bulls,-2500,1150,,,betmgm,sbr_scrape
+2026-03-27,Portland Trail Blazers,Dallas Mavericks,-500,375,,,betmgm,sbr_scrape
+2026-03-27,Toronto Raptors,New Orleans Pelicans,-325,260,,,betmgm,sbr_scrape
+2026-03-28,Atlanta Hawks,Sacramento Kings,-1000,650,,,betmgm,sbr_scrape
+2026-03-28,Charlotte Hornets,Philadelphia 76ers,-210,170,,,betmgm,sbr_scrape
+2026-03-28,Denver Nuggets,Utah Jazz,1.03,12.0,,,bovada,local_snapshot_decimal
+2026-03-28,Golden State Warriors,Washington Wizards,1.125,6.25,,,bovada,local_snapshot_decimal
+2026-03-28,Los Angeles Lakers,Brooklyn Nets,1.04,11.0,,,bovada,local_snapshot_decimal
+2026-03-28,Memphis Grizzlies,Houston Rockets,8.0,1.071429,,,bovada,local_snapshot_decimal
+2026-03-28,Memphis Grizzlies,Chicago Bulls,135,-160,,,betmgm,sbr_scrape
+2026-03-28,Milwaukee Bucks,San Antonio Spurs,1050,-2500,,,betmgm,sbr_scrape
+2026-03-28,Minnesota Timberwolves,Detroit Pistons,-130,105,,,betmgm,sbr_scrape
+2026-03-28,Oklahoma City Thunder,Chicago Bulls,1.04,11.0,,,bovada,local_snapshot_decimal
+2026-03-28,Phoenix Suns,Utah Jazz,-1408,825,,,betmgm,sbr_scrape
+2026-03-28,Portland Trail Blazers,Dallas Mavericks,1.196078,4.7,,,bovada,local_snapshot_decimal
+2026-03-28,Toronto Raptors,New Orleans Pelicans,1.3125,3.6,,,bovada,local_snapshot_decimal

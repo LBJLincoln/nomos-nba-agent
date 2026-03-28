@@ -1008,7 +1008,7 @@ def build_predictions_output(
         # Skip simulated games or games not scheduled for today
         if og.get("simulated", False):
             continue
-        commence = og.get("commence_time", "")
+        commence = str(og.get("commence_time", ""))
         if commence and not commence.startswith(today_str):
             print(f"[ODDS] Skipping stale game ({commence[:10]}): "
                   f"{og.get('away_team', '?')} @ {og.get('home_team', '?')}")
@@ -1413,8 +1413,11 @@ def store_predictions_supabase(output: Dict):
                 edge = g.get("edge")
                 confidence = g.get("confidence", "")
                 best_odds = g.get("best_odds", {})
-                odds_home = best_odds.get("decimal") if isinstance(best_odds, dict) else None
-                odds_away = None  # single best odds for now
+                bet_side = g.get("bet_side", "PASS")
+                raw_decimal = best_odds.get("decimal") if isinstance(best_odds, dict) else None
+                # FIX: assign odds to correct side based on bet_side
+                odds_home = raw_decimal if bet_side == "HOME" else None
+                odds_away = raw_decimal if bet_side == "AWAY" else None
 
                 # Check if prediction already exists for this game
                 cur.execute("""
