@@ -41,6 +41,9 @@ Categories:
   33. NETWORK/GRAPH FEATURES (220+ features — PageRank, centrality)
   34. ENSEMBLE META-FEATURES (160+ features — model uncertainty, drift)
   35. TEMPORAL DECAY FEATURES (320+ features — exponential decay, recency)
+  39. CIRCADIAN RHYTHM & TRAVEL FATIGUE (8 features — normalized composites, rest non-linearity)
+  41. TRANSITION vs HALF-COURT EFFICIENCY SPLITS (7 features — fb_pts/pace splits)
+  43. CLUTCH PERFORMANCE (8 features — close-game win%, margin, ortg from rolling records)
   ≈ 6000+ feature candidates
 
 Architecture inspired by:
@@ -63,7 +66,7 @@ from typing import Dict, List, Tuple, Optional
 import math
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.0-38cat"
+ENGINE_VERSION = "v3.0-41cat"
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -2251,6 +2254,45 @@ class NBAFeatureEngine:
         names.extend([
             "venue_home_boost",                              # h_home_wp - h_overall_wp (home court effect)
             "venue_road_penalty",                            # a_overall_wp - a_road_wp (road penalty)
+        ])
+
+        # 39. CIRCADIAN RHYTHM & TRAVEL FATIGUE (8 features) — Chronobiology Intl 2024
+        # Novel combinations: timezone-weighted fatigue + rest non-linearity
+        # Distinct from Cat 6 (which has raw rest/travel) — these are normalized composites
+        names.extend([
+            "circ_h_travel_dist",       # Great-circle miles from last game city (home team)
+            "circ_a_travel_dist",       # Great-circle miles from last game city (away team)
+            "circ_h_tz_shift",          # Timezone hours crossed since last game (home)
+            "circ_a_tz_shift",          # Timezone hours crossed since last game (away)
+            "circ_h_fatigue_index",     # Composite: distance/500 + tz_shift*0.5 + b2b*2 - rest*0.3
+            "circ_a_fatigue_index",     # Composite: distance/500 + tz_shift*0.5 + b2b*2 - rest*0.3
+            "circ_advantage",           # away_fatigue_index - home_fatigue_index (positive = home fresher)
+            "circ_rest_nonlinear",      # (h_rest_sq - a_rest_sq) capped: captures diminishing rest benefit
+        ])
+
+        # 41. TRANSITION vs HALF-COURT EFFICIENCY SPLITS (7 features)
+        # Derived from fb_pts (fast break) and pace in existing box score stats
+        names.extend([
+            "trans41_h_fb_rate",        # Home fast-break pts as fraction of total scoring
+            "trans41_a_fb_rate",        # Away fast-break pts as fraction of total scoring
+            "trans41_h_halfcourt_eff",  # Home half-court efficiency proxy (pts - fb_pts) / poss
+            "trans41_a_halfcourt_eff",  # Away half-court efficiency proxy
+            "trans41_fb_rate_diff",     # h_fb_rate - a_fb_rate
+            "trans41_pace_x_fb",        # pace * fb_rate interaction (high pace + high transition = synergy)
+            "trans41_halfcourt_edge",   # h_halfcourt_eff - a_halfcourt_eff
+        ])
+
+        # 43. CLUTCH PERFORMANCE FEATURES (8 features)
+        # Computed from close games (|margin| <= 5) in rolling records
+        names.extend([
+            "clutch43_h_wp",            # Win % in clutch games (last 20)
+            "clutch43_a_wp",            # Win % in clutch games (last 20)
+            "clutch43_h_margin",        # Avg margin in clutch games
+            "clutch43_a_margin",        # Avg margin in clutch games
+            "clutch43_h_ortg",          # Offensive rating in clutch games
+            "clutch43_a_ortg",          # Offensive rating in clutch games
+            "clutch43_wp_diff",         # h_clutch_wp - a_clutch_wp
+            "clutch43_margin_diff",     # h_clutch_margin - a_clutch_margin
         ])
 
         self.feature_names = names
@@ -5110,6 +5152,85 @@ class NBAFeatureEngine:
             _a_overall_wp = self._wp(ar_, len(ar_)) if ar_ else 0.5
             _a_road_wp_82 = self._wp(_a_away_tr, len(_a_away_tr)) if _a_away_tr else _a_overall_wp
             row.append(_a_overall_wp - _a_road_wp_82)
+
+            # ── 39. CIRCADIAN RHYTHM & TRAVEL FATIGUE (8 features) ──
+            # Novel normalized composites distinct from raw Cat 6 rest/travel features
+            try:
+                _h_dist = self._travel_dist(hr_, home) / 500.0  # Normalize: ~500mi = 1 unit
+                _a_dist = self._travel_dist(ar_, away) / 500.0
+                _h_tz = abs(TIMEZONE_ET.get(home, 0) - TIMEZONE_ET.get(self._last_location(hr_), 0))
+                _a_tz = abs(TIMEZONE_ET.get(away, 0) - TIMEZONE_ET.get(self._last_location(ar_), 0))
+                _h_b2b = 1.0 if h_rest <= 1 else 0.0
+                _a_b2b = 1.0 if a_rest <= 1 else 0.0
+                # Fatigue index: travel + timezone disruption + back-to-back penalty - rest recovery
+                _h_fatigue = _h_dist + _h_tz * 0.5 + _h_b2b * 2.0 - min(h_rest, 4) * 0.3
+                _a_fatigue = _a_dist + _a_tz * 0.5 + _a_b2b * 2.0 - min(a_rest, 4) * 0.3
+                # Rest non-linearity: diminishing benefit beyond 3 days (capped at ±2)
+                _h_rest_nl = min(h_rest, 5) ** 0.5 - min(a_rest, 5) ** 0.5
+                row.extend([
+                    min(_h_dist, 6.0),                   # circ_h_travel_dist (cap at 6 = 3000mi)
+                    min(_a_dist, 6.0),                   # circ_a_travel_dist
+                    float(_h_tz),                        # circ_h_tz_shift
+                    float(_a_tz),                        # circ_a_tz_shift
+                    max(-3.0, min(5.0, _h_fatigue)),     # circ_h_fatigue_index (clipped)
+                    max(-3.0, min(5.0, _a_fatigue)),     # circ_a_fatigue_index (clipped)
+                    max(-5.0, min(5.0, _a_fatigue - _h_fatigue)),  # circ_advantage
+                    max(-2.0, min(2.0, _h_rest_nl)),     # circ_rest_nonlinear
+                ])
+            except Exception:
+                row.extend([0.0] * 8)
+
+            # ── 41. TRANSITION vs HALF-COURT EFFICIENCY SPLITS (7 features) ──
+            # Derived from fb_pts (fast break) and pace in existing box score stats
+            try:
+                _h_fb_rate = self._stat_avg(hr_, 10, "fb_pts") / max(self._ppg(hr_, 10), 1.0)
+                _a_fb_rate = self._stat_avg(ar_, 10, "fb_pts") / max(self._ppg(ar_, 10), 1.0)
+                _h_pace10 = self._pace(hr_, 10)
+                _a_pace10 = self._pace(ar_, 10)
+                # Half-court efficiency: scoring minus fast-break contribution, per possession
+                _h_hc_eff = (self._ppg(hr_, 10) * (1.0 - _h_fb_rate)) / max(_h_pace10, 60.0) * 100.0
+                _a_hc_eff = (self._ppg(ar_, 10) * (1.0 - _a_fb_rate)) / max(_a_pace10, 60.0) * 100.0
+                # pace × fb_rate interaction: high-pace + high-transition = fast-break synergy
+                _h_pace_fb = (_h_pace10 / 100.0) * _h_fb_rate
+                _a_pace_fb = (_a_pace10 / 100.0) * _a_fb_rate
+                row.extend([
+                    min(_h_fb_rate, 0.5),                # trans41_h_fb_rate
+                    min(_a_fb_rate, 0.5),                # trans41_a_fb_rate
+                    min(_h_hc_eff / 120.0, 1.2),         # trans41_h_halfcourt_eff (normalized)
+                    min(_a_hc_eff / 120.0, 1.2),         # trans41_a_halfcourt_eff
+                    _h_fb_rate - _a_fb_rate,             # trans41_fb_rate_diff
+                    _h_pace_fb - _a_pace_fb,             # trans41_pace_x_fb
+                    (_h_hc_eff - _a_hc_eff) / 20.0,     # trans41_halfcourt_edge
+                ])
+            except Exception:
+                row.extend([0.0] * 7)
+
+            # ── 43. CLUTCH PERFORMANCE FEATURES (8 features) ──
+            # Computed from close games (|margin| <= 5) in rolling records
+            try:
+                _h_clutch = [r for r in hr_[-30:] if abs(r[2]) <= 5]
+                _a_clutch = [r for r in ar_[-30:] if abs(r[2]) <= 5]
+                _h_cwp = self._wp(_h_clutch, len(_h_clutch)) if _h_clutch else 0.5
+                _a_cwp = self._wp(_a_clutch, len(_a_clutch)) if _a_clutch else 0.5
+                _h_cmg = self._pd(_h_clutch, len(_h_clutch)) if _h_clutch else 0.0
+                _a_cmg = self._pd(_a_clutch, len(_a_clutch)) if _a_clutch else 0.0
+                # Ortg in clutch games
+                _h_cortg = (sum(r[4].get("ortg", 100.0) for r in _h_clutch) / len(_h_clutch)
+                            if _h_clutch else self._ortg(hr_, 10))
+                _a_cortg = (sum(r[4].get("ortg", 100.0) for r in _a_clutch) / len(_a_clutch)
+                            if _a_clutch else self._ortg(ar_, 10))
+                row.extend([
+                    _h_cwp,                              # clutch43_h_wp
+                    _a_cwp,                              # clutch43_a_wp
+                    _h_cmg / 10.0,                       # clutch43_h_margin (normalized)
+                    _a_cmg / 10.0,                       # clutch43_a_margin
+                    (_h_cortg - 100.0) / 20.0,           # clutch43_h_ortg (normalized)
+                    (_a_cortg - 100.0) / 20.0,           # clutch43_a_ortg
+                    _h_cwp - _a_cwp,                     # clutch43_wp_diff
+                    (_h_cmg - _a_cmg) / 10.0,            # clutch43_margin_diff
+                ])
+            except Exception:
+                row.extend([0.0] * 8)
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
