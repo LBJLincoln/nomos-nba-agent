@@ -44,6 +44,7 @@ Categories:
   39. CIRCADIAN RHYTHM & TRAVEL FATIGUE (8 features — normalized composites, rest non-linearity)
   41. TRANSITION vs HALF-COURT EFFICIENCY SPLITS (7 features — fb_pts/pace splits)
   43. CLUTCH PERFORMANCE (8 features — close-game win%, margin, ortg from rolling records)
+  44. GAME TOTALS PREDICTION (10 features — normalized PPG/PAPG, pace, ortg/drtg scoring environment)
   ≈ 6000+ feature candidates
 
 Architecture inspired by:
@@ -66,7 +67,7 @@ from typing import Dict, List, Tuple, Optional
 import math
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.0-41cat"
+ENGINE_VERSION = "v3.0-43cat"
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -2295,15 +2296,70 @@ class NBAFeatureEngine:
             "clutch43_margin_diff",     # h_clutch_margin - a_clutch_margin
         ])
 
+        # 44. GAME TOTALS PREDICTION FEATURES (10 features)
+        # Encodes expected game pace and scoring volume for O/U modelling.
+        # Derived entirely from rolling pts/opp_pts/ortg/drtg — no new data source.
+        # Use case: (1) direct O/U prediction; (2) interaction terms for win model
+        #           (high-total games are often closer; low-total = grind favors defense).
+        names.extend([
+            "tot44_h_ppg10",            # Home rolling PPG (last 10) normalized to league avg
+            "tot44_a_ppg10",            # Away rolling PPG (last 10) normalized
+            "tot44_h_papg10",           # Home rolling PAPG (last 10) normalized
+            "tot44_a_papg10",           # Away rolling PAPG (last 10) normalized
+            "tot44_matchup_total",      # Predicted total via PPG/PAPG interaction (normalized)
+            "tot44_pace_sum",           # (h_pace + a_pace) / 2 — expected game pace
+            "tot44_pace_mismatch",      # |h_pace - a_pace| — fast vs slow clash
+            "tot44_ortg_sum",           # (h_ortg + a_ortg) / 2 — combined offensive quality
+            "tot44_drtg_sum",           # (h_drtg + a_drtg) / 2 — combined defensive quality
+            "tot44_score_env",          # (ortg_sum - drtg_sum) / 10 — net scoring environment
+        ])
+
+        # 42. SHOT QUALITY ZONE FEATURES (10 features)
+        # From nba_api shot locations: zone FG%, shot distribution, xEFG.
+        # Montrucchio 2026 (Brier 0.199) used spatial shot embeddings.
+        # Graceful fallback to 0.0 when tracking data not loaded.
+        names.extend([
+            "shot42_h_rim_rate",         # Home restricted area shot frequency
+            "shot42_a_rim_rate",         # Away restricted area shot frequency
+            "shot42_h_mid_rate",         # Home mid-range shot frequency
+            "shot42_a_mid_rate",         # Away mid-range shot frequency
+            "shot42_h_three_rate",       # Home 3PT rate
+            "shot42_a_three_rate",       # Away 3PT rate
+            "shot42_h_xefg",            # Home expected eFG% from shot distribution
+            "shot42_a_xefg",            # Away expected eFG% from shot distribution
+            "shot42_rim_rate_diff",      # h_rim_rate - a_rim_rate (paint dominance)
+            "shot42_xefg_diff",          # h_xefg - a_xefg (shot quality edge)
+        ])
+
+        # 45. PLAYER TRACKING / HUSTLE FEATURES (12 features)
+        # From nba_api: hustle stats, speed/distance, touches, drives.
+        # Proxies effort intensity, pace profile, and defensive activity.
+        # Expected Brier delta: -0.003 to -0.006 (replaces box-score proxies).
+        names.extend([
+            "track45_h_contested",       # Home team avg contested shots per game
+            "track45_a_contested",       # Away team avg contested shots per game
+            "track45_h_deflections",     # Home team avg deflections per game
+            "track45_a_deflections",     # Away team avg deflections per game
+            "track45_h_speed",           # Home team avg player speed (mph)
+            "track45_a_speed",           # Away team avg player speed (mph)
+            "track45_h_loose_balls",     # Home team loose balls recovered per game
+            "track45_a_loose_balls",     # Away team loose balls recovered per game
+            "track45_h_drives",          # Home team drives per game
+            "track45_a_drives",          # Away team drives per game
+            "track45_contested_diff",    # h_contested - a_contested (defensive intensity edge)
+            "track45_speed_diff",        # h_speed - a_speed (pace profile mismatch)
+        ])
+
         self.feature_names = names
 
-    def build(self, games, market_data=None, referee_data=None, player_data=None, quarter_data=None):
+    def build(self, games, market_data=None, referee_data=None, player_data=None, quarter_data=None, tracking_data=None):
         """
         Build feature matrix from historical games.
 
         Args:
             games: List of game dicts with home/away teams, scores, stats
             market_data: Optional dict of game_id → market features
+            tracking_data: Optional dict of team → {shot42_*, track45_*} from nba_api
 
         Returns:
             X: numpy array (n_games, n_features)
@@ -5231,6 +5287,115 @@ class NBAFeatureEngine:
                 ])
             except Exception:
                 row.extend([0.0] * 8)
+
+            # ── 44. GAME TOTALS PREDICTION FEATURES (10 features) ──
+            # Normalized pace/scoring context to signal high-total vs grind-it-out games.
+            # High-total environments favor offense-heavy win predictions; low-total favors defense.
+            try:
+                _league_ppg = 110.0   # baseline league average PPG
+                _h_ppg10 = self._ppg(hr_, 10)
+                _a_ppg10 = self._ppg(ar_, 10)
+                _h_pap10 = self._papg(hr_, 10)
+                _a_pap10 = self._papg(ar_, 10)
+                # Normalize each PPG/PAPG to league avg (1.0 = average, >1 = high scoring)
+                _h_ppg_n = _h_ppg10 / _league_ppg
+                _a_ppg_n = _a_ppg10 / _league_ppg
+                _h_pap_n = _h_pap10 / _league_ppg
+                _a_pap_n = _a_pap10 / _league_ppg
+                # Matchup total: (H_PPG + A_PAP)/2 + (A_PPG + H_PAP)/2 = H scoring pace + A scoring pace
+                # Normalize to league average total (220.0)
+                _matchup_total = ((_h_ppg10 + _a_pap10) / 2.0 + (_a_ppg10 + _h_pap10) / 2.0) / 220.0
+                # Pace: use poss as proxy (ortg stored per 100 poss)
+                _h_pace10 = self._pace(hr_, 10)
+                _a_pace10 = self._pace(ar_, 10)
+                _avg_pace = (_h_pace10 + _a_pace10) / 2.0
+                # Normalize pace to ~97 league avg
+                _pace_sum_n = _avg_pace / 97.0
+                _pace_mismatch = abs(_h_pace10 - _a_pace10) / 10.0   # cap at ~3 sigma
+                # Offensive + defensive ratings (normalize to 110 = league avg)
+                _h_ortg10 = self._ortg(hr_, 10)
+                _a_ortg10 = self._ortg(ar_, 10)
+                _h_drtg10 = self._drtg(hr_, 10)
+                _a_drtg10 = self._drtg(ar_, 10)
+                _ortg_sum = (_h_ortg10 + _a_ortg10) / (2.0 * 110.0)  # >1 = above-avg offense
+                _drtg_sum = (_h_drtg10 + _a_drtg10) / (2.0 * 110.0)  # >1 = above-avg defense (worse)
+                # Net scoring environment: positive = high-scoring game expected
+                _score_env = ((_h_ortg10 + _a_ortg10) - (_h_drtg10 + _a_drtg10)) / 20.0
+                row.extend([
+                    max(0.5, min(2.0, _h_ppg_n)),        # tot44_h_ppg10
+                    max(0.5, min(2.0, _a_ppg_n)),        # tot44_a_ppg10
+                    max(0.5, min(2.0, _h_pap_n)),        # tot44_h_papg10
+                    max(0.5, min(2.0, _a_pap_n)),        # tot44_a_papg10
+                    max(0.7, min(1.5, _matchup_total)),  # tot44_matchup_total
+                    max(0.7, min(1.4, _pace_sum_n)),     # tot44_pace_sum
+                    min(2.0, _pace_mismatch),            # tot44_pace_mismatch
+                    max(0.7, min(1.4, _ortg_sum)),       # tot44_ortg_sum
+                    max(0.7, min(1.4, _drtg_sum)),       # tot44_drtg_sum
+                    max(-1.5, min(1.5, _score_env)),     # tot44_score_env
+                ])
+            except Exception:
+                row.extend([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0])
+
+            # ── Cat 42: Shot Quality Zone Features (10 features) ──
+            try:
+                td = tracking_data or {}
+                h_td = td.get(home, {})
+                a_td = td.get(away, {})
+                _h_rim = h_td.get('rim_rate', 0.30)
+                _a_rim = a_td.get('rim_rate', 0.30)
+                _h_mid = h_td.get('mid_rate', 0.15)
+                _a_mid = a_td.get('mid_rate', 0.15)
+                _h_three = h_td.get('three_rate', 0.40)
+                _a_three = a_td.get('three_rate', 0.40)
+                # xEFG: weighted by league-avg zone FG%
+                _h_xefg = 0.65 * _h_rim + 0.40 * _h_mid + 0.53 * _h_three * 1.5
+                _a_xefg = 0.65 * _a_rim + 0.40 * _a_mid + 0.53 * _a_three * 1.5
+                row.extend([
+                    _h_rim,                                  # shot42_h_rim_rate
+                    _a_rim,                                  # shot42_a_rim_rate
+                    _h_mid,                                  # shot42_h_mid_rate
+                    _a_mid,                                  # shot42_a_mid_rate
+                    _h_three,                                # shot42_h_three_rate
+                    _a_three,                                # shot42_a_three_rate
+                    _h_xefg,                                 # shot42_h_xefg
+                    _a_xefg,                                 # shot42_a_xefg
+                    _h_rim - _a_rim,                         # shot42_rim_rate_diff
+                    _h_xefg - _a_xefg,                       # shot42_xefg_diff
+                ])
+            except Exception:
+                row.extend([0.30, 0.30, 0.15, 0.15, 0.40, 0.40, 0.51, 0.51, 0.0, 0.0])
+
+            # ── Cat 45: Player Tracking / Hustle Features (12 features) ──
+            try:
+                td = tracking_data or {}
+                h_td = td.get(home, {})
+                a_td = td.get(away, {})
+                _h_cont = h_td.get('contested_shots', 0.0) / 50.0   # normalize (~50/game)
+                _a_cont = a_td.get('contested_shots', 0.0) / 50.0
+                _h_defl = h_td.get('deflections', 0.0) / 15.0       # normalize (~15/game)
+                _a_defl = a_td.get('deflections', 0.0) / 15.0
+                _h_spd = h_td.get('avg_speed', 0.0) / 5.0           # normalize (~4.5 mph)
+                _a_spd = a_td.get('avg_speed', 0.0) / 5.0
+                _h_lb = h_td.get('loose_balls', 0.0) / 8.0          # normalize (~8/game)
+                _a_lb = a_td.get('loose_balls', 0.0) / 8.0
+                _h_drv = h_td.get('drives', 0.0) / 50.0             # normalize (~50/game)
+                _a_drv = a_td.get('drives', 0.0) / 50.0
+                row.extend([
+                    _h_cont,                                 # track45_h_contested
+                    _a_cont,                                 # track45_a_contested
+                    _h_defl,                                 # track45_h_deflections
+                    _a_defl,                                 # track45_a_deflections
+                    _h_spd,                                  # track45_h_speed
+                    _a_spd,                                  # track45_a_speed
+                    _h_lb,                                   # track45_h_loose_balls
+                    _a_lb,                                   # track45_a_loose_balls
+                    _h_drv,                                  # track45_h_drives
+                    _a_drv,                                  # track45_a_drives
+                    _h_cont - _a_cont,                       # track45_contested_diff
+                    _h_spd - _a_spd,                         # track45_speed_diff
+                ])
+            except Exception:
+                row.extend([0.0] * 12)
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
