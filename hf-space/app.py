@@ -1,4 +1,4 @@
-[Resource from github at repo://lbjlincoln/nomos-nba-agent/sha/303e9250e225be2b2a2eb74eedef4057b4ad35fd/contents/hf-space/app.py] #!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 NOMOS NBA QUANT AI — REAL Genetic Evolution (HF Space)
 ========================================================
