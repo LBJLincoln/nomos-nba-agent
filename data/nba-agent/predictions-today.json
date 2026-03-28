@@ -1,6 +1,6 @@
 {
   "date": "2026-03-28",
-  "generated_at": "2026-03-28T14:02:41.682014+00:00",
+  "generated_at": "2026-03-28T18:03:20.754609+00:00",
   "model_version": "ensemble-v1",
   "bankroll": 100.0,
   "games_count": 6,
@@ -10,28 +10,28 @@
       "away": "SAS",
       "home_name": "Milwaukee Bucks",
       "away_name": "San Antonio Spurs",
-      "home_win_prob": 0.8288,
-      "away_win_prob": 0.1712,
+      "home_win_prob": 0.6981,
+      "away_win_prob": 0.3019,
       "confidence": "MEDIUM",
-      "model_agreement": 0.9129,
-      "market_implied": 0.0909,
-      "edge": 0.7379,
+      "model_agreement": 0.9142,
+      "market_implied": 0.0952,
+      "edge": 0.6029,
       "kelly_stake": 0.05,
       "best_odds": {
         "book": "bovada",
-        "odds": 1000,
-        "decimal": 11.0
+        "odds": 950,
+        "decimal": 10.5
       },
       "bet_side": "HOME",
       "spread": {
-        "line": 18.5,
-        "model_spread": 10.0,
-        "edge": -8.5
+        "line": 17.5,
+        "model_spread": 9.1,
+        "edge": -8.4
       },
       "total": {
-        "line": 226.0,
-        "model_total": 230.0,
-        "edge": 4.0,
+        "line": 226.5,
+        "model_total": 230.8,
+        "edge": 4.3,
         "pick": "OVER"
       },
       "player_props": [
@@ -40,37 +40,211 @@
           "team": "MIL",
           "market": "points",
           "line": 30.9,
-          "prediction": 32.8,
+          "prediction": 32.9,
           "pick": "OVER",
-          "confidence": 0.2485,
-          "edge": 0.0615,
-          "z_score": 0.32
+          "confidence": 0.2611,
+          "edge": 0.0647,
+          "z_score": 0.33
         },
         {
           "player": "Damian Lillard",
           "team": "MIL",
           "market": "points",
-          "line": 25.4,
-          "prediction": 26.4,
+          "line": 24.7,
+          "prediction": 26.5,
           "pick": "OVER",
-          "confidence": 0.1324,
-          "edge": 0.0394,
-          "z_score": 0.17
+          "confidence": 0.2358,
+          "edge": 0.0729,
+          "z_score": 0.3
         },
         {
           "player": "Damian Lillard",
           "team": "MIL",
-          "market": "threes",
-          "line": 3.4,
-          "prediction": 3.6,
+          "market": "assists",
+          "line": 6.5,
+          "prediction": 7.1,
           "pick": "OVER",
-          "confidence": 0.1324,
-          "edge": 0.0588,
-          "z_score": 0.17
+          "confidence": 0.1897,
+          "edge": 0.0923,
+          "z_score": 0.24
+        },
+        {
+          "player": "Giannis Antetokounmpo",
+          "team": "MIL",
+          "market": "assists",
+          "line": 6.1,
+          "prediction": 6.6,
+          "pick": "OVER",
+          "confidence": 0.1585,
+          "edge": 0.082,
+          "z_score": 0.2
         },
         {
           "player": "Victor Wembanyama",
           "team": "SAS",
+          "market": "assists",
+          "line": 3.8,
+          "prediction": 3.4,
+          "pick": "UNDER",
+          "confidence": 0.1271,
+          "edge": 0.1053,
+          "z_score": -0.16
+        }
+      ]
+    },
+    {
+      "home": "MIN",
+      "away": "DET",
+      "home_name": "Minnesota Timberwolves",
+      "away_name": "Detroit Pistons",
+      "home_win_prob": 0.7137,
+      "away_win_prob": 0.2863,
+      "confidence": "MEDIUM",
+      "model_agreement": 0.9305,
+      "market_implied": 0.4878,
+      "edge": 0.2259,
+      "kelly_stake": 0.05,
+      "best_odds": {
+        "book": "bovada",
+        "odds": 104,
+        "decimal": 2.05
+      },
+      "bet_side": "HOME",
+      "spread": {
+        "line": 1.5,
+        "model_spread": 11.5,
+        "edge": 10.0
+      },
+      "total": {
+        "line": 221.5,
+        "model_total": 218.2,
+        "edge": -3.3,
+        "pick": "UNDER"
+      },
+      "player_props": [
+        {
+          "player": "Cade Cunningham",
+          "team": "DET",
+          "market": "points",
+          "line": 22.6,
+          "prediction": 20.0,
+          "pick": "UNDER",
+          "confidence": 0.3352,
+          "edge": 0.115,
+          "z_score": -0.43
+        },
+        {
+          "player": "Cade Cunningham",
+          "team": "DET",
+          "market": "assists",
+          "line": 8.0,
+          "prediction": 7.2,
+          "pick": "UNDER",
+          "confidence": 0.251,
+          "edge": 0.1,
+          "z_score": -0.32
+        },
+        {
+          "player": "Cade Cunningham",
+          "team": "DET",
+          "market": "threes",
+          "line": 2.2,
+          "prediction": 1.9,
+          "pick": "UNDER",
+          "confidence": 0.1974,
+          "edge": 0.1364,
+          "z_score": -0.25
+        },
+        {
+          "player": "Anthony Edwards",
+          "team": "MIN",
+          "market": "assists",
+          "line": 5.1,
+          "prediction": 5.5,
+          "pick": "OVER",
+          "confidence": 0.1271,
+          "edge": 0.0784,
+          "z_score": 0.16
+        },
+        {
+          "player": "Rudy Gobert",
+          "team": "MIN",
+          "market": "assists",
+          "line": 1.9,
+          "prediction": 1.5,
+          "pick": "UNDER",
+          "confidence": 0.1271,
+          "edge": 0.2105,
+          "z_score": -0.16
+        },
+        {
+          "player": "Anthony Edwards",
+          "team": "MIN",
+          "market": "points",
+          "line": 27.5,
+          "prediction": 26.6,
+          "pick": "UNDER",
+          "confidence": 0.1192,
+          "edge": 0.0327,
+          "z_score": -0.15
+        },
+        {
+          "player": "Anthony Edwards",
+          "team": "MIN",
+          "market": "rebounds",
+          "line": 5.9,
+          "prediction": 5.5,
+          "pick": "UNDER",
+          "confidence": 0.1061,
+          "edge": 0.0678,
+          "z_score": -0.13
+        }
+      ]
+    },
+    {
+      "home": "BKN",
+      "away": "PHI",
+      "home_name": "Brooklyn Nets",
+      "away_name": "Philadelphia 76ers",
+      "home_win_prob": 0.5207,
+      "away_win_prob": 0.4793,
+      "confidence": "HIGH",
+      "model_agreement": 0.9489,
+      "market_implied": 0.7059,
+      "edge": -0.1852,
+      "kelly_stake": 0.05,
+      "best_odds": {
+        "book": "bovada",
+        "odds": 200,
+        "decimal": 3.0
+      },
+      "bet_side": "AWAY",
+      "spread": {
+        "line": -6.0,
+        "model_spread": -6.0,
+        "edge": 0.0
+      },
+      "total": {
+        "line": 232.5,
+        "model_total": 224.0,
+        "edge": -8.5,
+        "pick": "UNDER"
+      },
+      "player_props": [
+        {
+          "player": "Joel Embiid",
+          "team": "PHI",
+          "market": "points",
+          "line": 27.4,
+          "prediction": 26.3,
+          "pick": "UNDER",
+          "confidence": 0.1455,
+          "edge": 0.0401,
+          "z_score": -0.18
+        },
+        {
+          "player": "Cam Thomas",
+          "team": "BKN",
           "market": "threes",
           "line": 1.8,
           "prediction": 2.0,
@@ -80,156 +254,15 @@
           "z_score": 0.17
         },
         {
-          "player": "Damian Lillard",
-          "team": "MIL",
-          "market": "rebounds",
-          "line": 5.0,
-          "prediction": 4.6,
-          "pick": "UNDER",
-          "confidence": 0.1061,
-          "edge": 0.08,
-          "z_score": -0.13
-        },
-        {
-          "player": "Victor Wembanyama",
-          "team": "SAS",
-          "market": "rebounds",
-          "line": 10.7,
-          "prediction": 10.3,
-          "pick": "UNDER",
-          "confidence": 0.1061,
-          "edge": 0.0374,
-          "z_score": -0.13
-        }
-      ]
-    },
-    {
-      "home": "MIN",
-      "away": "DET",
-      "home_name": "Minnesota Timberwolves",
-      "away_name": "Detroit Pistons",
-      "home_win_prob": 0.8576,
-      "away_win_prob": 0.1424,
-      "confidence": "MEDIUM",
-      "model_agreement": 0.9182,
-      "market_implied": 0.5833,
-      "edge": 0.2743,
-      "kelly_stake": 0.05,
-      "best_odds": {
-        "book": "bovada",
-        "odds": -139,
-        "decimal": 1.714286
-      },
-      "bet_side": "HOME",
-      "spread": {
-        "line": -2.5,
-        "model_spread": 11.3,
-        "edge": 8.8
-      },
-      "total": {
-        "line": 223.0,
-        "model_total": 216.9,
-        "edge": -6.1,
-        "pick": "UNDER"
-      },
-      "player_props": [
-        {
-          "player": "Cade Cunningham",
-          "team": "DET",
-          "market": "points",
-          "line": 22.8,
-          "prediction": 19.9,
-          "pick": "UNDER",
-          "confidence": 0.3711,
-          "edge": 0.1272,
-          "z_score": -0.48
-        },
-        {
-          "player": "Cade Cunningham",
-          "team": "DET",
-          "market": "assists",
-          "line": 7.9,
-          "prediction": 7.2,
-          "pick": "UNDER",
-          "confidence": 0.2205,
-          "edge": 0.0886,
-          "z_score": -0.28
-        }
-      ]
-    },
-    {
-      "home": "BKN",
-      "away": "PHI",
-      "home_name": "Brooklyn Nets",
-      "away_name": "Philadelphia 76ers",
-      "home_win_prob": 0.3867,
-      "away_win_prob": 0.6133,
-      "confidence": "HIGH",
-      "model_agreement": 0.9489,
-      "market_implied": 0.7015,
-      "edge": -0.3148,
-      "kelly_stake": 0.05,
-      "best_odds": {
-        "book": "bovada",
-        "odds": 195,
-        "decimal": 2.95
-      },
-      "bet_side": "AWAY",
-      "spread": {
-        "line": -6.0,
-        "model_spread": -5.7,
-        "edge": -0.3
-      },
-      "total": {
-        "line": 233.5,
-        "model_total": 224.1,
-        "edge": -9.4,
-        "pick": "UNDER"
-      },
-      "player_props": [
-        {
-          "player": "Tyrese Maxey",
+          "player": "Joel Embiid",
           "team": "PHI",
           "market": "threes",
-          "line": 2.7,
-          "prediction": 2.4,
+          "line": 1.2,
+          "prediction": 1.0,
           "pick": "UNDER",
-          "confidence": 0.1974,
-          "edge": 0.1111,
-          "z_score": -0.25
-        },
-        {
-          "player": "Joel Embiid",
-          "team": "PHI",
-          "market": "rebounds",
-          "line": 11.3,
-          "prediction": 10.6,
-          "pick": "UNDER",
-          "confidence": 0.1845,
-          "edge": 0.0619,
-          "z_score": -0.23
-        },
-        {
-          "player": "Tyrese Maxey",
-          "team": "PHI",
-          "market": "rebounds",
-          "line": 4.0,
-          "prediction": 3.4,
-          "pick": "UNDER",
-          "confidence": 0.1585,
-          "edge": 0.15,
-          "z_score": -0.2
-        },
-        {
-          "player": "Joel Embiid",
-          "team": "PHI",
-          "market": "points",
-          "line": 27.3,
-          "prediction": 26.4,
-          "pick": "UNDER",
-          "confidence": 0.1192,
-          "edge": 0.033,
-          "z_score": -0.15
+          "confidence": 0.1324,
+          "edge": 0.1667,
+          "z_score": -0.17
         }
       ]
     },
@@ -238,28 +271,28 @@
       "away": "SAC",
       "home_name": "Atlanta Hawks",
       "away_name": "Sacramento Kings",
-      "home_win_prob": 0.4837,
-      "away_win_prob": 0.5163,
+      "home_win_prob": 0.5635,
+      "away_win_prob": 0.4365,
       "confidence": "HIGH",
-      "model_agreement": 0.9493,
-      "market_implied": 0.9231,
-      "edge": -0.4394,
+      "model_agreement": 0.9607,
+      "market_implied": 0.9048,
+      "edge": -0.3413,
       "kelly_stake": 0.05,
       "best_odds": {
         "book": "bovada",
-        "odds": 700,
-        "decimal": 8.0
+        "odds": 600,
+        "decimal": 7.0
       },
       "bet_side": "AWAY",
       "spread": {
-        "line": -15.0,
-        "model_spread": -3.5,
-        "edge": -11.5
+        "line": -15.5,
+        "model_spread": -2.7,
+        "edge": -12.8
       },
       "total": {
-        "line": 236.5,
-        "model_total": 237.4,
-        "edge": 0.9,
+        "line": 237.0,
+        "model_total": 238.0,
+        "edge": 1.0,
         "pick": "OVER"
       },
       "player_props": [
@@ -267,56 +300,67 @@
           "player": "Trae Young",
           "team": "ATL",
           "market": "points",
-          "line": 25.6,
-          "prediction": 27.8,
+          "line": 25.1,
+          "prediction": 27.9,
           "pick": "OVER",
-          "confidence": 0.2861,
-          "edge": 0.0859,
-          "z_score": 0.37
+          "confidence": 0.3593,
+          "edge": 0.1116,
+          "z_score": 0.47
+        },
+        {
+          "player": "Domantas Sabonis",
+          "team": "SAC",
+          "market": "points",
+          "line": 19.3,
+          "prediction": 20.9,
+          "pick": "OVER",
+          "confidence": 0.2103,
+          "edge": 0.0829,
+          "z_score": 0.27
         },
         {
           "player": "De'Aaron Fox",
           "team": "SAC",
           "market": "points",
-          "line": 26.8,
-          "prediction": 28.3,
-          "pick": "OVER",
-          "confidence": 0.1974,
-          "edge": 0.056,
-          "z_score": 0.25
-        },
-        {
-          "player": "Domantas Sabonis",
-          "team": "SAC",
-          "market": "points",
-          "line": 19.4,
-          "prediction": 20.8,
+          "line": 27.0,
+          "prediction": 28.4,
           "pick": "OVER",
           "confidence": 0.1845,
-          "edge": 0.0722,
+          "edge": 0.0519,
           "z_score": 0.23
+        },
+        {
+          "player": "Trae Young",
+          "team": "ATL",
+          "market": "rebounds",
+          "line": 2.6,
+          "prediction": 3.1,
+          "pick": "OVER",
+          "confidence": 0.1324,
+          "edge": 0.1923,
+          "z_score": 0.17
         },
         {
           "player": "Domantas Sabonis",
           "team": "SAC",
           "market": "rebounds",
-          "line": 13.5,
+          "line": 13.3,
           "prediction": 12.8,
           "pick": "UNDER",
-          "confidence": 0.1845,
-          "edge": 0.0519,
-          "z_score": -0.23
+          "confidence": 0.1324,
+          "edge": 0.0376,
+          "z_score": -0.17
         },
         {
           "player": "Domantas Sabonis",
           "team": "SAC",
           "market": "assists",
-          "line": 6.8,
+          "line": 6.0,
           "prediction": 6.4,
-          "pick": "UNDER",
+          "pick": "OVER",
           "confidence": 0.1271,
-          "edge": 0.0588,
-          "z_score": -0.16
+          "edge": 0.0667,
+          "z_score": 0.16
         }
       ]
     },
@@ -325,12 +369,12 @@
       "away": "CHI",
       "home_name": "Memphis Grizzlies",
       "away_name": "Chicago Bulls",
-      "home_win_prob": 0.6005,
-      "away_win_prob": 0.3995,
+      "home_win_prob": 0.6107,
+      "away_win_prob": 0.3893,
       "confidence": "MEDIUM",
-      "model_agreement": 0.9204,
+      "model_agreement": 0.9339,
       "market_implied": 0.4,
-      "edge": 0.2005,
+      "edge": 0.2107,
       "kelly_stake": 0.05,
       "best_odds": {
         "book": "bovada",
@@ -340,13 +384,13 @@
       "bet_side": "HOME",
       "spread": {
         "line": 4.0,
-        "model_spread": 0.0,
-        "edge": -4.0
+        "model_spread": 0.4,
+        "edge": -3.6
       },
       "total": {
         "line": 245.5,
-        "model_total": 227.9,
-        "edge": -17.6,
+        "model_total": 227.6,
+        "edge": -17.9,
         "pick": "UNDER"
       },
       "player_props": [
@@ -354,34 +398,23 @@
           "player": "Zach LaVine",
           "team": "CHI",
           "market": "threes",
-          "line": 3.2,
+          "line": 3.1,
           "prediction": 2.9,
           "pick": "UNDER",
-          "confidence": 0.1974,
-          "edge": 0.0938,
-          "z_score": -0.25
+          "confidence": 0.1324,
+          "edge": 0.0645,
+          "z_score": -0.17
         },
         {
           "player": "Ja Morant",
           "team": "MEM",
           "market": "points",
-          "line": 24.8,
-          "prediction": 26.0,
+          "line": 25.1,
+          "prediction": 25.9,
           "pick": "OVER",
-          "confidence": 0.1585,
-          "edge": 0.0484,
-          "z_score": 0.2
-        },
-        {
-          "player": "Zach LaVine",
-          "team": "CHI",
-          "market": "assists",
-          "line": 4.8,
-          "prediction": 4.4,
-          "pick": "UNDER",
-          "confidence": 0.1271,
-          "edge": 0.0833,
-          "z_score": -0.16
+          "confidence": 0.1061,
+          "edge": 0.0319,
+          "z_score": 0.13
         }
       ]
     },
@@ -390,31 +423,42 @@
       "away": "UTA",
       "home_name": "Phoenix Suns",
       "away_name": "Utah Jazz",
-      "home_win_prob": 0.8035,
-      "away_win_prob": 0.1965,
+      "home_win_prob": 0.6881,
+      "away_win_prob": 0.3119,
       "confidence": "MEDIUM",
-      "model_agreement": 0.9078,
-      "market_implied": 0.9412,
-      "edge": -0.1377,
-      "kelly_stake": 0.024,
+      "model_agreement": 0.9095,
+      "market_implied": 0.9474,
+      "edge": -0.2593,
+      "kelly_stake": 0.05,
       "best_odds": {
         "book": "bovada",
-        "odds": 800,
-        "decimal": 9.0
+        "odds": 850,
+        "decimal": 9.5
       },
       "bet_side": "AWAY",
       "spread": {
-        "line": -16.5,
-        "model_spread": 8.0,
-        "edge": -8.5
+        "line": -17.0,
+        "model_spread": 7.8,
+        "edge": -9.2
       },
       "total": {
-        "line": 230.5,
-        "model_total": 227.1,
-        "edge": -3.4,
+        "line": 231.0,
+        "model_total": 226.5,
+        "edge": -4.5,
         "pick": "UNDER"
       },
       "player_props": [
+        {
+          "player": "Lauri Markkanen",
+          "team": "UTA",
+          "market": "threes",
+          "line": 2.7,
+          "prediction": 2.4,
+          "pick": "UNDER",
+          "confidence": 0.1974,
+          "edge": 0.1111,
+          "z_score": -0.25
+        },
         {
           "player": "Kevin Durant",
           "team": "PHX",
@@ -427,47 +471,25 @@
           "z_score": 0.22
         },
         {
-          "player": "Kevin Durant",
-          "team": "PHX",
-          "market": "assists",
-          "line": 5.5,
-          "prediction": 5.0,
-          "pick": "UNDER",
-          "confidence": 0.1585,
-          "edge": 0.0909,
-          "z_score": -0.2
-        },
-        {
-          "player": "Devin Booker",
-          "team": "PHX",
-          "market": "assists",
-          "line": 6.2,
-          "prediction": 6.6,
-          "pick": "OVER",
-          "confidence": 0.1271,
-          "edge": 0.0645,
-          "z_score": 0.16
-        },
-        {
           "player": "Devin Booker",
           "team": "PHX",
           "market": "points",
-          "line": 26.8,
-          "prediction": 27.6,
+          "line": 26.5,
+          "prediction": 27.5,
           "pick": "OVER",
-          "confidence": 0.1061,
-          "edge": 0.0299,
-          "z_score": 0.13
+          "confidence": 0.1324,
+          "edge": 0.0377,
+          "z_score": 0.17
         },
         {
           "player": "Lauri Markkanen",
           "team": "UTA",
-          "market": "rebounds",
-          "line": 8.2,
-          "prediction": 7.8,
+          "market": "points",
+          "line": 23.4,
+          "prediction": 22.6,
           "pick": "UNDER",
           "confidence": 0.1061,
-          "edge": 0.0488,
+          "edge": 0.0342,
           "z_score": -0.13
         }
       ]
@@ -477,113 +499,99 @@
     {
       "game": "DET @ MIN",
       "type": "spread",
-      "pick": "DET +2.5",
-      "edge": 3.52,
+      "pick": "DET -1.5",
+      "edge": 6.6667,
       "kelly": 0.005,
       "kelly_bet": 0.5,
-      "model_spread": 11.3,
-      "market_spread": -2.5,
+      "model_spread": 11.5,
+      "market_spread": 1.5,
       "confidence": "MEDIUM"
     },
     {
       "game": "CHI @ MEM",
       "type": "spread",
       "pick": "MEM +4",
-      "edge": 1.0,
+      "edge": 0.9,
       "kelly": 0.005,
       "kelly_bet": 0.5,
-      "model_spread": 0.0,
+      "model_spread": 0.4,
       "market_spread": 4.0,
       "confidence": "MEDIUM"
     },
     {
       "game": "SAC @ ATL",
       "type": "spread",
-      "pick": "SAC +15",
-      "edge": 0.7667,
+      "pick": "SAC +15.5",
+      "edge": 0.8258,
       "kelly": 0.005,
       "kelly_bet": 0.5,
-      "model_spread": -3.5,
-      "market_spread": -15.0,
+      "model_spread": -2.7,
+      "market_spread": -15.5,
       "confidence": "HIGH"
     },
     {
       "game": "SAS @ MIL",
       "type": "moneyline",
       "pick": "MIL ML",
-      "odds": 1000,
+      "odds": 950,
       "book": "bovada",
-      "edge": 0.7379,
+      "edge": 0.6029,
       "kelly": 0.05,
       "kelly_bet": 5.0,
-      "ev": 8.1168,
-      "model_prob": 0.8288,
-      "implied_prob": 0.0909,
+      "ev": 6.3301,
+      "model_prob": 0.6981,
+      "implied_prob": 0.0952,
       "confidence": "MEDIUM"
     },
     {
       "game": "UTA @ PHX",
       "type": "spread",
-      "pick": "UTA +16.5",
-      "edge": 0.5152,
+      "pick": "UTA +17",
+      "edge": 0.5412,
       "kelly": 0.005,
       "kelly_bet": 0.5,
-      "model_spread": 8.0,
-      "market_spread": -16.5,
+      "model_spread": 7.8,
+      "market_spread": -17.0,
       "confidence": "MEDIUM"
     },
     {
       "game": "SAS @ MIL",
       "type": "spread",
-      "pick": "MIL +18.5",
-      "edge": 0.4595,
+      "pick": "MIL +17.5",
+      "edge": 0.48,
       "kelly": 0.005,
       "kelly_bet": 0.5,
-      "model_spread": 10.0,
-      "market_spread": 18.5,
+      "model_spread": 9.1,
+      "market_spread": 17.5,
       "confidence": "MEDIUM"
     },
     {
       "game": "SAC @ ATL",
       "type": "moneyline",
       "pick": "SAC ML",
-      "odds": 700,
+      "odds": 600,
       "book": "bovada",
-      "edge": 0.3913,
+      "edge": 0.2936,
       "kelly": 0.05,
       "kelly_bet": 5.0,
-      "ev": 3.1304,
-      "model_prob": 0.5163,
-      "implied_prob": 0.125,
+      "ev": 2.0555,
+      "model_prob": 0.4365,
+      "implied_prob": 0.1429,
       "confidence": "HIGH"
     },
     {
       "game": "DET @ MIN",
       "type": "moneyline",
       "pick": "MIN ML",
-      "odds": -139,
+      "odds": 104,
       "book": "bovada",
-      "edge": 0.2743,
+      "edge": 0.2259,
       "kelly": 0.05,
       "kelly_bet": 5.0,
-      "ev": 0.4702,
-      "model_prob": 0.8576,
-      "implied_prob": 0.5833,
+      "ev": 0.4631,
+      "model_prob": 0.7137,
+      "implied_prob": 0.4878,
       "confidence": "MEDIUM"
-    },
-    {
-      "game": "PHI @ BKN",
-      "type": "moneyline",
-      "pick": "PHI ML",
-      "odds": 195,
-      "book": "bovada",
-      "edge": 0.2743,
-      "kelly": 0.05,
-      "kelly_bet": 5.0,
-      "ev": 0.8092,
-      "model_prob": 0.6133,
-      "implied_prob": 0.339,
-      "confidence": "HIGH"
     },
     {
       "game": "CHI @ MEM",
@@ -591,109 +599,145 @@
       "pick": "MEM ML",
       "odds": 150,
       "book": "bovada",
-      "edge": 0.2005,
+      "edge": 0.2107,
       "kelly": 0.05,
       "kelly_bet": 5.0,
-      "ev": 0.5013,
-      "model_prob": 0.6005,
+      "ev": 0.5268,
+      "model_prob": 0.6107,
       "implied_prob": 0.4,
-      "confidence": "MEDIUM"
-    },
-    {
-      "game": "DET @ MIN",
-      "type": "player_prop",
-      "pick": "Cade Cunningham UNDER 22.8 POINTS",
-      "edge": 0.1272,
-      "kelly": 0.0019,
-      "kelly_bet": 0.19,
-      "prediction": 19.9,
-      "line": 22.8,
-      "confidence": "HIGH"
-    },
-    {
-      "game": "SAC @ ATL",
-      "type": "player_prop",
-      "pick": "Trae Young OVER 25.6 POINTS",
-      "edge": 0.0859,
-      "kelly": 0.0014,
-      "kelly_bet": 0.14,
-      "prediction": 27.8,
-      "line": 25.6,
       "confidence": "MEDIUM"
     },
     {
       "game": "UTA @ PHX",
       "type": "moneyline",
       "pick": "UTA ML",
-      "odds": 800,
+      "odds": 850,
       "book": "bovada",
-      "edge": 0.0854,
-      "kelly": 0.024,
-      "kelly_bet": 2.4,
-      "ev": 0.7685,
-      "model_prob": 0.1965,
-      "implied_prob": 0.1111,
+      "edge": 0.2066,
+      "kelly": 0.05,
+      "kelly_bet": 5.0,
+      "ev": 1.963,
+      "model_prob": 0.3119,
+      "implied_prob": 0.1053,
+      "confidence": "MEDIUM"
+    },
+    {
+      "game": "PHI @ BKN",
+      "type": "moneyline",
+      "pick": "PHI ML",
+      "odds": 200,
+      "book": "bovada",
+      "edge": 0.146,
+      "kelly": 0.05,
+      "kelly_bet": 5.0,
+      "ev": 0.4379,
+      "model_prob": 0.4793,
+      "implied_prob": 0.3333,
+      "confidence": "HIGH"
+    },
+    {
+      "game": "DET @ MIN",
+      "type": "player_prop",
+      "pick": "Cade Cunningham UNDER 22.6 POINTS",
+      "edge": 0.115,
+      "kelly": 0.0017,
+      "kelly_bet": 0.17,
+      "prediction": 20.0,
+      "line": 22.6,
+      "confidence": "MEDIUM"
+    },
+    {
+      "game": "SAC @ ATL",
+      "type": "player_prop",
+      "pick": "Trae Young OVER 25.1 POINTS",
+      "edge": 0.1116,
+      "kelly": 0.0018,
+      "kelly_bet": 0.18,
+      "prediction": 27.9,
+      "line": 25.1,
+      "confidence": "HIGH"
+    },
+    {
+      "game": "DET @ MIN",
+      "type": "player_prop",
+      "pick": "Cade Cunningham UNDER 8.0 ASSISTS",
+      "edge": 0.1,
+      "kelly": 0.0013,
+      "kelly_bet": 0.13,
+      "prediction": 7.2,
+      "line": 8.0,
       "confidence": "MEDIUM"
     },
     {
       "game": "CHI @ MEM",
       "type": "total",
       "pick": "UNDER 245.5",
-      "edge": 0.0717,
+      "edge": 0.0729,
       "kelly": 0.0037,
       "kelly_bet": 0.38,
-      "model_total": 227.9,
+      "model_total": 227.6,
       "market_total": 245.5,
+      "confidence": "MEDIUM"
+    },
+    {
+      "game": "SAS @ MIL",
+      "type": "player_prop",
+      "pick": "Giannis Antetokounmpo OVER 30.9 POINTS",
+      "edge": 0.0647,
+      "kelly": 0.0013,
+      "kelly_bet": 0.13,
+      "prediction": 32.9,
+      "line": 30.9,
       "confidence": "MEDIUM"
     },
     {
       "game": "PHI @ BKN",
       "type": "total",
-      "pick": "UNDER 233.5",
-      "edge": 0.0403,
+      "pick": "UNDER 232.5",
+      "edge": 0.0366,
       "kelly": 0.0037,
       "kelly_bet": 0.38,
-      "model_total": 224.1,
-      "market_total": 233.5,
+      "model_total": 224.0,
+      "market_total": 232.5,
       "confidence": "HIGH"
     },
     {
-      "game": "DET @ MIN",
+      "game": "UTA @ PHX",
       "type": "total",
-      "pick": "UNDER 223.0",
-      "edge": 0.0274,
+      "pick": "UNDER 231.0",
+      "edge": 0.0195,
       "kelly": 0.0037,
       "kelly_bet": 0.38,
-      "model_total": 216.9,
-      "market_total": 223.0,
+      "model_total": 226.5,
+      "market_total": 231.0,
       "confidence": "MEDIUM"
     },
     {
       "game": "SAS @ MIL",
       "type": "total",
-      "pick": "OVER 226.0",
-      "edge": 0.0177,
+      "pick": "OVER 226.5",
+      "edge": 0.019,
       "kelly": 0.0037,
       "kelly_bet": 0.38,
-      "model_total": 230.0,
-      "market_total": 226.0,
+      "model_total": 230.8,
+      "market_total": 226.5,
       "confidence": "MEDIUM"
     },
     {
-      "game": "UTA @ PHX",
+      "game": "DET @ MIN",
       "type": "total",
-      "pick": "UNDER 230.5",
-      "edge": 0.0148,
+      "pick": "UNDER 221.5",
+      "edge": 0.0149,
       "kelly": 0.0037,
       "kelly_bet": 0.38,
-      "model_total": 227.1,
-      "market_total": 230.5,
+      "model_total": 218.2,
+      "market_total": 221.5,
       "confidence": "MEDIUM"
     }
   ],
-  "value_bets_count": 18,
+  "value_bets_count": 20,
   "metadata": {
-    "odds_api_key_active": true,
+    "odds_api_key_active": false,
     "nba_api_games": 6,
     "odds_api_games": 6,
     "evolution_model_loaded": false,

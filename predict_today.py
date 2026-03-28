@@ -69,8 +69,8 @@ from models.odds_analyzer import (
 )
 
 # ── Constants ────────────────────────────────────────────────────────────────
-ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
-ODDS_API_BASE = "https://api.the-odds-api.com/v4"
+ODDS_API_KEY = ""  # DEPRECATED: the-odds-api.com quota exhausted, use ActionNetwork (free)
+ODDS_API_BASE = "https://api.the-odds-api.com/v4"  # No longer used
 SSL_CTX = ssl.create_default_context()
 SSL_CTX.check_hostname = False
 SSL_CTX.verify_mode = ssl.CERT_NONE

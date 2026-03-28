@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-NBA Odds Fetcher — Multi-source (Bovada → DraftKings → TheRundown → odds-api.io → The Odds API)
-================================================================================================
+NBA Odds Fetcher — Multi-source (ActionNetwork → Bovada → DraftKings → TheRundown)
+====================================================================================
 Fetches live NBA odds and saves to data/odds/ as JSON snapshots.
+ALL SOURCES ARE FREE. No paid APIs.
 
 Sources:
-  1. Bovada public API       (FREE, no key needed)
-  2. DraftKings public API   (FREE, no key needed — Nash mobile API)
-  3. TheRundown              (FREE tier via RapidAPI key — 20k points/day free)
+  1. ActionNetwork           (FREE, no key — includes public money % for sharp/square)
+  2. Bovada public API       (FREE, no key needed)
+  3. DraftKings public API   (FREE, no key needed — Nash mobile API)
+  4. TheRundown              (FREE tier via RapidAPI key — 20k points/day free)
                               Set THERUNDOWN_API_KEY in .env.local
-  4. odds-api.io             (FREE tier — 100 req/hr, register at odds-api.io)
-                              Set ODDS_API_IO_KEY in .env.local
-  5. The Odds API            (needs ODDS_API_KEY with credits)
+
+NOTE: The Odds API (the-odds-api.com) has been REMOVED — quota exhausted, paid service.
+      Use /home/termius/mon-ipad/scripts/fetch_free_odds.py as the primary odds script.
 
 Usage:
     python3 ops/fetch-odds.py              # One-shot fetch
@@ -56,9 +58,10 @@ if _env.exists():
             k, _, v = line.partition("=")
             os.environ.setdefault(k.strip(), v.strip("'\""))
 
-ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
+ODDS_API_KEY = ""  # DISABLED: the-odds-api.com quota exhausted (paid service)
 THERUNDOWN_API_KEY = os.environ.get("THERUNDOWN_API_KEY", "")  # Free tier at therundown.io
 ODDS_API_IO_KEY = os.environ.get("ODDS_API_IO_KEY", "")        # Free tier at odds-api.io
+# NOTE: Primary odds script is now /home/termius/mon-ipad/scripts/fetch_free_odds.py
 
 TEAM_ABBREV = {
     "Oklahoma City Thunder": "OKC", "Boston Celtics": "BOS", "Cleveland Cavaliers": "CLE",
@@ -387,9 +390,66 @@ def fetch_odds_api():
     return games
 
 
+def fetch_actionnetwork():
+    """Fetch NBA odds from ActionNetwork (FREE, no key, includes public money %)."""
+    _ACTION_BOOK_IDS = "15,30,68,69,123,19,283,100"
+    url = f"https://api.actionnetwork.com/web/v1/scoreboard/nba?periods=event&bookIds={_ACTION_BOOK_IDS}"
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
+    resp = urllib.request.urlopen(req, timeout=20)
+    raw = json.loads(resp.read().decode())
+    games_raw = raw.get("games", [])
+    games = []
+    for g in games_raw:
+        teams = g.get("teams", [])
+        away_id = g.get("away_team_id")
+        home_id = g.get("home_team_id")
+        away_obj = next((t for t in teams if t["id"] == away_id), {})
+        home_obj = next((t for t in teams if t["id"] == home_id), {})
+        home_team = home_obj.get("full_name", "")
+        away_team = away_obj.get("full_name", "")
+        odds_list = g.get("odds", [])
+        main_odds = next((o for o in odds_list if o.get("ml_away") and o.get("ml_home")), {})
+        game = {
+            "home_team": home_team,
+            "away_team": away_team,
+            "start_time": g.get("start_time", ""),
+            "source": "actionnetwork",
+            "markets": {},
+        }
+        if main_odds.get("ml_away") and main_odds.get("ml_home"):
+            game["markets"]["moneyline"] = [
+                {"name": away_team, "american": str(main_odds["ml_away"])},
+                {"name": home_team, "american": str(main_odds["ml_home"])},
+            ]
+        if main_odds.get("spread_away") is not None:
+            game["markets"]["spread"] = [
+                {"name": away_team, "american": str(main_odds.get("spread_away_line", -110)),
+                 "handicap": str(main_odds["spread_away"])},
+                {"name": home_team, "american": str(main_odds.get("spread_home_line", -110)),
+                 "handicap": str(main_odds.get("spread_home", ""))},
+            ]
+        if main_odds.get("total") is not None:
+            game["markets"]["total"] = [
+                {"name": "Over",  "american": str(main_odds.get("over", -110)),  "handicap": str(main_odds["total"])},
+                {"name": "Under", "american": str(main_odds.get("under", -110)), "handicap": str(main_odds["total"])},
+            ]
+        games.append(game)
+    return games
+
+
 def fetch_all():
-    """Fetch from all sources, cascading Bovada → DraftKings → TheRundown → odds-api.io → The Odds API."""
-    # 1. Try Bovada first (free, reliable)
+    """Fetch from all free sources: ActionNetwork → Bovada → DraftKings → TheRundown."""
+    # 1. ActionNetwork (free, includes public money %, Pinnacle sharp line)
+    try:
+        games = fetch_actionnetwork()
+        if games:
+            print(f"[ActionNetwork] {len(games)} games fetched")
+            return games, "actionnetwork"
+    except Exception as e:
+        print(f"[ActionNetwork] Failed: {e}")
+
+    # 2. Try Bovada (free, reliable)
     try:
         games = fetch_bovada()
         if games:
@@ -398,7 +458,7 @@ def fetch_all():
     except Exception as e:
         print(f"[Bovada] Failed: {e}")
 
-    # 2. DraftKings public Nash API (free, no key)
+    # 3. DraftKings public Nash API (free, no key)
     try:
         games = fetch_draftkings()
         if games:
@@ -407,7 +467,7 @@ def fetch_all():
     except Exception as e:
         print(f"[DraftKings] Failed: {e}")
 
-    # 3. TheRundown (free tier, needs THERUNDOWN_API_KEY)
+    # 4. TheRundown (free tier, needs THERUNDOWN_API_KEY)
     try:
         games = fetch_therundown()
         if games:
@@ -415,24 +475,6 @@ def fetch_all():
             return games, "therundown"
     except Exception as e:
         print(f"[TheRundown] Failed: {e}")
-
-    # 4. odds-api.io (free tier, needs ODDS_API_IO_KEY)
-    try:
-        games = fetch_odds_api_io()
-        if games:
-            print(f"[odds-api.io] {len(games)} games fetched")
-            return games, "odds-api-io"
-    except Exception as e:
-        print(f"[odds-api.io] Failed: {e}")
-
-    # 5. Fallback to The Odds API (paid)
-    try:
-        games = fetch_odds_api()
-        if games:
-            print(f"[Odds API] {len(games)} games fetched")
-            return games, "odds-api"
-    except Exception as e:
-        print(f"[Odds API] Failed: {e}")
 
     return [], "none"
 
