@@ -46,7 +46,10 @@ Categories:
   43. CLUTCH PERFORMANCE (8 features — close-game win%, margin, ortg from rolling records)
   44. GAME TOTALS PREDICTION (10 features — normalized PPG/PAPG, pace, ortg/drtg scoring environment)
   46. REAL ODDS MARKET FEATURES (8 features — implied prob, spread, total from historical CSV)
-  ≈ 6200+ feature candidates
+  47. DRIVE-OFFENSE vs RIM-DEFENSE MATCHUP (14 features — drive FG%, rim protection, matchup edges)
+  48. PASSING NETWORK QUALITY (10 features — AST/pass, potential assists, ball movement)
+  49. PLAY-TYPE EFFICIENCY (10 features — iso/PnR/spot-up/transition PPP, versatility)
+  ≈ 6245+ feature candidates
 
 Architecture inspired by:
   - Starlizard: 500+ features, genetic selection, real-time adjustment
@@ -2566,6 +2569,59 @@ class NBAFeatureEngine:
             "odds46_total",               # Over/under total, normalized /220
             "odds46_overround",           # Total implied prob (vig level, ~1.04-1.08)
             "odds46_spread_implied_diff", # spread_implied_prob - ml_implied_prob (market consistency)
+        ])
+
+        # 47. DRIVE-OFFENSE vs RIM-DEFENSE MATCHUP (14 features)
+        # Montrucchio 2026 (Brier 0.199): zone-level offense vs defense matchups.
+        # drive_fg_pct loaded by build_tracking_data but never consumed by engine.
+        # DEF_RIM_FG_PCT from defense CSV completely unused until now.
+        names.extend([
+            "drive47_h_fg_pct",          # Home drive FG% (offense quality on drives)
+            "drive47_a_fg_pct",          # Away drive FG% (offense quality on drives)
+            "drive47_h_tov_pct",         # Home drive turnover rate (ball security)
+            "drive47_a_tov_pct",         # Away drive turnover rate
+            "drive47_h_pts_pct",         # Home scoring share from drives
+            "drive47_a_pts_pct",         # Away scoring share from drives
+            "drive47_h_def_rim_fg",      # Home rim FG% allowed (rim protection)
+            "drive47_a_def_rim_fg",      # Away rim FG% allowed
+            "drive47_h_blk_rate",        # Home blocks per game (rim deterrent)
+            "drive47_a_blk_rate",        # Away blocks per game
+            "drive47_h_off_vs_a_rim",    # Home drive_fg - away def_rim_fg (matchup edge)
+            "drive47_a_off_vs_h_rim",    # Away drive_fg - home def_rim_fg
+            "drive47_rim_matchup_net",   # Combined rim advantage
+            "drive47_drive_volume_diff", # Home drives - away drives (attack style diff)
+        ])
+
+        # 48. PASSING NETWORK QUALITY (10 features)
+        # passing_2025-26.csv is completely unused. Ball movement quality
+        # is a strong team-strength indicator (GS dynasty, 2020s Nuggets).
+        names.extend([
+            "pass48_h_ast_rate",         # Home AST-to-pass ratio
+            "pass48_a_ast_rate",         # Away AST-to-pass ratio
+            "pass48_h_potential_ast",    # Home potential assists (normalized /50)
+            "pass48_a_potential_ast",    # Away potential assists (normalized /50)
+            "pass48_h_ast_pts_created",  # Home points created by assists (normalized /80)
+            "pass48_a_ast_pts_created",  # Away points created by assists
+            "pass48_h_secondary_ast",    # Home secondary assists (extra passes /5)
+            "pass48_a_secondary_ast",    # Away secondary assists
+            "pass48_ast_rate_diff",      # Home - away AST-to-pass rate
+            "pass48_ball_movement_edge", # Composite: ast_rate + secondary_ast + potential_ast diff
+        ])
+
+        # 49. PLAY-TYPE EFFICIENCY (10 features)
+        # NBA_Play_Types CSV has real PPP by play type — currently unused.
+        # Team-level aggregated: iso, P&R, transition, post-up, spot-up efficiency.
+        names.extend([
+            "play49_h_iso_ppp",          # Home isolation PPP (normalized /1.0)
+            "play49_a_iso_ppp",          # Away isolation PPP
+            "play49_h_pnr_ppp",          # Home pick-and-roll ball handler PPP
+            "play49_a_pnr_ppp",          # Away pick-and-roll ball handler PPP
+            "play49_h_spot_ppp",         # Home spot-up PPP
+            "play49_a_spot_ppp",         # Away spot-up PPP
+            "play49_h_trans_ppp",        # Home transition PPP
+            "play49_a_trans_ppp",        # Away transition PPP
+            "play49_ppp_composite_diff", # Home avg PPP - away avg PPP (overall efficiency)
+            "play49_versatility_diff",   # Home play-type variety - away (# play types above 1.0 PPP)
         ])
 
         self.feature_names = names
@@ -5664,6 +5720,107 @@ class NBAFeatureEngine:
                     row.extend([0.5, 0.5, 0.5, 0.5, 0.0, 1.0, 1.05, 0.0])
             except Exception:
                 row.extend([0.5, 0.5, 0.5, 0.5, 0.0, 1.0, 1.05, 0.0])
+
+            # ── Cat 47: Drive-Offense vs Rim-Defense Matchup (14 features) ──
+            try:
+                td = tracking_data or {}
+                h_td = td.get(home, {})
+                a_td = td.get(away, {})
+                _h_drv_fg = h_td.get('drive_fg_pct', 0.488)
+                _a_drv_fg = a_td.get('drive_fg_pct', 0.488)
+                _h_drv_tov = h_td.get('drive_tov_pct', 0.07)
+                _a_drv_tov = a_td.get('drive_tov_pct', 0.07)
+                _h_drv_pts = h_td.get('drive_pts_pct', 0.50)
+                _a_drv_pts = a_td.get('drive_pts_pct', 0.50)
+                _h_rim_d = h_td.get('def_rim_fg_pct', 0.66)
+                _a_rim_d = a_td.get('def_rim_fg_pct', 0.66)
+                _h_blk = h_td.get('blk_per_game', 4.5) / 10.0
+                _a_blk = a_td.get('blk_per_game', 4.5) / 10.0
+                _h_drv_n = h_td.get('drives', 48.0) / 50.0
+                _a_drv_n = a_td.get('drives', 48.0) / 50.0
+                _h_off_vs_a = _h_drv_fg - _a_rim_d
+                _a_off_vs_h = _a_drv_fg - _h_rim_d
+                row.extend([
+                    _h_drv_fg,               # drive47_h_fg_pct
+                    _a_drv_fg,               # drive47_a_fg_pct
+                    _h_drv_tov,              # drive47_h_tov_pct
+                    _a_drv_tov,              # drive47_a_tov_pct
+                    _h_drv_pts,              # drive47_h_pts_pct
+                    _a_drv_pts,              # drive47_a_pts_pct
+                    _h_rim_d,                # drive47_h_def_rim_fg
+                    _a_rim_d,                # drive47_a_def_rim_fg
+                    _h_blk,                  # drive47_h_blk_rate
+                    _a_blk,                  # drive47_a_blk_rate
+                    _h_off_vs_a,             # drive47_h_off_vs_a_rim
+                    _a_off_vs_h,             # drive47_a_off_vs_h_rim
+                    _h_off_vs_a - _a_off_vs_h,  # drive47_rim_matchup_net
+                    _h_drv_n - _a_drv_n,     # drive47_drive_volume_diff
+                ])
+            except Exception:
+                row.extend([0.488, 0.488, 0.07, 0.07, 0.50, 0.50, 0.66, 0.66,
+                           0.45, 0.45, 0.0, 0.0, 0.0, 0.0])
+
+            # ── Cat 48: Passing Network Quality (10 features) ──
+            try:
+                td = tracking_data or {}
+                h_td = td.get(home, {})
+                a_td = td.get(away, {})
+                _h_atp = h_td.get('ast_to_pass_pct', 0.09)
+                _a_atp = a_td.get('ast_to_pass_pct', 0.09)
+                _h_pot = h_td.get('potential_ast', 47.0) / 50.0
+                _a_pot = a_td.get('potential_ast', 47.0) / 50.0
+                _h_apc = h_td.get('ast_points_created', 68.0) / 80.0
+                _a_apc = a_td.get('ast_points_created', 68.0) / 80.0
+                _h_sec = h_td.get('secondary_ast', 3.0) / 5.0
+                _a_sec = a_td.get('secondary_ast', 3.0) / 5.0
+                _bm_h = _h_atp + _h_sec * 0.1 + _h_pot * 0.05
+                _bm_a = _a_atp + _a_sec * 0.1 + _a_pot * 0.05
+                row.extend([
+                    _h_atp,                  # pass48_h_ast_rate
+                    _a_atp,                  # pass48_a_ast_rate
+                    _h_pot,                  # pass48_h_potential_ast
+                    _a_pot,                  # pass48_a_potential_ast
+                    _h_apc,                  # pass48_h_ast_pts_created
+                    _a_apc,                  # pass48_a_ast_pts_created
+                    _h_sec,                  # pass48_h_secondary_ast
+                    _a_sec,                  # pass48_a_secondary_ast
+                    _h_atp - _a_atp,         # pass48_ast_rate_diff
+                    _bm_h - _bm_a,           # pass48_ball_movement_edge
+                ])
+            except Exception:
+                row.extend([0.09, 0.09, 0.94, 0.94, 0.85, 0.85, 0.6, 0.6, 0.0, 0.0])
+
+            # ── Cat 49: Play-Type Efficiency (10 features) ──
+            try:
+                td = tracking_data or {}
+                h_td = td.get(home, {})
+                a_td = td.get(away, {})
+                _h_iso = h_td.get('iso_ppp', 0.88)
+                _a_iso = a_td.get('iso_ppp', 0.88)
+                _h_pnr = h_td.get('pnr_ppp', 0.87)
+                _a_pnr = a_td.get('pnr_ppp', 0.87)
+                _h_spot = h_td.get('spot_ppp', 1.04)
+                _a_spot = a_td.get('spot_ppp', 1.04)
+                _h_trans = h_td.get('trans_ppp', 1.12)
+                _a_trans = a_td.get('trans_ppp', 1.12)
+                _h_avg = (_h_iso + _h_pnr + _h_spot + _h_trans) / 4.0
+                _a_avg = (_a_iso + _a_pnr + _a_spot + _a_trans) / 4.0
+                _h_above = sum(1 for p in [_h_iso, _h_pnr, _h_spot, _h_trans] if p > 1.0) / 4.0
+                _a_above = sum(1 for p in [_a_iso, _a_pnr, _a_spot, _a_trans] if p > 1.0) / 4.0
+                row.extend([
+                    _h_iso,                  # play49_h_iso_ppp
+                    _a_iso,                  # play49_a_iso_ppp
+                    _h_pnr,                  # play49_h_pnr_ppp
+                    _a_pnr,                  # play49_a_pnr_ppp
+                    _h_spot,                 # play49_h_spot_ppp
+                    _a_spot,                 # play49_a_spot_ppp
+                    _h_trans,                # play49_h_trans_ppp
+                    _a_trans,                # play49_a_trans_ppp
+                    _h_avg - _a_avg,         # play49_ppp_composite_diff
+                    _h_above - _a_above,     # play49_versatility_diff
+                ])
+            except Exception:
+                row.extend([0.88, 0.88, 0.87, 0.87, 1.04, 1.04, 1.12, 1.12, 0.0, 0.0])
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
