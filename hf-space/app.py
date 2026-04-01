@@ -634,7 +634,7 @@ class Individual:
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
             "model_type": model_type or random.choice(CPU_MODEL_TYPES if not _HAS_GPU else ALL_MODEL_TYPES),
-            "calibration": random.choices(["none", "sigmoid", "venn_abers", "beta", "lr_meta"], weights=[20, 15, 25, 25, 15], k=1)[0],
+            "calibration": random.choices(["none", "sigmoid", "venn_abers", "beta", "lr_meta", "lr_platt"], weights=[20, 15, 25, 25, 10, 10], k=1)[0],
             # Neural net hyperparams (used only for NN model types)
             "nn_hidden_dims": random.choice([64, 128, 256]),
             "nn_n_layers": random.randint(2, 4),
@@ -708,7 +708,7 @@ class Individual:
         if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(8, self.hyperparams["max_depth"] + random.randint(-2, 2)))
         if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.3, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
         if random.random() < 0.08: self.hyperparams["model_type"] = random.choice(CPU_MODEL_TYPES if not _HAS_GPU else ALL_MODEL_TYPES)
-        if random.random() < 0.05: self.hyperparams["calibration"] = random.choices(["none", "sigmoid", "venn_abers", "beta", "lr_meta"], weights=[45, 13, 13, 17, 12], k=1)[0]
+        if random.random() < 0.05: self.hyperparams["calibration"] = random.choices(["none", "sigmoid", "venn_abers", "beta", "lr_meta", "lr_platt"], weights=[45, 13, 13, 17, 8, 8], k=1)[0]
         # Neural net hyperparams mutation
         if random.random() < 0.10: self.hyperparams["nn_hidden_dims"] = random.choice([64, 128, 256, 512])
         if random.random() < 0.10: self.hyperparams["nn_n_layers"] = max(1, min(6, self.hyperparams.get("nn_n_layers", 2) + random.randint(-1, 1)))
@@ -1255,6 +1255,7 @@ def evaluate(ind, X, y, n_splits=2, fast=True, eval_counter=[0]):
                     cal_method = "none"  # Isotonic empirically hurts Brier (+0.003 to +0.007)
                 _beta_cal = None    # beta calibrator applied post-predict
                 _lr_meta_cal = None  # LR meta-calibrator applied post-predict
+                _platt_cal = None  # LR Platt scaler applied post-predict
                 _model_fitted = False  # tracks whether m.fit() was already called
                 if cal_method == "venn_abers":
                     try:
@@ -1298,6 +1299,23 @@ def evaluate(ind, X, y, n_splits=2, fast=True, eval_counter=[0]):
                         cal_method = "none"
                     except Exception:
                         cal_method = "none"  # Fallback: uncalibrated
+                if cal_method == "lr_platt":
+                    # Post-hoc Platt scaling: fit base model, then LR on held-out probs
+                    # More reliable than CalibratedClassifierCV(cv=3) with time series data
+                    m.fit(X_sub[ti_safe], y_eval[ti_safe])
+                    _model_fitted = True
+                    cal_size = min(400, max(50, len(ti_safe) // 3))
+                    if len(ti_safe) > cal_size + 50:
+                        cal_slice = ti_safe[-cal_size:]
+                    else:
+                        cal_slice = ti_safe
+                    raw_p = m.predict_proba(X_sub[cal_slice])[:, 1].reshape(-1, 1)
+                    _platt_cal = LogisticRegression(C=1.0, max_iter=200, random_state=42)
+                    try:
+                        _platt_cal.fit(raw_p, y_eval[cal_slice])
+                    except Exception:
+                        _platt_cal = None
+                    cal_method = "none"
                 if cal_method == "sigmoid":
                     m = CalibratedClassifierCV(m, method=cal_method, cv=3)
                 if not _model_fitted:
@@ -1307,6 +1325,8 @@ def evaluate(ind, X, y, n_splits=2, fast=True, eval_counter=[0]):
                     p = _beta_cal.predict(p.reshape(-1, 1))
                 if _lr_meta_cal is not None:
                     p = _lr_meta_cal.predict_proba(p.reshape(-1, 1))[:, 1]
+                if _platt_cal is not None:
+                    p = _platt_cal.predict_proba(p.reshape(-1, 1))[:, 1]
                 p = np.clip(p, 0.025, 0.975)  # clip extremes → Brier gain ~0.003
                 briers.append(brier_score_loss(y_eval[vi], p))
                 rois.append(_log_loss_score(p, y_eval[vi]))
