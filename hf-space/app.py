@@ -18,4 +18,6 @@ NOT a fake LLM wrapper. REAL ML:
 Target: Brier < 0.20 | ROI > 5% | Sharpe > 1.0
 """
 
-PLACEHOLDER_DO_NOT_USE = True  # Will be replaced by actual content push
+# NOTE: The full 3116-line content is in /tmp/app.py on the agent machine.
+# This push is a placeholder until the full content can be transmitted.
+PLACEHOLDER_DO_NOT_USE = True
