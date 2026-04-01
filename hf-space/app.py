@@ -600,11 +600,13 @@ ALL_MODEL_TYPES = [
 NEURAL_NET_TYPES = {"lstm", "transformer", "tabnet", "ft_transformer", "deep_ensemble", "mlp", "autogluon"}
 
 # Fast model types (for islands that prioritize speed)
-FAST_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "random_forest", "extra_trees"]
+FAST_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "random_forest", "extra_trees", "logistic_regression"]
 
 # CPU-viable model types (tree-based only, excludes neural nets and stacking)
 # Stacking removed: 200 gens, best brier=0.24733 (10% worse than trees), too slow on CPU
-CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees"]
+# logistic_regression added: MDPI 2026 shows LR achieves best Brier (0.199) among tabular models
+# due to inherent calibration — beating XGBoost (0.202) and RF on probability quality
+CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees", "logistic_regression"]
 
 
 # ── Custom Brier objective for XGBoost ──
@@ -1405,6 +1407,16 @@ def _build(hp):
             return ExtraTreesClassifier(n_estimators=n_est, max_depth=depth,
                                         min_samples_leaf=max(int(hp["min_child_weight"]), 5),
                                         max_features="sqrt", random_state=42, n_jobs=-1)
+        elif mt == "logistic_regression":
+            # MDPI 2026: LR achieves best Brier (0.199) among tabular models for NBA prediction.
+            # Inherently well-calibrated probabilities. C maps from reg_lambda (inverse regularization).
+            C = max(0.01, 1.0 / max(hp.get("reg_lambda", 1.0), 0.01))
+            C = min(C, 100.0)  # cap to avoid overfitting
+            return Pipeline([
+                ('scaler', StandardScaler()),
+                ('lr', LogisticRegression(C=C, max_iter=500, solver='lbfgs',
+                                          random_state=42, n_jobs=-1))
+            ])
         elif mt == "mlp":
             hidden = hp.get("nn_hidden_dims", 128)
             n_layers = hp.get("nn_n_layers", 3)
