@@ -1,0 +1,11 @@
+{
+  "department": "prediction",
+  "timestamp": "2026-04-01T11:09:27Z",
+  "iteration": 1,
+  "status": "active",
+  "brier": {"best_brier": null, "latest_brier": null, "eval_count": 125, "evals": []},
+  "features": {"npz_files": 1, "engine_exists": true, "feature_categories": 60},
+  "accuracy": {"games_evaluated": 0, "correct": 0, "accuracy": null},
+  "evolution": {"generation": 0, "population_size": 0, "best_fitness": null},
+  "best_brier": null
+}
