@@ -94,6 +94,61 @@ if _repo_hist.exists() and DATA_DIR != Path("data"):
 VM_URL = os.environ.get("VM_CALLBACK_URL", "http://34.136.180.66:8080")
 ODDS_API_KEY = os.environ.get("ODDS_API_KEY", "")
 
+# ── Post-hoc Platt/Isotonic Calibration (D5: raw ECE=0.2758, target <0.05) ──
+# Pure stdlib — no sklearn dependency for the calibration lookup.
+_CAL_MAP_PATH = Path("data/calibration-map.json")
+
+def _load_cal_map():
+    """Load calibration map. Returns (bin_edges, raw_centers, cal_centers) or None."""
+    for p in [_CAL_MAP_PATH, DATA_DIR / "calibration-map.json"]:
+        if p.exists():
+            try:
+                d = json.loads(p.read_text())
+                return d["bin_edges"], d["raw_centers"], d["calibrated_centers"]
+            except Exception as e:
+                print(f"[calibration] Failed to load {p}: {e}")
+    print("[calibration] calibration-map.json not found — using identity")
+    return None
+
+def _apply_cal(raw_prob: float, cal_map) -> float:
+    """Apply piecewise-linear calibration. Falls back to identity if cal_map is None."""
+    if cal_map is None:
+        return raw_prob
+    bin_edges, raw_centers, cal_centers = cal_map
+    p = max(0.0, min(1.0, float(raw_prob)))
+    if p == 0.0: return 0.0
+    if p == 1.0: return 1.0
+    # Find bin
+    i = len(bin_edges) - 2
+    for j in range(len(bin_edges) - 1):
+        if bin_edges[j] <= p < bin_edges[j + 1]:
+            i = j
+            break
+    raw_c = raw_centers[i]
+    cal_c = cal_centers[i]
+    n = len(raw_centers)
+    if p < raw_c:
+        if i == 0:
+            t = p / raw_c if raw_c > 0 else 0.5
+            cal_low, cal_high = 0.0, cal_c
+        else:
+            span = raw_c - raw_centers[i - 1]
+            t = (p - raw_centers[i - 1]) / span if span > 0 else 0.5
+            cal_low, cal_high = cal_centers[i - 1], cal_c
+    else:
+        if i == n - 1:
+            span = 1.0 - raw_c
+            t = (p - raw_c) / span if span > 0 else 0.5
+            cal_low, cal_high = cal_c, 1.0
+        else:
+            span = raw_centers[i + 1] - raw_c
+            t = (p - raw_c) / span if span > 0 else 0.5
+            cal_low, cal_high = cal_c, cal_centers[i + 1]
+    t = max(0.0, min(1.0, t))
+    return round(max(0.0, min(1.0, cal_low + t * (cal_high - cal_low))), 4)
+
+_CAL_MAP = _load_cal_map()
+
 # ═══════════════════════════════════════════════════════
 # LIVE STATE (shared between evolution thread + Gradio)
 # ═══════════════════════════════════════════════════════
@@ -3044,7 +3099,11 @@ async def api_predict(request: Request):
                     )[0, 1]
                 prob = float(np.clip(raw_prob, 0.025, 0.975))
 
-                # Kelly criterion (25% fractional)
+                # Apply post-hoc calibration (D5: raw ECE=0.2758, target <0.05)
+                raw_prob = prob
+                prob = _apply_cal(prob, _CAL_MAP)
+
+                # Kelly criterion (25% fractional) — uses calibrated prob
                 if prob > 0.55:
                     edge = prob - 0.5
                     kelly = (edge / 0.5) * 0.25  # fractional Kelly
@@ -3055,6 +3114,8 @@ async def api_predict(request: Request):
                     "home_team": home, "away_team": away,
                     "home_win_prob": round(prob, 4),
                     "away_win_prob": round(1 - prob, 4),
+                    "raw_home_win_prob": round(raw_prob, 4),
+                    "calibrated": _CAL_MAP is not None,
                     "confidence": round(abs(prob - 0.5) * 2, 4),
                     "kelly_stake": round(kelly, 4),
                     "model_type": best["hyperparams"]["model_type"],

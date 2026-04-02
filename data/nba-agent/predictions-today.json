@@ -1,329 +1,163 @@
 {
-  "date": "2026-03-31",
-  "generated_at": "2026-03-31T22:00:45.010373+00:00",
+  "date": "2026-04-02",
+  "generated_at": "2026-04-02T14:00:45.567683+00:00",
   "model_version": "ensemble-v1",
   "bankroll": 100.0,
-  "games_count": 7,
+  "games_count": 6,
   "games": [
     {
-      "home": "ORL",
+      "home": "BKN",
       "away": "PHX",
-      "home_name": "Orlando Magic",
+      "home_name": "Brooklyn Nets",
       "away_name": "Phoenix Suns",
-      "home_win_prob": 0.642,
-      "away_win_prob": 0.358,
+      "home_win_prob": 0.3723,
+      "away_win_prob": 0.6277,
       "confidence": "MEDIUM",
-      "model_agreement": 0.9103,
-      "market_implied": 0.5556,
-      "edge": 0.0864,
-      "kelly_stake": 0.0486,
+      "model_agreement": 0.9474,
+      "market_implied": 0.6774,
+      "edge": -0.3051,
+      "kelly_stake": 0.05,
       "best_odds": {
         "book": "bovada",
-        "odds": -125,
-        "decimal": 1.8
+        "odds": 175,
+        "decimal": 2.75
       },
-      "bet_side": "HOME",
+      "bet_side": "AWAY",
       "spread": {
-        "line": -2.0,
-        "model_spread": 0.7,
-        "edge": -1.3
+        "line": -5.5,
+        "model_spread": -5.9,
+        "edge": 0.4
       },
       "total": {
-        "line": 225.0,
-        "model_total": 219.7,
-        "edge": -5.3,
-        "pick": "UNDER"
+        "line": 223.5,
+        "model_total": 226.5,
+        "edge": 3.0,
+        "pick": "OVER"
       },
       "player_props": [
         {
           "player": "Kevin Durant",
           "team": "PHX",
-          "market": "points",
-          "line": 27.5,
-          "prediction": 24.2,
-          "pick": "UNDER",
-          "confidence": 0.4177,
-          "edge": 0.12,
-          "z_score": -0.55
-        },
-        {
-          "player": "Devin Booker",
-          "team": "PHX",
-          "market": "points",
-          "line": 26.2,
-          "prediction": 23.8,
-          "pick": "UNDER",
-          "confidence": 0.3108,
-          "edge": 0.0916,
-          "z_score": -0.4
-        },
-        {
-          "player": "Devin Booker",
-          "team": "PHX",
           "market": "rebounds",
-          "line": 4.9,
-          "prediction": 4.3,
-          "pick": "UNDER",
-          "confidence": 0.1585,
-          "edge": 0.1224,
-          "z_score": -0.2
-        },
-        {
-          "player": "Paolo Banchero",
-          "team": "ORL",
-          "market": "threes",
-          "line": 1.2,
-          "prediction": 1.0,
+          "line": 6.8,
+          "prediction": 6.3,
           "pick": "UNDER",
           "confidence": 0.1324,
-          "edge": 0.1667,
+          "edge": 0.0735,
           "z_score": -0.17
         },
         {
-          "player": "Franz Wagner",
-          "team": "ORL",
+          "player": "Devin Booker",
+          "team": "PHX",
           "market": "threes",
-          "line": 1.3,
-          "prediction": 1.5,
-          "pick": "OVER",
-          "confidence": 0.1324,
-          "edge": 0.1538,
-          "z_score": 0.17
-        }
-      ]
-    },
-    {
-      "home": "BKN",
-      "away": "BKN",
-      "home_name": "Brooklyn Nets",
-      "away_name": "Brooklyn Nets",
-      "home_win_prob": 0.6128,
-      "away_win_prob": 0.3872,
-      "confidence": "HIGH",
-      "model_agreement": 0.953,
-      "market_implied": 0.0952,
-      "edge": 0.5176,
-      "kelly_stake": 0.05,
-      "best_odds": {
-        "book": "bovada",
-        "odds": 950,
-        "decimal": 10.5
-      },
-      "bet_side": "HOME",
-      "spread": {
-        "line": 17.5,
-        "model_spread": 1.6,
-        "edge": -15.9
-      },
-      "total": {
-        "line": 219.5,
-        "model_total": 221.3,
-        "edge": 1.8,
-        "pick": "OVER"
-      },
-      "player_props": [
-        {
-          "player": "Cam Thomas",
-          "team": "BKN",
-          "market": "threes",
-          "line": 2.2,
-          "prediction": 1.9,
-          "pick": "UNDER",
-          "confidence": 0.1974,
-          "edge": 0.1364,
-          "z_score": -0.25
-        },
-        {
-          "player": "Cam Thomas",
-          "team": "BKN",
-          "market": "points",
-          "line": 24.3,
-          "prediction": 23.1,
-          "pick": "UNDER",
-          "confidence": 0.1585,
-          "edge": 0.0494,
-          "z_score": -0.2
-        },
-        {
-          "player": "Cam Thomas",
-          "team": "BKN",
-          "market": "assists",
-          "line": 3.9,
-          "prediction": 3.4,
-          "pick": "UNDER",
-          "confidence": 0.1585,
-          "edge": 0.1282,
-          "z_score": -0.2
-        },
-        {
-          "player": "Cam Thomas",
-          "team": "BKN",
-          "market": "assists",
-          "line": 3.1,
-          "prediction": 3.5,
-          "pick": "OVER",
-          "confidence": 0.1271,
-          "edge": 0.129,
-          "z_score": 0.16
-        }
-      ]
-    },
-    {
-      "home": "MIL",
-      "away": "DAL",
-      "home_name": "Milwaukee Bucks",
-      "away_name": "Dallas Mavericks",
-      "home_win_prob": 0.6089,
-      "away_win_prob": 0.3911,
-      "confidence": "MEDIUM",
-      "model_agreement": 0.9309,
-      "market_implied": 0.4762,
-      "edge": 0.1327,
-      "kelly_stake": 0.05,
-      "best_odds": {
-        "book": "bovada",
-        "odds": 110,
-        "decimal": 2.1
-      },
-      "bet_side": "HOME",
-      "spread": {
-        "line": 2.0,
-        "model_spread": 0.2,
-        "edge": -1.8
-      },
-      "total": {
-        "line": 230.0,
-        "model_total": 234.5,
-        "edge": 4.5,
-        "pick": "OVER"
-      },
-      "player_props": [
-        {
-          "player": "Giannis Antetokounmpo",
-          "team": "MIL",
-          "market": "points",
-          "line": 31.2,
-          "prediction": 32.7,
-          "pick": "OVER",
-          "confidence": 0.1974,
-          "edge": 0.0481,
-          "z_score": 0.25
-        },
-        {
-          "player": "Damian Lillard",
-          "team": "MIL",
-          "market": "threes",
-          "line": 3.3,
-          "prediction": 3.6,
-          "pick": "OVER",
-          "confidence": 0.1974,
-          "edge": 0.0909,
-          "z_score": 0.25
-        },
-        {
-          "player": "Kyrie Irving",
-          "team": "DAL",
-          "market": "threes",
-          "line": 2.7,
+          "line": 2.6,
           "prediction": 2.4,
           "pick": "UNDER",
-          "confidence": 0.1974,
-          "edge": 0.1111,
-          "z_score": -0.25
+          "confidence": 0.1324,
+          "edge": 0.0769,
+          "z_score": -0.17
         },
         {
-          "player": "Luka Doncic",
-          "team": "DAL",
+          "player": "Devin Booker",
+          "team": "PHX",
           "market": "rebounds",
-          "line": 9.5,
-          "prediction": 8.8,
+          "line": 4.7,
+          "prediction": 4.3,
           "pick": "UNDER",
-          "confidence": 0.1845,
-          "edge": 0.0737,
-          "z_score": -0.23
-        },
-        {
-          "player": "Giannis Antetokounmpo",
-          "team": "MIL",
-          "market": "rebounds",
-          "line": 11.1,
-          "prediction": 11.7,
-          "pick": "OVER",
-          "confidence": 0.1585,
-          "edge": 0.0541,
-          "z_score": 0.2
-        },
-        {
-          "player": "Damian Lillard",
-          "team": "MIL",
-          "market": "points",
-          "line": 25.2,
-          "prediction": 26.4,
-          "pick": "OVER",
-          "confidence": 0.1585,
-          "edge": 0.0476,
-          "z_score": 0.2
-        },
-        {
-          "player": "Kyrie Irving",
-          "team": "DAL",
-          "market": "assists",
-          "line": 5.4,
-          "prediction": 4.9,
-          "pick": "UNDER",
-          "confidence": 0.1585,
-          "edge": 0.0926,
-          "z_score": -0.2
-        },
-        {
-          "player": "Damian Lillard",
-          "team": "MIL",
-          "market": "assists",
-          "line": 7.5,
-          "prediction": 7.1,
-          "pick": "UNDER",
-          "confidence": 0.1271,
-          "edge": 0.0533,
-          "z_score": -0.16
+          "confidence": 0.1061,
+          "edge": 0.0851,
+          "z_score": -0.13
         }
-      ]
+      ],
+      "raw_home_win_prob": 0.3723,
+      "raw_away_win_prob": 0.6277,
+      "calibrated": true,
+      "calibration_version": "1.0"
     },
     {
       "home": "DET",
-      "away": "TOR",
+      "away": "MIN",
       "home_name": "Detroit Pistons",
-      "away_name": "Toronto Raptors",
-      "home_win_prob": 0.5805,
-      "away_win_prob": 0.4195,
+      "away_name": "Minnesota Timberwolves",
+      "home_win_prob": 0.2261,
+      "away_win_prob": 0.7739,
       "confidence": "HIGH",
-      "model_agreement": 0.941,
+      "model_agreement": 0.9268,
       "market_implied": 0.6154,
-      "edge": -0.0349,
-      "kelly_stake": 0,
-      "best_odds": {},
-      "bet_side": "PASS",
+      "edge": -0.3893,
+      "kelly_stake": 0.05,
+      "best_odds": {
+        "book": "bovada",
+        "odds": 135,
+        "decimal": 2.35
+      },
+      "bet_side": "AWAY",
       "spread": {
         "line": -3.5,
-        "model_spread": -0.1,
-        "edge": -3.4
+        "model_spread": -11.3,
+        "edge": 7.8
       },
       "total": {
-        "line": 220.5,
-        "model_total": 223.2,
-        "edge": 2.7,
-        "pick": "OVER"
+        "line": 225.0,
+        "model_total": 216.7,
+        "edge": -8.3,
+        "pick": "UNDER"
       },
       "player_props": [
         {
           "player": "Cade Cunningham",
           "team": "DET",
           "market": "points",
-          "line": 22.0,
-          "prediction": 23.0,
-          "pick": "OVER",
-          "confidence": 0.1324,
-          "edge": 0.0455,
-          "z_score": 0.17
+          "line": 22.9,
+          "prediction": 20.7,
+          "pick": "UNDER",
+          "confidence": 0.2861,
+          "edge": 0.0961,
+          "z_score": -0.37
+        },
+        {
+          "player": "Anthony Edwards",
+          "team": "MIN",
+          "market": "assists",
+          "line": 6.0,
+          "prediction": 5.3,
+          "pick": "UNDER",
+          "confidence": 0.2205,
+          "edge": 0.1167,
+          "z_score": -0.28
+        },
+        {
+          "player": "Rudy Gobert",
+          "team": "MIN",
+          "market": "rebounds",
+          "line": 12.8,
+          "prediction": 12.0,
+          "pick": "UNDER",
+          "confidence": 0.2103,
+          "edge": 0.0625,
+          "z_score": -0.27
+        },
+        {
+          "player": "Anthony Edwards",
+          "team": "MIN",
+          "market": "points",
+          "line": 26.8,
+          "prediction": 25.4,
+          "pick": "UNDER",
+          "confidence": 0.1845,
+          "edge": 0.0522,
+          "z_score": -0.23
+        },
+        {
+          "player": "Anthony Edwards",
+          "team": "MIN",
+          "market": "rebounds",
+          "line": 5.9,
+          "prediction": 5.3,
+          "pick": "UNDER",
+          "confidence": 0.1585,
+          "edge": 0.1017,
+          "z_score": -0.2
         },
         {
           "player": "Cade Cunningham",
@@ -337,15 +171,26 @@
           "z_score": -0.17
         },
         {
-          "player": "Scottie Barnes",
-          "team": "TOR",
-          "market": "points",
-          "line": 20.4,
-          "prediction": 19.5,
+          "player": "Anthony Edwards",
+          "team": "MIN",
+          "market": "threes",
+          "line": 3.1,
+          "prediction": 2.9,
           "pick": "UNDER",
-          "confidence": 0.1192,
-          "edge": 0.0441,
-          "z_score": -0.15
+          "confidence": 0.1324,
+          "edge": 0.0645,
+          "z_score": -0.17
+        },
+        {
+          "player": "Cade Cunningham",
+          "team": "DET",
+          "market": "assists",
+          "line": 7.1,
+          "prediction": 7.5,
+          "pick": "OVER",
+          "confidence": 0.1271,
+          "edge": 0.0563,
+          "z_score": 0.16
         },
         {
           "player": "Cade Cunningham",
@@ -358,179 +203,314 @@
           "edge": 0.0816,
           "z_score": -0.13
         }
-      ]
+      ],
+      "raw_home_win_prob": 0.2261,
+      "raw_away_win_prob": 0.7739,
+      "calibrated": true,
+      "calibration_version": "1.0"
     },
     {
-      "home": "HOU",
-      "away": "NYK",
-      "home_name": "Houston Rockets",
-      "away_name": "New York Knicks",
-      "home_win_prob": 0.3025,
-      "away_win_prob": 0.6975,
-      "confidence": "MEDIUM",
-      "model_agreement": 0.9345,
-      "market_implied": 0.5122,
-      "edge": -0.2097,
-      "kelly_stake": 0.05,
-      "best_odds": {
-        "book": "bovada",
-        "odds": -114,
-        "decimal": 1.87
-      },
-      "bet_side": "AWAY",
-      "spread": {
-        "line": 1.0,
-        "model_spread": -8.0,
-        "edge": 7.0
-      },
-      "total": {
-        "line": 217.5,
-        "model_total": 226.7,
-        "edge": 9.2,
-        "pick": "OVER"
-      },
-      "player_props": [
-        {
-          "player": "Karl-Anthony Towns",
-          "team": "NYK",
-          "market": "threes",
-          "line": 2.2,
-          "prediction": 1.9,
-          "pick": "UNDER",
-          "confidence": 0.1974,
-          "edge": 0.1364,
-          "z_score": -0.25
-        },
-        {
-          "player": "Jalen Brunson",
-          "team": "NYK",
-          "market": "assists",
-          "line": 7.9,
-          "prediction": 7.3,
-          "pick": "UNDER",
-          "confidence": 0.1897,
-          "edge": 0.0759,
-          "z_score": -0.24
-        },
-        {
-          "player": "Karl-Anthony Towns",
-          "team": "NYK",
-          "market": "assists",
-          "line": 3.4,
-          "prediction": 2.9,
-          "pick": "UNDER",
-          "confidence": 0.1585,
-          "edge": 0.1471,
-          "z_score": -0.2
-        },
-        {
-          "player": "Karl-Anthony Towns",
-          "team": "NYK",
-          "market": "rebounds",
-          "line": 11.3,
-          "prediction": 10.7,
-          "pick": "UNDER",
-          "confidence": 0.1585,
-          "edge": 0.0531,
-          "z_score": -0.2
-        },
-        {
-          "player": "Jalen Green",
-          "team": "HOU",
-          "market": "threes",
-          "line": 2.7,
-          "prediction": 2.5,
-          "pick": "UNDER",
-          "confidence": 0.1324,
-          "edge": 0.0741,
-          "z_score": -0.17
-        }
-      ]
-    },
-    {
-      "home": "LAC",
-      "away": "CLE",
-      "home_name": "LA Clippers",
-      "away_name": "Cleveland Cavaliers",
-      "home_win_prob": 0.3797,
-      "away_win_prob": 0.6203,
+      "home": "OKC",
+      "away": "LAC",
+      "home_name": "Oklahoma City Thunder",
+      "away_name": "LA Clippers",
+      "home_win_prob": 0.7516,
+      "away_win_prob": 0.2484,
       "confidence": "HIGH",
-      "model_agreement": 0.9489,
-      "market_implied": 0.5652,
-      "edge": -0.1855,
-      "kelly_stake": 0.05,
+      "model_agreement": 0.9068,
+      "market_implied": 0.7874,
+      "edge": 0.0303,
+      "kelly_stake": 0.0356,
       "best_odds": {
         "book": "bovada",
-        "odds": 110,
-        "decimal": 2.1
+        "odds": -370,
+        "decimal": 1.27
       },
-      "bet_side": "AWAY",
+      "bet_side": "HOME",
       "spread": {
-        "line": -1.5,
-        "model_spread": -5.5,
-        "edge": 4.0
+        "line": -9.0,
+        "model_spread": 8.1,
+        "edge": -0.9
       },
       "total": {
-        "line": 235.0,
-        "model_total": 223.8,
-        "edge": -11.2,
+        "line": 230.5,
+        "model_total": 226.7,
+        "edge": -3.8,
         "pick": "UNDER"
       },
       "player_props": [
         {
-          "player": "Darius Garland",
-          "team": "CLE",
+          "player": "Kawhi Leonard",
+          "team": "LAC",
           "market": "points",
-          "line": 21.2,
-          "prediction": 19.7,
+          "line": 23.9,
+          "prediction": 22.0,
+          "pick": "UNDER",
+          "confidence": 0.2485,
+          "edge": 0.0795,
+          "z_score": -0.32
+        },
+        {
+          "player": "Kawhi Leonard",
+          "team": "LAC",
+          "market": "threes",
+          "line": 1.7,
+          "prediction": 1.4,
           "pick": "UNDER",
           "confidence": 0.1974,
-          "edge": 0.0708,
+          "edge": 0.1765,
           "z_score": -0.25
-        },
-        {
-          "player": "Donovan Mitchell",
-          "team": "CLE",
-          "market": "points",
-          "line": 25.3,
-          "prediction": 23.9,
-          "pick": "UNDER",
-          "confidence": 0.1845,
-          "edge": 0.0553,
-          "z_score": -0.23
-        },
-        {
-          "player": "Evan Mobley",
-          "team": "CLE",
-          "market": "points",
-          "line": 18.7,
-          "prediction": 17.4,
-          "pick": "UNDER",
-          "confidence": 0.1715,
-          "edge": 0.0695,
-          "z_score": -0.22
         },
         {
           "player": "James Harden",
           "team": "LAC",
           "market": "assists",
-          "line": 8.5,
-          "prediction": 8.0,
+          "line": 8.3,
+          "prediction": 7.7,
+          "pick": "UNDER",
+          "confidence": 0.1897,
+          "edge": 0.0723,
+          "z_score": -0.24
+        },
+        {
+          "player": "James Harden",
+          "team": "LAC",
+          "market": "points",
+          "line": 21.8,
+          "prediction": 20.6,
           "pick": "UNDER",
           "confidence": 0.1585,
-          "edge": 0.0588,
+          "edge": 0.055,
           "z_score": -0.2
+        },
+        {
+          "player": "Shai Gilgeous-Alexander",
+          "team": "OKC",
+          "market": "threes",
+          "line": 1.7,
+          "prediction": 1.5,
+          "pick": "UNDER",
+          "confidence": 0.1324,
+          "edge": 0.1176,
+          "z_score": -0.17
+        },
+        {
+          "player": "Chet Holmgren",
+          "team": "OKC",
+          "market": "threes",
+          "line": 1.3,
+          "prediction": 1.5,
+          "pick": "OVER",
+          "confidence": 0.1324,
+          "edge": 0.1538,
+          "z_score": 0.17
+        },
+        {
+          "player": "Shai Gilgeous-Alexander",
+          "team": "OKC",
+          "market": "rebounds",
+          "line": 5.1,
+          "prediction": 5.5,
+          "pick": "OVER",
+          "confidence": 0.1061,
+          "edge": 0.0784,
+          "z_score": 0.13
+        },
+        {
+          "player": "Jalen Williams",
+          "team": "OKC",
+          "market": "rebounds",
+          "line": 5.4,
+          "prediction": 5.8,
+          "pick": "OVER",
+          "confidence": 0.1061,
+          "edge": 0.0741,
+          "z_score": 0.13
+        }
+      ],
+      "raw_home_win_prob": 0.8177,
+      "raw_away_win_prob": 0.1823,
+      "calibrated": true,
+      "calibration_version": "1.0"
+    },
+    {
+      "home": "GSW",
+      "away": "CLE",
+      "home_name": "Golden State Warriors",
+      "away_name": "Cleveland Cavaliers",
+      "home_win_prob": 0.3104,
+      "away_win_prob": 0.6896,
+      "confidence": "MEDIUM",
+      "model_agreement": 0.9356,
+      "market_implied": 0.2222,
+      "edge": 0.0882,
+      "kelly_stake": 0.0283,
+      "best_odds": {
+        "book": "bovada",
+        "odds": 350,
+        "decimal": 4.5
+      },
+      "bet_side": "HOME",
+      "spread": {
+        "line": 10.0,
+        "model_spread": -9.2,
+        "edge": -0.8
+      },
+      "total": {
+        "line": 227.5,
+        "model_total": 233.2,
+        "edge": 5.7,
+        "pick": "OVER"
+      },
+      "player_props": [
+        {
+          "player": "Stephen Curry",
+          "team": "GSW",
+          "market": "rebounds",
+          "line": 4.1,
+          "prediction": 4.6,
+          "pick": "OVER",
+          "confidence": 0.1324,
+          "edge": 0.122,
+          "z_score": 0.17
+        },
+        {
+          "player": "Donovan Mitchell",
+          "team": "CLE",
+          "market": "threes",
+          "line": 3.1,
+          "prediction": 2.9,
+          "pick": "UNDER",
+          "confidence": 0.1324,
+          "edge": 0.0645,
+          "z_score": -0.17
         },
         {
           "player": "Evan Mobley",
           "team": "CLE",
-          "market": "assists",
-          "line": 3.4,
-          "prediction": 2.9,
+          "market": "rebounds",
+          "line": 9.1,
+          "prediction": 8.7,
+          "pick": "UNDER",
+          "confidence": 0.1061,
+          "edge": 0.044,
+          "z_score": -0.13
+        }
+      ],
+      "raw_home_win_prob": 0.3104,
+      "raw_away_win_prob": 0.6896,
+      "calibrated": true,
+      "calibration_version": "1.0"
+    },
+    {
+      "home": "POR",
+      "away": "NOP",
+      "home_name": "Portland Trail Blazers",
+      "away_name": "New Orleans Pelicans",
+      "home_win_prob": 0.3458,
+      "away_win_prob": 0.6542,
+      "confidence": "MEDIUM",
+      "model_agreement": 0.9418,
+      "market_implied": 0.7101,
+      "edge": -0.3643,
+      "kelly_stake": 0.05,
+      "best_odds": {
+        "book": "bovada",
+        "odds": 204,
+        "decimal": 3.05
+      },
+      "bet_side": "AWAY",
+      "spread": {
+        "line": -6.5,
+        "model_spread": -7.5,
+        "edge": 1.0
+      },
+      "total": {
+        "line": 232.0,
+        "model_total": 220.8,
+        "edge": -11.2,
+        "pick": "UNDER"
+      },
+      "player_props": [
+        {
+          "player": "Zion Williamson",
+          "team": "NOP",
+          "market": "rebounds",
+          "line": 6.9,
+          "prediction": 6.3,
           "pick": "UNDER",
           "confidence": 0.1585,
-          "edge": 0.1471,
+          "edge": 0.087,
           "z_score": -0.2
+        },
+        {
+          "player": "Brandon Ingram",
+          "team": "NOP",
+          "market": "assists",
+          "line": 5.8,
+          "prediction": 5.3,
+          "pick": "UNDER",
+          "confidence": 0.1585,
+          "edge": 0.0862,
+          "z_score": -0.2
+        },
+        {
+          "player": "Scoot Henderson",
+          "team": "POR",
+          "market": "rebounds",
+          "line": 3.9,
+          "prediction": 3.5,
+          "pick": "UNDER",
+          "confidence": 0.1061,
+          "edge": 0.1026,
+          "z_score": -0.13
+        }
+      ],
+      "raw_home_win_prob": 0.3458,
+      "raw_away_win_prob": 0.6542,
+      "calibrated": true,
+      "calibration_version": "1.0"
+    },
+    {
+      "home": "LAC",
+      "away": "SAS",
+      "home_name": "LA Clippers",
+      "away_name": "San Antonio Spurs",
+      "home_win_prob": 0.71,
+      "away_win_prob": 0.29,
+      "confidence": "HIGH",
+      "model_agreement": 0.9123,
+      "market_implied": 0.4167,
+      "edge": 0.3733,
+      "kelly_stake": 0.05,
+      "best_odds": {
+        "book": "bovada",
+        "odds": 140,
+        "decimal": 2.4
+      },
+      "bet_side": "HOME",
+      "spread": {
+        "line": 3.5,
+        "model_spread": 7.9,
+        "edge": 4.4
+      },
+      "total": {
+        "line": 231.0,
+        "model_total": 221.5,
+        "edge": -9.5,
+        "pick": "UNDER"
+      },
+      "player_props": [
+        {
+          "player": "Victor Wembanyama",
+          "team": "SAS",
+          "market": "points",
+          "line": 22.7,
+          "prediction": 21.0,
+          "pick": "UNDER",
+          "confidence": 0.2231,
+          "edge": 0.0749,
+          "z_score": -0.28
         },
         {
           "player": "James Harden",
@@ -544,319 +524,224 @@
           "z_score": 0.17
         },
         {
-          "player": "Darius Garland",
-          "team": "CLE",
-          "market": "rebounds",
-          "line": 3.2,
-          "prediction": 2.7,
-          "pick": "UNDER",
-          "confidence": 0.1324,
-          "edge": 0.1562,
-          "z_score": -0.17
-        },
-        {
-          "player": "Kawhi Leonard",
+          "player": "James Harden",
           "team": "LAC",
           "market": "assists",
-          "line": 4.4,
-          "prediction": 4.0,
-          "pick": "UNDER",
+          "line": 7.6,
+          "prediction": 8.0,
+          "pick": "OVER",
           "confidence": 0.1271,
-          "edge": 0.0909,
-          "z_score": -0.16
-        },
-        {
-          "player": "Evan Mobley",
-          "team": "CLE",
-          "market": "rebounds",
-          "line": 9.0,
-          "prediction": 8.6,
-          "pick": "UNDER",
-          "confidence": 0.1061,
-          "edge": 0.0444,
-          "z_score": -0.13
+          "edge": 0.0526,
+          "z_score": 0.16
         }
-      ]
-    },
-    {
-      "home": "LAC",
-      "away": "POR",
-      "home_name": "LA Clippers",
-      "away_name": "Portland Trail Blazers",
-      "home_win_prob": 0.8575,
-      "away_win_prob": 0.1425,
-      "confidence": "MEDIUM",
-      "model_agreement": 0.9236,
-      "market_implied": 0.6923,
-      "edge": 0.1652,
-      "kelly_stake": 0.05,
-      "best_odds": {
-        "book": "bovada",
-        "odds": -225,
-        "decimal": 1.444444
-      },
-      "bet_side": "HOME",
-      "spread": {
-        "line": -5.5,
-        "model_spread": 10.9,
-        "edge": 5.4
-      },
-      "total": {
-        "line": 228.0,
-        "model_total": 221.3,
-        "edge": -6.7,
-        "pick": "UNDER"
-      },
-      "player_props": [
-        {
-          "player": "Scoot Henderson",
-          "team": "POR",
-          "market": "points",
-          "line": 17.3,
-          "prediction": 15.8,
-          "pick": "UNDER",
-          "confidence": 0.1974,
-          "edge": 0.0867,
-          "z_score": -0.25
-        },
-        {
-          "player": "Scoot Henderson",
-          "team": "POR",
-          "market": "assists",
-          "line": 6.4,
-          "prediction": 5.8,
-          "pick": "UNDER",
-          "confidence": 0.1897,
-          "edge": 0.0938,
-          "z_score": -0.24
-        }
-      ]
+      ],
+      "raw_home_win_prob": 0.79,
+      "raw_away_win_prob": 0.21,
+      "calibrated": true,
+      "calibration_version": "1.0"
     }
   ],
   "value_bets": [
     {
-      "game": "NYK @ HOU",
+      "game": "MIN @ DET",
       "type": "spread",
-      "pick": "HOU +1",
-      "edge": 7.0,
+      "pick": "DET -3.5",
+      "edge": 2.2286,
       "kelly": 0.005,
       "kelly_bet": 0.5,
-      "model_spread": -8.0,
-      "market_spread": 1.0,
-      "confidence": "MEDIUM"
-    },
-    {
-      "game": "CLE @ LAC",
-      "type": "spread",
-      "pick": "LAC -1.5",
-      "edge": 2.6667,
-      "kelly": 0.005,
-      "kelly_bet": 0.5,
-      "model_spread": -5.5,
-      "market_spread": -1.5,
-      "confidence": "HIGH"
-    },
-    {
-      "game": "POR @ LAC",
-      "type": "spread",
-      "pick": "POR +5.5",
-      "edge": 0.9818,
-      "kelly": 0.005,
-      "kelly_bet": 0.5,
-      "model_spread": 10.9,
-      "market_spread": -5.5,
-      "confidence": "MEDIUM"
-    },
-    {
-      "game": "TOR @ DET",
-      "type": "spread",
-      "pick": "TOR +3.5",
-      "edge": 0.9714,
-      "kelly": 0.005,
-      "kelly_bet": 0.5,
-      "model_spread": -0.1,
+      "model_spread": -11.3,
       "market_spread": -3.5,
-      "confidence": "HIGH"
+      "confidence": "MEDIUM"
     },
     {
-      "game": "BKN @ BKN",
+      "game": "SAS @ LAC",
       "type": "spread",
-      "pick": "BKN +17.5",
-      "edge": 0.9086,
+      "pick": "SAS -3.5",
+      "edge": 1.2571,
       "kelly": 0.005,
       "kelly_bet": 0.5,
-      "model_spread": 1.6,
-      "market_spread": 17.5,
-      "confidence": "HIGH"
+      "model_spread": 7.9,
+      "market_spread": 3.5,
+      "confidence": "MEDIUM"
     },
     {
-      "game": "BKN @ BKN",
-      "type": "moneyline",
-      "pick": "BKN ML",
-      "odds": 950,
-      "book": "bovada",
-      "edge": 0.5176,
-      "kelly": 0.05,
-      "kelly_bet": 5.0,
-      "ev": 5.4344,
-      "model_prob": 0.6128,
-      "implied_prob": 0.0952,
-      "confidence": "HIGH"
-    },
-    {
-      "game": "POR @ LAC",
+      "game": "SAS @ LAC",
       "type": "moneyline",
       "pick": "LAC ML",
-      "odds": -225,
+      "odds": 140,
       "book": "bovada",
-      "edge": 0.1652,
+      "edge": 0.3733,
       "kelly": 0.05,
       "kelly_bet": 5.0,
-      "ev": 0.2386,
-      "model_prob": 0.8575,
-      "implied_prob": 0.6923,
-      "confidence": "MEDIUM"
+      "ev": 0.896,
+      "model_prob": 0.71,
+      "implied_prob": 0.4167,
+      "confidence": "MEDIUM",
+      "raw_model_prob": 0.79
     },
     {
-      "game": "NYK @ HOU",
+      "game": "MIN @ DET",
       "type": "moneyline",
-      "pick": "NYK ML",
-      "odds": -114,
+      "pick": "MIN ML",
+      "odds": 135,
       "book": "bovada",
-      "edge": 0.1627,
+      "edge": 0.3484,
       "kelly": 0.05,
       "kelly_bet": 5.0,
-      "ev": 0.3043,
-      "model_prob": 0.6975,
-      "implied_prob": 0.5348,
-      "confidence": "MEDIUM"
+      "ev": 0.8187,
+      "model_prob": 0.6859,
+      "implied_prob": 0.4255,
+      "confidence": "MEDIUM",
+      "raw_model_prob": 0.7739
     },
     {
-      "game": "CLE @ LAC",
+      "game": "NOP @ POR",
       "type": "moneyline",
-      "pick": "CLE ML",
-      "odds": 110,
+      "pick": "NOP ML",
+      "odds": 204,
       "book": "bovada",
-      "edge": 0.1441,
+      "edge": 0.3263,
       "kelly": 0.05,
       "kelly_bet": 5.0,
-      "ev": 0.3026,
-      "model_prob": 0.6203,
-      "implied_prob": 0.4762,
-      "confidence": "HIGH"
+      "ev": 0.9953,
+      "model_prob": 0.3626,
+      "implied_prob": 0.3279,
+      "confidence": "HIGH",
+      "raw_model_prob": 0.6542
     },
     {
-      "game": "DAL @ MIL",
+      "game": "PHX @ BKN",
       "type": "moneyline",
-      "pick": "MIL ML",
-      "odds": 110,
+      "pick": "PHX ML",
+      "odds": 175,
       "book": "bovada",
-      "edge": 0.1327,
+      "edge": 0.2641,
       "kelly": 0.05,
       "kelly_bet": 5.0,
-      "ev": 0.2787,
-      "model_prob": 0.6089,
-      "implied_prob": 0.4762,
-      "confidence": "MEDIUM"
+      "ev": 0.7262,
+      "model_prob": 0.3834,
+      "implied_prob": 0.3636,
+      "confidence": "HIGH",
+      "raw_model_prob": 0.6277
     },
     {
-      "game": "PHX @ ORL",
+      "game": "MIN @ DET",
       "type": "player_prop",
-      "pick": "Kevin Durant UNDER 27.5 POINTS",
-      "edge": 0.12,
-      "kelly": 0.0021,
-      "kelly_bet": 0.21,
-      "prediction": 24.2,
-      "line": 27.5,
-      "confidence": "HIGH"
-    },
-    {
-      "game": "PHX @ ORL",
-      "type": "player_prop",
-      "pick": "Devin Booker UNDER 26.2 POINTS",
-      "edge": 0.0916,
-      "kelly": 0.0016,
-      "kelly_bet": 0.16,
-      "prediction": 23.8,
-      "line": 26.2,
+      "pick": "Cade Cunningham UNDER 22.9 POINTS",
+      "edge": 0.0961,
+      "kelly": 0.0014,
+      "kelly_bet": 0.14,
+      "prediction": 20.7,
+      "line": 22.9,
       "confidence": "MEDIUM"
     },
     {
-      "game": "PHX @ ORL",
+      "game": "CLE @ GSW",
       "type": "moneyline",
-      "pick": "ORL ML",
-      "odds": -125,
+      "pick": "GSW ML",
+      "odds": 350,
       "book": "bovada",
-      "edge": 0.0864,
-      "kelly": 0.0486,
-      "kelly_bet": 4.86,
-      "ev": 0.1556,
-      "model_prob": 0.642,
-      "implied_prob": 0.5556,
-      "confidence": "MEDIUM"
+      "edge": 0.0882,
+      "kelly": 0.0283,
+      "kelly_bet": 2.83,
+      "ev": 0.3968,
+      "model_prob": 0.3104,
+      "implied_prob": 0.2222,
+      "confidence": "MEDIUM",
+      "raw_model_prob": 0.3104
     },
     {
-      "game": "CLE @ LAC",
+      "game": "NOP @ POR",
       "type": "total",
-      "pick": "UNDER 235.0",
-      "edge": 0.0477,
+      "pick": "UNDER 232.0",
+      "edge": 0.0483,
       "kelly": 0.0037,
       "kelly_bet": 0.38,
-      "model_total": 223.8,
-      "market_total": 235.0,
+      "model_total": 220.8,
+      "market_total": 232.0,
       "confidence": "HIGH"
     },
     {
-      "game": "NYK @ HOU",
+      "game": "SAS @ LAC",
       "type": "total",
-      "pick": "OVER 217.5",
-      "edge": 0.0423,
+      "pick": "UNDER 231.0",
+      "edge": 0.0411,
       "kelly": 0.0037,
       "kelly_bet": 0.38,
-      "model_total": 226.7,
-      "market_total": 217.5,
+      "model_total": 221.5,
+      "market_total": 231.0,
       "confidence": "MEDIUM"
     },
     {
-      "game": "POR @ LAC",
-      "type": "total",
-      "pick": "UNDER 228.0",
-      "edge": 0.0294,
-      "kelly": 0.0037,
-      "kelly_bet": 0.38,
-      "model_total": 221.3,
-      "market_total": 228.0,
-      "confidence": "MEDIUM"
-    },
-    {
-      "game": "PHX @ ORL",
+      "game": "MIN @ DET",
       "type": "total",
       "pick": "UNDER 225.0",
-      "edge": 0.0236,
+      "edge": 0.0369,
       "kelly": 0.0037,
       "kelly_bet": 0.38,
-      "model_total": 219.7,
+      "model_total": 216.7,
       "market_total": 225.0,
       "confidence": "MEDIUM"
     },
     {
-      "game": "DAL @ MIL",
+      "game": "LAC @ OKC",
+      "type": "moneyline",
+      "pick": "OKC ML",
+      "odds": -370,
+      "book": "bovada",
+      "edge": 0.0303,
+      "kelly": 0.0356,
+      "kelly_bet": 3.56,
+      "ev": 0.0385,
+      "model_prob": 0.7516,
+      "implied_prob": 0.7874,
+      "confidence": "MEDIUM",
+      "raw_model_prob": 0.8177
+    },
+    {
+      "game": "CLE @ GSW",
       "type": "total",
-      "pick": "OVER 230.0",
-      "edge": 0.0196,
+      "pick": "OVER 227.5",
+      "edge": 0.0251,
       "kelly": 0.0037,
       "kelly_bet": 0.38,
-      "model_total": 234.5,
-      "market_total": 230.0,
+      "model_total": 233.2,
+      "market_total": 227.5,
       "confidence": "MEDIUM"
+    },
+    {
+      "game": "LAC @ OKC",
+      "type": "total",
+      "pick": "UNDER 230.5",
+      "edge": 0.0165,
+      "kelly": 0.0037,
+      "kelly_bet": 0.38,
+      "model_total": 226.7,
+      "market_total": 230.5,
+      "confidence": "MEDIUM"
+    },
+    {
+      "game": "PHX @ BKN",
+      "type": "total",
+      "pick": "OVER 223.5",
+      "edge": 0.0134,
+      "kelly": 0.0037,
+      "kelly_bet": 0.38,
+      "model_total": 226.5,
+      "market_total": 223.5,
+      "confidence": "HIGH"
     }
   ],
-  "value_bets_count": 18,
+  "value_bets_count": 15,
   "metadata": {
     "odds_api_key_active": false,
-    "nba_api_games": 7,
-    "odds_api_games": 7,
+    "nba_api_games": 6,
+    "odds_api_games": 6,
     "evolution_model_loaded": false,
-    "include_props": true
+    "include_props": true,
+    "calibration_applied": true,
+    "calibration_version": "1.0",
+    "calibration_applied_at": "2026-04-02T14:00:48.648582",
+    "n_games_calibrated": 6
   }
 }

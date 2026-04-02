@@ -326,6 +326,9 @@ def fetch_todays_games_bovada() -> List[Dict]:
                 if len(parts) == 2:
                     game["away_team"] = parts[0].strip()
                     game["home_team"] = parts[1].strip()
+                # Bug 1 guard: skip phantom games where both teams are the same
+                if game["away_team"] and game["home_team"] and game["away_team"] == game["home_team"]:
+                    continue
                 # Convert Bovada format to Odds API format for compatibility
                 markets = []
                 for dg in ev.get("displayGroups", []):
@@ -990,6 +993,10 @@ def build_predictions_output(
         away = game["away_team"]
         home_abbrev = _match_team_name(home) or home
         away_abbrev = _match_team_name(away) or away
+        # Bug 1 guard: skip phantom games where both teams resolve to the same team
+        if home_abbrev == away_abbrev:
+            print(f"[VALIDATE] Skipping phantom game: {away} @ {home} (both resolve to {home_abbrev})")
+            continue
         key = (home_abbrev, away_abbrev)
         if key not in seen_matchups:
             seen_matchups.add(key)
@@ -1017,6 +1024,10 @@ def build_predictions_output(
         away = og.get("away_team", "")
         home_abbrev = _match_team_name(home)
         away_abbrev = _match_team_name(away)
+        # Bug 1 guard: skip phantom games
+        if home_abbrev and away_abbrev and home_abbrev == away_abbrev:
+            print(f"[VALIDATE] Skipping phantom game from odds: {away} @ {home} (both resolve to {home_abbrev})")
+            continue
         if home_abbrev and away_abbrev:
             key = (home_abbrev, away_abbrev)
             if key not in seen_matchups:
@@ -1074,6 +1085,16 @@ def build_predictions_output(
             "model_agreement": pred.get("model_agreement", 0.5),
         }
 
+        # Apply post-hoc Platt/isotonic calibration (D5: raw ECE=0.2758, target <0.05)
+        try:
+            import sys as _sys
+            _sys.path.insert(0, '/home/termius/mon-ipad/scripts')
+            from calibration import IsotonicCalibration as _IsoCal
+            _cal = _IsoCal()
+            game_entry = _cal.calibrate_game(game_entry)
+        except Exception as _cal_err:
+            print(f"[calibration] Skipped for {away_abbrev}@{home_abbrev}: {_cal_err}")
+
         # Market comparison
         if market:
             best_home_odds = market["h2h"].get("best_home_odds", 0)
@@ -1085,6 +1106,46 @@ def build_predictions_output(
 
             game_entry["market_implied"] = round(home_implied, 4)
             game_entry["edge"] = round(pred["home_win_prob"] - home_implied, 4)
+
+            # Bug 2 sanity gate: skip bets if market_implied is extreme (likely data error)
+            # or if model/market diverge by >50pp (team code mismatch or corrupted odds)
+            model_prob = pred["home_win_prob"]
+            _odds_sanity_ok = (
+                0.10 <= home_implied <= 0.90
+                and abs(model_prob - home_implied) <= 0.50
+            )
+            if not _odds_sanity_ok:
+                print(f"[SANITY] {away_abbrev} @ {home_abbrev}: skipping bet — "
+                      f"model={model_prob:.2%} market={home_implied:.2%} "
+                      f"(gap={abs(model_prob-home_implied):.2%}, implied={'OUT-OF-RANGE' if not (0.10 <= home_implied <= 0.90) else 'ok'})")
+                game_entry["kelly_stake"] = 0
+                game_entry["best_odds"] = {}
+                game_entry["bet_side"] = "SANITY_FAIL"
+                game_entry["sanity_note"] = (
+                    f"model={model_prob:.2%} vs market={home_implied:.2%}: gap exceeds 50pp or market out of [10%,90%]"
+                )
+                # Still compute spread/total even when ML is flagged
+                home_spread_data = market["spread"].get("home", {})
+                spread_line = home_spread_data.get("point", 0) if home_spread_data else 0
+                model_spread = pred.get("predicted_spread", 0)
+                spread_edge = abs(model_spread) - abs(spread_line) if spread_line != 0 else 0
+                game_entry["spread"] = {
+                    "line": spread_line,
+                    "model_spread": model_spread,
+                    "edge": round(spread_edge, 1),
+                }
+                total_line = market["total"].get("line", 0)
+                model_total = pred.get("predicted_total", 220)
+                total_edge = model_total - total_line if total_line > 0 else 0
+                total_pick = "OVER" if total_edge > 0 else "UNDER"
+                game_entry["total"] = {
+                    "line": total_line,
+                    "model_total": model_total,
+                    "edge": round(total_edge, 1),
+                    "pick": total_pick,
+                }
+                output_games.append(game_entry)
+                continue  # Skip to next game — no betting on this one
 
             # Kelly for best side
             if pred["home_win_prob"] > home_implied and best_home_odds > 1:
