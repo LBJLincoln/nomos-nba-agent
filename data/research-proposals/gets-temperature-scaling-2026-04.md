@@ -1,23 +1,31 @@
-# Research Proposal: GETS Temperature Scaling for NBA Win Probability Calibration
-**Date:** 2026-04-02  
+# Research Proposal: Isotonic Regression Calibration for NBA Win Probability
+**Date:** 2026-04-02 (updated same day — method corrected from temperature scaling to isotonic)
 **Status:** PROPOSED  
-**Expected Brier improvement:** -0.002 to -0.005  
+**Expected Brier improvement:** -0.005 to -0.015  
 **Priority:** HIGH (fleet best 0.22182, target 0.21837, gap 0.00345)
 
 ---
 
 ## Problem
 
-The current fleet best Brier is **0.22182** (S5 catboost, gen 370). The target is **0.21837**.  
-The GA evolves good feature sets but raw model outputs are often poorly calibrated — the model is confident when it shouldn't be and uncertain when it should be confident. Calibration post-processing can close ~50-70% of the remaining gap.
+The current fleet best Brier is **0.22182** (S5 catboost, gen 370). The target is **0.21837**.
+The GA evolves good feature sets but raw model outputs are often poorly calibrated.
+
+## Method Selection
+
+**For our dataset (9551 NBA games > 1000 threshold): use Isotonic Regression, not Temperature Scaling.**
+
+| Method | Best For | Our Case |
+|--------|----------|----------|
+| Isotonic Regression | N > 1,000, tree models | **USE THIS** |
+| Temperature Scaling | Neural nets, small N | Skip |
+| Platt Scaling | SVMs, N < 1,000 | Skip |
+
+Source: sklearn docs, Rohan Paul 2025 ML calibration guide, MDPI 2026 NBA study.
 
 ---
 
-## Proposed Solution: GETS (Gradient-boosted Ensemble Temperature Scaling)
-
-Temperature scaling is a post-hoc calibration method that learns a single scalar `T` to divide model logits before applying sigmoid, minimizing NLL on a held-out calibration set.
-
-### Implementation Plan
+## Implementation Plan
 
 **Step 1: Hold-out calibration split (in app.py)**
 
@@ -29,81 +37,81 @@ X_train, X_cal, y_train, y_cal = train_test_split(
     X, y, test_size=0.20, random_state=42, stratify=y
 )
 model.fit(X_train, y_train)
-raw_probs = model.predict_proba(X_cal)[:, 1]
 ```
 
-**Step 2: Learn temperature T**
+**Step 2: Fit isotonic calibration wrapper**
 
 ```python
-import numpy as np
-from scipy.optimize import minimize_scalar
+from sklearn.calibration import CalibratedClassifierCV
+
+# Method A: Isotonic regression wrapper (recommended for N > 1000)
+cal_model = CalibratedClassifierCV(
+    estimator=model,
+    method='isotonic',
+    cv='prefit'  # model already fit, calibrate on holdout
+)
+cal_model.fit(X_cal, y_cal)
+calibrated_brier = brier_score_loss(y_cal, cal_model.predict_proba(X_cal)[:, 1])
+```
+
+**Step 3: Auto-select best calibration method**
+
+```python
 from sklearn.metrics import brier_score_loss
 
-def apply_temperature(probs, T):
-    logits = np.log(probs / (1 - probs + 1e-8))
-    return 1.0 / (1.0 + np.exp(-logits / T))
+best_brier = brier_score_loss(y_cal, model.predict_proba(X_cal)[:, 1])
+best_method = 'none'
 
-def brier_with_temp(T, probs, y_true):
-    cal_probs = apply_temperature(np.clip(probs, 1e-6, 1-1e-6), T)
-    return brier_score_loss(y_true, cal_probs)
-
-result = minimize_scalar(
-    brier_with_temp,
-    bounds=(0.1, 5.0),
-    method='bounded',
-    args=(raw_probs, y_cal)
-)
-best_T = result.x
+for method in ['isotonic', 'sigmoid']:
+    cal = CalibratedClassifierCV(estimator=model, method=method, cv='prefit')
+    cal.fit(X_cal, y_cal)
+    b = brier_score_loss(y_cal, cal.predict_proba(X_cal)[:, 1])
+    if b < best_brier:
+        best_brier = b
+        best_method = method
+        best_cal_model = cal
 ```
 
-**Step 3: Apply T at inference time**
+**Step 4: Store calibration info in /api/status**
 
 ```python
-def predict_calibrated(model, X_new, T):
-    raw = model.predict_proba(X_new)[:, 1]
-    return apply_temperature(np.clip(raw, 1e-6, 1-1e-6), T)
+status['calibration_method'] = best_method
+status['calibrated_brier'] = float(best_brier)
+status['raw_brier'] = float(raw_brier)
+status['calibration_delta'] = float(raw_brier - best_brier)
 ```
-
-**Step 4: Store T in /api/status and genome checkpoint**
-
-```python
-status["calibration_temperature"] = float(best_T)
-status["calibrated_brier"] = float(calibrated_brier)
-```
-
----
-
-## Why This Works
-
-- CatBoost (current best model type on S5) outputs well-ordered probabilities but is often **overconfident** — typical T > 1.0 softens predictions toward 0.5
-- Random Forest (S4) tends to be **underconfident** (bounded away from 0/1) — typical T < 1.0 sharpens predictions
-- Temperature scaling cannot hurt much (fallback to T=1.0 is the uncalibrated model)
 
 ---
 
 ## Expected Impact
 
-| Scenario | T value | Brier delta |
-|----------|---------|-------------|
-| Overconfident catboost | ~1.3 | -0.003 to -0.005 |
-| Well-calibrated xgboost | ~1.0 | ~0 |
-| Underconfident RF | ~0.7 | -0.002 to -0.004 |
+| Model Type | Typical Improvement | Notes |
+|------------|--------------------|---------|
+| CatBoost (S5) | -0.005 to -0.010 | Often overconfident |
+| XGBoost (S3) | -0.005 to -0.008 | Moderate benefit |
+| Random Forest (S4) | -0.008 to -0.015 | RF notoriously miscalibrated |
+| ExtraTrees | -0.008 to -0.015 | Same as RF |
 
-Fleet average improvement: **-0.002 to -0.004 Brier**  
-S5 catboost targeted improvement: **-0.003 to -0.005 Brier** (would push 0.22182 → ~0.217, breaking target)
+Fleet average improvement: **-0.005 to -0.010 Brier**  
+S5 catboost targeted: **-0.005 to -0.010** (0.22182 → ~0.212-0.217, likely breaks 0.21837 target)
 
 ---
 
 ## Cross-Project Port
 
-This same technique applies to `nomos-political-alpha` political engine.  
-Political models show top5 Brier 0.2346 vs best_brier 0.24186 discrepancy — indicates the best individual solution found during evolution is better calibrated than the "best_brier" population metric. Temperature scaling on the political engine could yield -0.005 to -0.010 improvement.
+Same pattern applies to `nomos-political-alpha`. Political models have 372 events — below the 1000 threshold, so **use Platt scaling (sigmoid) for political engine**, not isotonic.
+
+```python
+# Political: use sigmoid calibration (N=372 events < 1000)
+from sklearn.calibration import CalibratedClassifierCV
+cal_model = CalibratedClassifierCV(estimator=model, method='sigmoid', cv='prefit')
+```
 
 ---
 
-## Implementation Priority
+## Implementation Steps
 
-1. Add temperature scaling to `hf-space/app.py` in nomos-nba-agent (one-time change, ~40 lines)
-2. Expose `calibration_temperature` in /api/status endpoint
-3. Monitor over next 3 cycles — if Brier does not improve, increase holdout to 30%
-4. Port to political engine after validation
+1. Add calibration block to `hf-space/app.py` after GA selects best genome (~30 lines)
+2. Use 80/20 train/calibration split (maintain temporal order — calibration set = most recent 20%)
+3. Expose `calibration_method`, `calibrated_brier`, `calibration_delta` in `/api/status`
+4. Monitor: if `calibration_delta < 0` (calibration hurts), fall back to `method='none'`
