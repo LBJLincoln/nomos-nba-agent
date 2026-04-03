@@ -49,7 +49,8 @@ Categories:
   47. DRIVE-OFFENSE vs RIM-DEFENSE MATCHUP (14 features — drive FG%, rim protection, matchup edges)
   48. PASSING NETWORK QUALITY (10 features — AST/pass, potential assists, ball movement)
   49. PLAY-TYPE EFFICIENCY (10 features — iso/PnR/spot-up/transition PPP, versatility)
-  ≈ 6245+ feature candidates
+  50. TEMPORAL WIN SEQUENCE ENCODING (12 features — ordered outcome sequence, momentum slope, streak)
+  ≈ 6257+ feature candidates
 
 Architecture inspired by:
   - Starlizard: 500+ features, genetic selection, real-time adjustment
@@ -73,7 +74,7 @@ import csv
 import os
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.1-49cat"
+ENGINE_VERSION = "v3.1-50cat"
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -2622,6 +2623,26 @@ class NBAFeatureEngine:
             "play49_a_trans_ppp",        # Away transition PPP
             "play49_ppp_composite_diff", # Home avg PPP - away avg PPP (overall efficiency)
             "play49_versatility_diff",   # Home play-type variety - away (# play types above 1.0 PPP)
+        ])
+
+        # 50. TEMPORAL WIN SEQUENCE ENCODING (12 features)
+        # Encodes the ORDER of last-10-game outcomes — not just rolling averages.
+        # A team that lost early then won recent games (improving) differs from one
+        # that won early and is now declining, even at identical aggregate win%.
+        # Research basis: MDPI 2026 (temporal sequence models outperform rolling averages).
+        names.extend([
+            "seq50_h_early_wp",          # Home win% in older half of last 10 games
+            "seq50_h_late_wp",           # Home win% in recent half of last 10 games
+            "seq50_h_slope",             # Home momentum slope (late_wp - early_wp, positive=improving)
+            "seq50_h_margin_slope_norm", # Home margin trend (recent 3 - older 3 avg, /30 normalized)
+            "seq50_h_streak_norm",       # Home current streak normalized (/10, sign = direction)
+            "seq50_a_early_wp",          # Away win% in older half of last 10 games
+            "seq50_a_late_wp",           # Away win% in recent half of last 10 games
+            "seq50_a_slope",             # Away momentum slope
+            "seq50_a_margin_slope_norm", # Away margin trend normalized
+            "seq50_a_streak_norm",       # Away current streak normalized
+            "seq50_slope_diff",          # Home - away momentum slope differential
+            "seq50_streak_diff",         # Home - away streak differential
         ])
 
         self.feature_names = names
@@ -5821,6 +5842,53 @@ class NBAFeatureEngine:
                 ])
             except Exception:
                 row.extend([0.88, 0.88, 0.87, 0.87, 1.04, 1.04, 1.12, 1.12, 0.0, 0.0])
+
+            # ── Cat 50: Temporal Win-Sequence Encoding (12 features) ──
+            try:
+                def _seq_feats(records, n=10):
+                    """Encode temporal sequence: order of wins/losses matters beyond averages."""
+                    last_n = records[-n:] if len(records) >= n else records[:]
+                    m = len(last_n)
+                    if m == 0:
+                        return [0.5, 0.5, 0.0, 0.0, 0.0]
+                    mid = max(1, m // 2)
+                    early = last_n[:mid]
+                    late  = last_n[mid:] if len(last_n) > mid else last_n[-1:]
+                    early_wp = sum(1 for r in early if r[1]) / len(early)
+                    late_wp  = sum(1 for r in late  if r[1]) / len(late)
+                    slope    = late_wp - early_wp
+                    r3 = last_n[-3:]
+                    o3 = last_n[:3] if len(last_n) >= 6 else last_n[:1]
+                    m_recent = sum(r[2] for r in r3) / len(r3)
+                    m_old    = sum(r[2] for r in o3) / len(o3)
+                    m_slope  = max(-1.0, min(1.0, (m_recent - m_old) / 30.0))
+                    streak = 0
+                    last_val = last_n[-1][1]
+                    for r in reversed(last_n):
+                        if r[1] == last_val:
+                            streak += 1 if r[1] else -1
+                        else:
+                            break
+                    return [early_wp, late_wp, slope, m_slope, max(-1.0, min(1.0, streak / 10.0))]
+
+                _hs = _seq_feats(team_results[home])
+                _as = _seq_feats(team_results[away])
+                row.extend([
+                    _hs[0],            # seq50_h_early_wp
+                    _hs[1],            # seq50_h_late_wp
+                    _hs[2],            # seq50_h_slope
+                    _hs[3],            # seq50_h_margin_slope_norm
+                    _hs[4],            # seq50_h_streak_norm
+                    _as[0],            # seq50_a_early_wp
+                    _as[1],            # seq50_a_late_wp
+                    _as[2],            # seq50_a_slope
+                    _as[3],            # seq50_a_margin_slope_norm
+                    _as[4],            # seq50_a_streak_norm
+                    _hs[2] - _as[2],   # seq50_slope_diff
+                    _hs[4] - _as[4],   # seq50_streak_diff
+                ])
+            except Exception:
+                row.extend([0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0])
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
