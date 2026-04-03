@@ -74,7 +74,7 @@ import csv
 import os
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.1-50cat"
+ENGINE_VERSION = "v3.1-51cat"
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -2645,6 +2645,22 @@ class NBAFeatureEngine:
             "seq50_streak_diff",         # Home - away streak differential
         ])
 
+        # 51. SEASON ERA NORMALIZATION (8 features)
+        # Z-score each team's rolling stats vs league-wide running average FOR THIS SEASON.
+        # Removes era drift: ORtg 110 in 2018-19 ≠ ORtg 110 in 2025-26 (pace increased).
+        # Research basis: MDPI 2026 (Info 17:56) — "season-fixed effects applied to handle
+        # era differences" improved calibration. Logistic regression Brier 0.199 used this.
+        names.extend([
+            "era51_h_ortg_vs_league",    # Home ORtg z-score vs league season running avg
+            "era51_h_drtg_vs_league",    # Home DRtg z-score (lower = better defense)
+            "era51_a_ortg_vs_league",    # Away ORtg z-score vs league season running avg
+            "era51_a_drtg_vs_league",    # Away DRtg z-score vs league season running avg
+            "era51_h_pace_vs_league",    # Home pace z-score vs league season running avg
+            "era51_a_pace_vs_league",    # Away pace z-score vs league season running avg
+            "era51_h_netrtg_vs_league",  # Home net rating z-score vs league this season
+            "era51_h_ortg_a_drtg_edge",  # Matchup: h_ortg_z - a_drtg_z (offensive edge)
+        ])
+
         self.feature_names = names
 
     def build(self, games, market_data=None, referee_data=None, player_data=None, quarter_data=None, tracking_data=None, odds_data=None):
@@ -2692,6 +2708,30 @@ class NBAFeatureEngine:
         _MOVDA_EWM_ALPHA = 0.3
         # ── Category 18: Season-level trackers (precomputed per game via records) ──
         # These are derived from team_results on-the-fly (no extra state needed)
+        # ── Category 51: Season era normalization trackers ──
+        # Running league-wide stat distributions per season (keyed by season start year)
+        _era51_ortg = defaultdict(list)    # season_id → all team ORtg observations
+        _era51_drtg = defaultdict(list)    # season_id → all team DRtg observations
+        _era51_pace = defaultdict(list)    # season_id → all team pace observations
+        _era51_nrtg = defaultdict(list)    # season_id → all team net-rtg observations
+
+        def _era_season_id(date_str):
+            """Map game date → season start year (e.g. '2025' for 2025-26 season)."""
+            if not date_str or len(date_str) < 7:
+                return "unk"
+            try:
+                m = int(date_str[5:7]); y = int(date_str[:4])
+                return str(y) if m >= 10 else str(y - 1)
+            except Exception:
+                return "unk"
+
+        def _era_zscore(val, vals):
+            """Z-score of val against vals, clamped to [-3, 3]. Returns 0 if <5 samples."""
+            if len(vals) < 5:
+                return 0.0
+            mu = sum(vals) / len(vals)
+            sigma = (sum((v - mu) ** 2 for v in vals) / len(vals)) ** 0.5
+            return max(-3.0, min(3.0, (val - mu) / max(sigma, 0.1)))
 
         X, y = [], []
         n_market = 32 if self.include_market else 0
@@ -5889,6 +5929,43 @@ class NBAFeatureEngine:
                 ])
             except Exception:
                 row.extend([0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+            # 51. SEASON ERA NORMALIZATION
+            # Normalize rolling efficiency vs league-wide running avg for THIS season.
+            # Uses stats from all games BEFORE this one (no lookahead).
+            try:
+                sid = _era_season_id(gd)
+                h_ortg_v = self._ortg(hr_, 10)
+                h_drtg_v = self._drtg(hr_, 10)
+                a_ortg_v = self._ortg(ar_, 10)
+                a_drtg_v = self._drtg(ar_, 10)
+                h_pace_v = self._pace(hr_, 10)
+                a_pace_v = self._pace(ar_, 10)
+                h_nrtg_v = h_ortg_v - h_drtg_v
+                a_nrtg_v = a_ortg_v - a_drtg_v
+
+                ort_hist = _era51_ortg[sid]
+                drt_hist = _era51_drtg[sid]
+                pc_hist  = _era51_pace[sid]
+                nrt_hist = _era51_nrtg[sid]
+
+                h_oz = _era_zscore(h_ortg_v, ort_hist)
+                h_dz = _era_zscore(h_drtg_v, drt_hist)
+                a_oz = _era_zscore(a_ortg_v, ort_hist)
+                a_dz = _era_zscore(a_drtg_v, drt_hist)
+                h_pz = _era_zscore(h_pace_v, pc_hist)
+                a_pz = _era_zscore(a_pace_v, pc_hist)
+                h_nz = _era_zscore(h_nrtg_v, nrt_hist)
+
+                row.extend([h_oz, h_dz, a_oz, a_dz, h_pz, a_pz, h_nz, h_oz - a_dz])
+
+                # Update season trackers for future games (must be after feature extraction)
+                _era51_ortg[sid].extend([h_ortg_v, a_ortg_v])
+                _era51_drtg[sid].extend([h_drtg_v, a_drtg_v])
+                _era51_pace[sid].extend([h_pace_v, a_pace_v])
+                _era51_nrtg[sid].extend([h_nrtg_v, a_nrtg_v])
+            except Exception:
+                row.extend([0.0] * 8)
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
