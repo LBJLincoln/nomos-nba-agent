@@ -721,7 +721,8 @@ class Individual:
     def to_dict(self):
         return {"n_features": self.n_features, "hyperparams": dict(self.hyperparams),
                 "fitness": dict(self.fitness), "generation": self.generation,
-                "pareto_rank": self.pareto_rank, "island_id": self.island_id}
+                "pareto_rank": self.pareto_rank, "island_id": self.island_id,
+                "feature_indices": self.selected_indices()}
 
     @staticmethod
     def crossover(p1, p2):
@@ -2670,6 +2671,23 @@ async def api_status():
             return round(obj, 6)
         return obj
     return JSONResponse(_safe(dict(live)))
+
+
+@control_api.get("/api/best")
+async def api_best():
+    """Return best chromosome WITH feature indices for Kaggle seeding."""
+    if _evo_best is None:
+        return JSONResponse({"error": "no evolution best yet"}, status_code=404)
+    indices = [i for i, b in enumerate(_evo_best.get("features", [])) if b]
+    return JSONResponse({
+        "brier": _evo_best.get("fitness", {}).get("brier", 1.0),
+        "model_type": _evo_best.get("hyperparams", {}).get("model_type", "xgboost"),
+        "features": indices,
+        "n_features": _evo_best.get("n_features", len(indices)),
+        "hyperparams": _evo_best.get("hyperparams", {}),
+        "fitness": _evo_best.get("fitness", {}),
+        "generation": _evo_best.get("generation", 0),
+    })
 
 
 @control_api.get("/api/results")
