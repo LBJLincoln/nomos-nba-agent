@@ -27,9 +27,10 @@ from datetime import datetime, timezone
 # CONSTANTS
 # ══════════════════════════════════════════════════════════════════════════════
 
-FRACTIONAL_KELLY = 0.25       # Use 1/4 Kelly for safety (Starlizard uses 1/4 to 1/3)
+FRACTIONAL_KELLY = 0.30       # 0.3-Kelly (MDPI 2026: selective EV>1.10 + 0.3K beats 0.25K at quality bets)
 MAX_BET_FRACTION = 0.05       # Never bet more than 5% of bankroll
 MIN_EDGE_THRESHOLD = 0.02     # Minimum 2% edge to bet
+MIN_EV_RATIO = 1.10           # EV filter: only bet when model_prob * odds > 1.10 (MDPI 2026 Brier=0.089)
 MIN_ODDS = 1.15               # Don't bet below 1.15 decimal (too little juice)
 MAX_ODDS = 15.0               # Allow underdog bets up to 15.0 decimal
 DEFAULT_BANKROLL = 100.0      # Starting bankroll in USD
@@ -153,11 +154,16 @@ def expected_value(decimal_odds, estimated_prob, stake=1.0):
 def evaluate_bet(opportunity, bankroll=DEFAULT_BANKROLL,
                  kelly_fraction_mult=FRACTIONAL_KELLY,
                  max_fraction=MAX_BET_FRACTION,
-                 min_edge=MIN_EDGE_THRESHOLD):
+                 min_edge=MIN_EDGE_THRESHOLD,
+                 min_ev_ratio=MIN_EV_RATIO):
     """
     Full Kelly evaluation for a single bet opportunity.
 
     Returns KellyResult with recommendation.
+
+    EV filter (MDPI 2026): only bet when model_prob * decimal_odds > min_ev_ratio (default 1.10).
+    This trades frequency for quality — sparse right-tail high-EV bets only.
+    Paired with 0.3-Kelly for optimal long-run growth on quality opportunities.
     """
     odds = opportunity.decimal_odds
     prob = opportunity.estimated_prob
@@ -167,15 +173,19 @@ def evaluate_bet(opportunity, bankroll=DEFAULT_BANKROLL,
     full_k = kelly_fraction(odds, prob)
     frac_k = full_k * kelly_fraction_mult
 
-    # Calculate edge
+    # Calculate edge and EV ratio
     edge = edge_percentage(odds, prob)
     ev = expected_value(odds, prob)
+    ev_ratio = prob * odds  # = 1 + edge; > 1.10 means at least 10% edge
 
     # Decision logic
     is_bet = True
     reason = ""
 
-    if edge < min_edge:
+    if ev_ratio < min_ev_ratio:
+        is_bet = False
+        reason = f"EV ratio {ev_ratio:.3f} < {min_ev_ratio:.2f} seuil (edge {edge*100:.1f}% < 10%)"
+    elif edge < min_edge:
         is_bet = False
         reason = f"Edge trop faible: {edge*100:.1f}% < {min_edge*100:.1f}% minimum"
     elif full_k <= 0:
