@@ -268,12 +268,12 @@ def load_historical_odds(csv_path=None):
                     try:
                         dh = float(ml_home_str)
                         ml_home_american = round((dh - 1.0) * 100) if dh >= 2.0 else round(-100 / (dh - 1.0)) if dh > 1.0 else -110
-                    except:
+                    except (ValueError, TypeError):
                         ml_home_american = -110
                     try:
                         da = float(ml_away_str)
                         ml_away_american = round((da - 1.0) * 100) if da >= 2.0 else round(-100 / (da - 1.0)) if da > 1.0 else -110
-                    except:
+                    except (ValueError, TypeError):
                         ml_away_american = -110
                 else:
                     # American odds format
@@ -281,11 +281,11 @@ def load_historical_odds(csv_path=None):
                     ip_away = _american_to_implied_prob(ml_away_str)
                     try:
                         ml_home_american = float(ml_home_str)
-                    except:
+                    except (ValueError, TypeError):
                         ml_home_american = -110
                     try:
                         ml_away_american = float(ml_away_str)
-                    except:
+                    except (ValueError, TypeError):
                         ml_away_american = -110
 
                 # Overround (vig)
