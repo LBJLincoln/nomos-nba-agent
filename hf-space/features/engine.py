@@ -7057,7 +7057,7 @@ def genetic_feature_selection(X, y, feature_names, n_generations=50,
                 m.fit(X_sub[ti], y[ti])
                 p = m.predict_proba(X_sub[vi])[:, 1]
                 briers.append(brier_score_loss(y[vi], p))
-            except:
+            except Exception:
                 briers.append(0.30)
         return -np.mean(briers)
 
