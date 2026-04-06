@@ -3055,7 +3055,7 @@ class NBAFeatureEngine:
                 dt = datetime.strptime(gd, "%Y-%m-%d")
                 month = dt.month
                 dow = dt.weekday()
-            except:
+            except (ValueError, TypeError, AttributeError):
                 month = 1
                 dow = 2
                 dt = None
@@ -6447,7 +6447,7 @@ class NBAFeatureEngine:
             d1 = datetime.strptime(game_date[:10], "%Y-%m-%d")
             d2 = datetime.strptime(last[:10], "%Y-%m-%d")
             return max(0, (d1 - d2).days)
-        except:
+        except (ValueError, TypeError, AttributeError):
             return 3
 
     def _n_in_m(self, records, game_date, n, m):
@@ -6459,7 +6459,7 @@ class NBAFeatureEngine:
             count = sum(1 for r in records[-10:]
                        if (gd - datetime.strptime(r[0][:10], "%Y-%m-%d")).days <= m)
             return 1.0 if count >= n else 0.0
-        except:
+        except (ValueError, TypeError, AttributeError):
             return 0.0
 
     def _travel_dist(self, records, team):
@@ -6488,7 +6488,7 @@ class NBAFeatureEngine:
             return sum(1 for r in records[-15:]
                       if (gd - datetime.strptime(r[0][:10], "%Y-%m-%d")).days <= days
                       and (gd - datetime.strptime(r[0][:10], "%Y-%m-%d")).days > 0)
-        except:
+        except (ValueError, TypeError, AttributeError):
             return 0
 
     def _miles_in_window(self, records, game_date, days, team):
@@ -6509,7 +6509,7 @@ class NBAFeatureEngine:
                         if loc1 in ARENA_COORDS and loc2 in ARENA_COORDS:
                             total += haversine(*ARENA_COORDS[loc1], *ARENA_COORDS[loc2])
             return total
-        except:
+        except (ValueError, TypeError, AttributeError):
             return 0
 
     def _fatigue_score(self, records, game_date, team, rest):
@@ -6557,7 +6557,7 @@ class NBAFeatureEngine:
             d1 = datetime.strptime(date1[:10], "%Y-%m-%d")
             d2 = datetime.strptime(date2[:10], "%Y-%m-%d")
             return abs((d2 - d1).days)
-        except:
+        except (ValueError, TypeError, AttributeError):
             return 2
 
     def _count_b2b_in_window(self, records, game_date, days):
@@ -6573,7 +6573,7 @@ class NBAFeatureEngine:
                 if self._days_between(recent[i-1][0], recent[i][0]) <= 1:
                     count += 1
             return count
-        except:
+        except (ValueError, TypeError, AttributeError):
             return 0
 
     def _count_dense_stretches(self, records, game_date, window_days, n_games, n_days):
@@ -6594,7 +6594,7 @@ class NBAFeatureEngine:
                 if span <= n_days:
                     count += 1
             return count
-        except:
+        except (ValueError, TypeError, AttributeError):
             return 0
 
     def _consecutive_away(self, records):
@@ -6990,14 +6990,14 @@ class NBAFeatureEngine:
         """Get day of week (0=Mon, 6=Sun) from date string."""
         try:
             return datetime.strptime(date_str[:10], "%Y-%m-%d").weekday()
-        except:
+        except (ValueError, TypeError, AttributeError):
             return 2
 
     def _get_month(self, date_str):
         """Get month (1-12) from date string."""
         try:
             return datetime.strptime(date_str[:10], "%Y-%m-%d").month
-        except:
+        except (ValueError, TypeError, AttributeError):
             return 1
 
 
