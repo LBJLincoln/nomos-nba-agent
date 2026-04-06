@@ -6123,15 +6123,21 @@ class NBAFeatureEngine:
             # ── Cat 53: ATS Record Features (12 features) ──
             # Cover rate derived from _team_ats tracker (populated after each game's features).
             try:
-                def _ats_rate(records, n, fav_only=False, dog_only=False, home_only=False):
-                    """Cover rate: last n ATS records. Record = (gd, covered, spread, is_home)."""
+                def _ats_rate(records, n, fav_only=False, dog_only=False, home_only=None):
+                    """Cover rate: last n ATS records. Record = (gd, covered, spread, is_home).
+                    home_only=True  → home games only
+                    home_only=False → away (road) games only
+                    home_only=None  → all games (default)
+                    """
                     s = records[-n:] if n else records[:]
                     if fav_only:
                         s = [r for r in s if r[2] < 0]   # team was favored (spread_home < 0)
                     if dog_only:
                         s = [r for r in s if r[2] > 0]   # team was dog
-                    if home_only:
+                    if home_only is True:
                         s = [r for r in s if r[3]]
+                    elif home_only is False:
+                        s = [r for r in s if not r[3]]   # away games only
                     if not s:
                         return 0.5
                     return sum(1 for r in s if r[1]) / len(s)
