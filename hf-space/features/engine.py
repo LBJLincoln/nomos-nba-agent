@@ -49,7 +49,8 @@ Categories:
   47. DRIVE-OFFENSE vs RIM-DEFENSE MATCHUP (14 features — drive FG%, rim protection, matchup edges)
   48. PASSING NETWORK QUALITY (10 features — AST/pass, potential assists, ball movement)
   49. PLAY-TYPE EFFICIENCY (10 features — iso/PnR/spot-up/transition PPP, versatility)
-  ≈ 6245+ feature candidates
+  50. TEMPORAL WIN SEQUENCE ENCODING (12 features — ordered outcome sequence, momentum slope, streak)
+  ≈ 6257+ feature candidates
 
 Architecture inspired by:
   - Starlizard: 500+ features, genetic selection, real-time adjustment
@@ -73,7 +74,7 @@ import csv
 import os
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.1-49cat"
+ENGINE_VERSION = "v3.1-51cat-sched"  # +2 features: h_next_is_home, a_next_is_home (Cat6, research top-3)
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -436,7 +437,7 @@ class NBAFeatureEngine:
             names.append(f"{prefix}_consistency")       # StdDev of point diff (lower = more consistent)
             names.append(f"{prefix}_recent_margin_std") # Variance in recent margins
 
-        # 6. REST & SCHEDULE (24 features)
+        # 6. REST & SCHEDULE (26 features)
         names.extend([
             "h_rest_days", "a_rest_days",
             "rest_advantage",                       # h_rest - a_rest
@@ -453,6 +454,7 @@ class NBAFeatureEngine:
             "h_miles_7d", "a_miles_7d",            # Total miles in last 7 days
             "schedule_density_diff",                # h_games_7d - a_games_7d
             "combined_fatigue",                     # Composite fatigue score
+            "h_next_is_home", "a_next_is_home",    # Forward schedule: next game is home? (research top-3 predictor)
         ])
 
         # 7. OPPONENT-ADJUSTED (24 features)
@@ -2624,6 +2626,42 @@ class NBAFeatureEngine:
             "play49_versatility_diff",   # Home play-type variety - away (# play types above 1.0 PPP)
         ])
 
+        # 50. TEMPORAL WIN SEQUENCE ENCODING (12 features)
+        # Encodes the ORDER of last-10-game outcomes — not just rolling averages.
+        # A team that lost early then won recent games (improving) differs from one
+        # that won early and is now declining, even at identical aggregate win%.
+        # Research basis: MDPI 2026 (temporal sequence models outperform rolling averages).
+        names.extend([
+            "seq50_h_early_wp",          # Home win% in older half of last 10 games
+            "seq50_h_late_wp",           # Home win% in recent half of last 10 games
+            "seq50_h_slope",             # Home momentum slope (late_wp - early_wp, positive=improving)
+            "seq50_h_margin_slope_norm", # Home margin trend (recent 3 - older 3 avg, /30 normalized)
+            "seq50_h_streak_norm",       # Home current streak normalized (/10, sign = direction)
+            "seq50_a_early_wp",          # Away win% in older half of last 10 games
+            "seq50_a_late_wp",           # Away win% in recent half of last 10 games
+            "seq50_a_slope",             # Away momentum slope
+            "seq50_a_margin_slope_norm", # Away margin trend normalized
+            "seq50_a_streak_norm",       # Away current streak normalized
+            "seq50_slope_diff",          # Home - away momentum slope differential
+            "seq50_streak_diff",         # Home - away streak differential
+        ])
+
+        # 51. SEASON ERA NORMALIZATION (8 features)
+        # Z-score each team's rolling stats vs league-wide running average FOR THIS SEASON.
+        # Removes era drift: ORtg 110 in 2018-19 ≠ ORtg 110 in 2025-26 (pace increased).
+        # Research basis: MDPI 2026 (Info 17:56) — "season-fixed effects applied to handle
+        # era differences" improved calibration. Logistic regression Brier 0.199 used this.
+        names.extend([
+            "era51_h_ortg_vs_league",    # Home ORtg z-score vs league season running avg
+            "era51_h_drtg_vs_league",    # Home DRtg z-score (lower = better defense)
+            "era51_a_ortg_vs_league",    # Away ORtg z-score vs league season running avg
+            "era51_a_drtg_vs_league",    # Away DRtg z-score vs league season running avg
+            "era51_h_pace_vs_league",    # Home pace z-score vs league season running avg
+            "era51_a_pace_vs_league",    # Away pace z-score vs league season running avg
+            "era51_h_netrtg_vs_league",  # Home net rating z-score vs league this season
+            "era51_h_ortg_a_drtg_edge",  # Matchup: h_ortg_z - a_drtg_z (offensive edge)
+        ])
+
         self.feature_names = names
 
     def build(self, games, market_data=None, referee_data=None, player_data=None, quarter_data=None, tracking_data=None, odds_data=None):
@@ -2671,6 +2709,58 @@ class NBAFeatureEngine:
         _MOVDA_EWM_ALPHA = 0.3
         # ── Category 18: Season-level trackers (precomputed per game via records) ──
         # These are derived from team_results on-the-fly (no extra state needed)
+        # ── Category 51: Season era normalization trackers ──
+        # Running league-wide stat distributions per season (keyed by season start year)
+        _era51_ortg = defaultdict(list)    # season_id → all team ORtg observations
+        _era51_drtg = defaultdict(list)    # season_id → all team DRtg observations
+        _era51_pace = defaultdict(list)    # season_id → all team pace observations
+        _era51_nrtg = defaultdict(list)    # season_id → all team net-rtg observations
+
+        def _era_season_id(date_str):
+            """Map game date → season start year (e.g. '2025' for 2025-26 season)."""
+            if not date_str or len(date_str) < 7:
+                return "unk"
+            try:
+                m = int(date_str[5:7]); y = int(date_str[:4])
+                return str(y) if m >= 10 else str(y - 1)
+            except Exception:
+                return "unk"
+
+        def _era_zscore(val, vals):
+            """Z-score of val against vals, clamped to [-3, 3]. Returns 0 if <5 samples."""
+            if len(vals) < 5:
+                return 0.0
+            mu = sum(vals) / len(vals)
+            sigma = (sum((v - mu) ** 2 for v in vals) / len(vals)) ** 0.5
+            return max(-3.0, min(3.0, (val - mu) / max(sigma, 0.1)))
+
+        # ── Pre-compute next-game-is-home lookup (Cat 6: h_next_is_home, a_next_is_home) ──
+        # Research (cmunch1/nba-prediction, uncertainty-aware 2025) shows home_next is top-3 predictor.
+        _tg_next = defaultdict(list)  # team → [(game_date, is_home)]
+        for _g in games:
+            if not isinstance(_g, dict):
+                continue
+            _h_raw = _g.get("home_team", "") or ""
+            _a_raw = _g.get("away_team", "") or ""
+            if "home" in _g and isinstance(_g.get("home"), dict):
+                _h_raw = _h_raw or _g["home"].get("team_name", "")
+                _a_raw = _a_raw or (_g.get("away") or {}).get("team_name", "")
+            _gh = resolve(_h_raw)
+            _ga = resolve(_a_raw)
+            _gd = (_g.get("game_date", _g.get("date", "")) or "")[:10]
+            if _gh and _gd:
+                _tg_next[_gh].append((_gd, True))
+            if _ga and _gd:
+                _tg_next[_ga].append((_gd, False))
+        _team_next_is_home = {}  # (team_abbr, game_date) → 1.0=home next, 0.0=away next, 0.5=unknown
+        for _t, _gl in _tg_next.items():
+            _gl.sort(key=lambda x: x[0])
+            for _i in range(len(_gl)):
+                _d = _gl[_i][0]
+                if _i + 1 < len(_gl):
+                    _team_next_is_home[(_t, _d)] = 1.0 if _gl[_i + 1][1] else 0.0
+                else:
+                    _team_next_is_home[(_t, _d)] = 0.5  # last game in data — unknown
 
         X, y = [], []
         n_market = 32 if self.include_market else 0
@@ -2807,7 +2897,7 @@ class NBAFeatureEngine:
                 row.append(self._consistency(tr, 10))
                 row.append(self._consistency(tr, 5))
 
-            # 6. REST & SCHEDULE (24 features)
+            # 6. REST & SCHEDULE (26 features)
             h_rest = self._rest_days(home, gd, team_last)
             a_rest = self._rest_days(away, gd, team_last)
             row.extend([
@@ -2835,6 +2925,8 @@ class NBAFeatureEngine:
                 self._miles_in_window(ar_, gd, 7, away),
                 self._games_in_window(hr_, gd, 7) - self._games_in_window(ar_, gd, 7),
                 self._fatigue_score(hr_, gd, home, h_rest) - self._fatigue_score(ar_, gd, away, a_rest),
+                _team_next_is_home.get((home, gd), 0.5),   # h_next_is_home
+                _team_next_is_home.get((away, gd), 0.5),   # a_next_is_home
             ])
 
             # 7. OPPONENT-ADJUSTED (24 features)
@@ -5821,6 +5913,90 @@ class NBAFeatureEngine:
                 ])
             except Exception:
                 row.extend([0.88, 0.88, 0.87, 0.87, 1.04, 1.04, 1.12, 1.12, 0.0, 0.0])
+
+            # ── Cat 50: Temporal Win-Sequence Encoding (12 features) ──
+            try:
+                def _seq_feats(records, n=10):
+                    """Encode temporal sequence: order of wins/losses matters beyond averages."""
+                    last_n = records[-n:] if len(records) >= n else records[:]
+                    m = len(last_n)
+                    if m == 0:
+                        return [0.5, 0.5, 0.0, 0.0, 0.0]
+                    mid = max(1, m // 2)
+                    early = last_n[:mid]
+                    late  = last_n[mid:] if len(last_n) > mid else last_n[-1:]
+                    early_wp = sum(1 for r in early if r[1]) / len(early)
+                    late_wp  = sum(1 for r in late  if r[1]) / len(late)
+                    slope    = late_wp - early_wp
+                    r3 = last_n[-3:]
+                    o3 = last_n[:3] if len(last_n) >= 6 else last_n[:1]
+                    m_recent = sum(r[2] for r in r3) / len(r3)
+                    m_old    = sum(r[2] for r in o3) / len(o3)
+                    m_slope  = max(-1.0, min(1.0, (m_recent - m_old) / 30.0))
+                    streak = 0
+                    last_val = last_n[-1][1]
+                    for r in reversed(last_n):
+                        if r[1] == last_val:
+                            streak += 1 if r[1] else -1
+                        else:
+                            break
+                    return [early_wp, late_wp, slope, m_slope, max(-1.0, min(1.0, streak / 10.0))]
+
+                _hs = _seq_feats(team_results[home])
+                _as = _seq_feats(team_results[away])
+                row.extend([
+                    _hs[0],            # seq50_h_early_wp
+                    _hs[1],            # seq50_h_late_wp
+                    _hs[2],            # seq50_h_slope
+                    _hs[3],            # seq50_h_margin_slope_norm
+                    _hs[4],            # seq50_h_streak_norm
+                    _as[0],            # seq50_a_early_wp
+                    _as[1],            # seq50_a_late_wp
+                    _as[2],            # seq50_a_slope
+                    _as[3],            # seq50_a_margin_slope_norm
+                    _as[4],            # seq50_a_streak_norm
+                    _hs[2] - _as[2],   # seq50_slope_diff
+                    _hs[4] - _as[4],   # seq50_streak_diff
+                ])
+            except Exception:
+                row.extend([0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+            # 51. SEASON ERA NORMALIZATION
+            # Normalize rolling efficiency vs league-wide running avg for THIS season.
+            # Uses stats from all games BEFORE this one (no lookahead).
+            try:
+                sid = _era_season_id(gd)
+                h_ortg_v = self._ortg(hr_, 10)
+                h_drtg_v = self._drtg(hr_, 10)
+                a_ortg_v = self._ortg(ar_, 10)
+                a_drtg_v = self._drtg(ar_, 10)
+                h_pace_v = self._pace(hr_, 10)
+                a_pace_v = self._pace(ar_, 10)
+                h_nrtg_v = h_ortg_v - h_drtg_v
+                a_nrtg_v = a_ortg_v - a_drtg_v
+
+                ort_hist = _era51_ortg[sid]
+                drt_hist = _era51_drtg[sid]
+                pc_hist  = _era51_pace[sid]
+                nrt_hist = _era51_nrtg[sid]
+
+                h_oz = _era_zscore(h_ortg_v, ort_hist)
+                h_dz = _era_zscore(h_drtg_v, drt_hist)
+                a_oz = _era_zscore(a_ortg_v, ort_hist)
+                a_dz = _era_zscore(a_drtg_v, drt_hist)
+                h_pz = _era_zscore(h_pace_v, pc_hist)
+                a_pz = _era_zscore(a_pace_v, pc_hist)
+                h_nz = _era_zscore(h_nrtg_v, nrt_hist)
+
+                row.extend([h_oz, h_dz, a_oz, a_dz, h_pz, a_pz, h_nz, h_oz - a_dz])
+
+                # Update season trackers for future games (must be after feature extraction)
+                _era51_ortg[sid].extend([h_ortg_v, a_ortg_v])
+                _era51_drtg[sid].extend([h_drtg_v, a_drtg_v])
+                _era51_pace[sid].extend([h_pace_v, a_pace_v])
+                _era51_nrtg[sid].extend([h_nrtg_v, a_nrtg_v])
+            except Exception:
+                row.extend([0.0] * 8)
 
             X.append(row)
             y.append(1 if hs > as_ else 0)

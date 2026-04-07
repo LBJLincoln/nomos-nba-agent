@@ -1,0 +1,84 @@
+{
+  "proposal_id": "cat50-temporal-sequence-encoding-2026-04-02",
+  "created": "2026-04-02T20:30:00Z",
+  "source": "arxiv: Forecasting NCAA Basketball Outcomes with LSTM and Transformer Models (2025); MDPI Uncertainty-Aware NBA Forecasting (Jan 2026)",
+  "title": "Cat50: Temporal Sequence Encoding — Last-N-Game Ordered Features",
+  "category_number": 50,
+  "category_name": "TEMPORAL SEQUENCE ENCODING",
+  "feature_count": 80,
+  "expected_brier_delta": "-0.003 to -0.008",
+  "confidence": "MEDIUM-HIGH",
+  "priority": "HIGH",
+  "status": "PROPOSED",
+  "rationale": "Current rolling averages (Cat1, Cat17) collapse temporal order — a team that went W-W-W-L-L has the same 3-game average as one that went L-L-L-W-W, despite opposite momentum. LSTM/Transformer models show strong improvement by preserving sequence order. For CPU-only XGBoost we can extract the sequence structure as explicit ordered features without neural networks, getting most of the benefit.",
+  "research_backing": {
+    "paper_1": {
+      "title": "Forecasting NCAA Basketball Outcomes with Deep Learning: LSTM and Transformer Models",
+      "url": "https://arxiv.org/html/2508.02725v1",
+      "key_finding": "Sequential encoding of game outcomes outperforms static rolling features; LSTM captures momentum breaks that rolling averages miss",
+      "brier_improvement": "approx -0.005 vs rolling-average baseline"
+    },
+    "paper_2": {
+      "title": "Uncertainty-Aware Machine Learning for NBA Forecasting (MDPI Jan 2026)",
+      "url": "https://www.mdpi.com/2078-2489/17/1/56",
+      "key_finding": "Rolling-form indicators + recurrent input captures short-term momentum and roster shocks not reflected in market prices. Brier 0.199 achieved.",
+      "brier_improvement": "-0.02+ vs tree-only baseline"
+    }
+  },
+  "implementation": {
+    "file": "features/engine.py",
+    "location": "Add after Cat49 (Play-Type PPP), ~line 2800+",
+    "features_per_team": 40,
+    "total_features": 80,
+    "feature_groups": [
+      {
+        "name": "Last-10 outcome sequence (home team)",
+        "features": ["seq_home_outcome_1","seq_home_outcome_2","...","seq_home_outcome_10"],
+        "encoding": "1=win, 0=loss, recent games first",
+        "count": 10
+      },
+      {
+        "name": "Last-10 margin sequence (home team)",
+        "features": ["seq_home_margin_1","...","seq_home_margin_10"],
+        "encoding": "point differential, normalized by season std",
+        "count": 10
+      },
+      {
+        "name": "Last-10 opponent strength sequence (home team)",
+        "features": ["seq_home_opp_elo_1","...","seq_home_opp_elo_10"],
+        "encoding": "opponent ELO at time of game, normalized",
+        "count": 10
+      },
+      {
+        "name": "Last-10 home/away context (home team)",
+        "features": ["seq_home_was_home_1","...","seq_home_was_home_10"],
+        "encoding": "1=home game, 0=away game",
+        "count": 10
+      },
+      {
+        "name": "Same 4 groups for away team",
+        "features": ["seq_away_*"],
+        "count": 40
+      }
+    ],
+    "lookback_required": "15 games minimum per team",
+    "nan_handling": "fill with team season average if < 10 games available",
+    "estimated_loc": 60
+  },
+  "code_sketch": "def add_cat50_temporal_sequence(df, team_games_lookup):\n    \"\"\"\n    Cat50: TEMPORAL SEQUENCE ENCODING\n    Encode last-10-game sequences as ordered features (not just rolling averages).\n    Captures momentum direction, streak patterns, opponent-adjusted sequences.\n    \"\"\"\n    features = {}\n    for team_col, prefix in [('home_team', 'seq_home'), ('away_team', 'seq_away')]:\n        for i in range(1, 11):  # 1=most recent, 10=oldest\n            features[f'{prefix}_outcome_{i}'] = df.apply(\n                lambda row: get_nth_recent_outcome(team_games_lookup, row[team_col], row['game_date'], i), axis=1\n            )\n            features[f'{prefix}_margin_{i}'] = df.apply(\n                lambda row: get_nth_recent_margin(team_games_lookup, row[team_col], row['game_date'], i), axis=1\n            )\n            features[f'{prefix}_opp_elo_{i}'] = df.apply(\n                lambda row: get_nth_recent_opp_elo(team_games_lookup, row[team_col], row['game_date'], i), axis=1\n            )\n            features[f'{prefix}_was_home_{i}'] = df.apply(\n                lambda row: get_nth_recent_home_flag(team_games_lookup, row[team_col], row['game_date'], i), axis=1\n            )\n    return pd.DataFrame(features)",
+  "engine_version_after": "v3.1-50cat",
+  "prerequisites": [
+    "team_games_lookup dict must be built before feature generation (similar to existing ELO lookup)",
+    "games must be sorted chronologically within team",
+    "Cat50 should run after Cat6 (REST & SCHEDULE) which builds the game history structure"
+  ],
+  "risks": [
+    "Data leakage: ensure all lookups use strict < game_date (not <=)",
+    "Memory: storing last-10-games per team per date adds ~80 columns to feature matrix",
+    "Compute: 10 lookups per team × 2 teams × 9551 games = ~191k lookups — acceptable on CPU"
+  ],
+  "cross_project": {
+    "applicable_to_political": true,
+    "political_version": "Encode last-N political events (votes, executive orders, FEC filings) as ordered sequence features — same principle, different domain"
+  }
+}

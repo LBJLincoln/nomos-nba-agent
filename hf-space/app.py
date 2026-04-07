@@ -657,11 +657,11 @@ NEURAL_NET_TYPES = {"lstm", "transformer", "tabnet", "ft_transformer", "deep_ens
 # Fast model types (for islands that prioritize speed)
 FAST_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "random_forest", "extra_trees", "logistic_regression"]
 
-# CPU-viable model types (tree-based only, excludes neural nets and stacking)
-# Stacking removed: 200 gens, best brier=0.24733 (10% worse than trees), too slow on CPU
+# CPU-viable model types (tree-based + stacking w/ MLP meta-learner, excludes neural nets)
+# Stacking re-added: v2 MLP(50,50) meta-learner replaces LR (was 0.24733, expect -0.003 Brier)
 # logistic_regression added: MDPI 2026 shows LR achieves best Brier (0.199) among tabular models
 # due to inherent calibration — beating XGBoost (0.202) and RF on probability quality
-CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees", "logistic_regression"]
+CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees", "logistic_regression", "stacking"]
 
 
 # ── Custom Brier objective for XGBoost ──
@@ -721,7 +721,8 @@ class Individual:
     def to_dict(self):
         return {"n_features": self.n_features, "hyperparams": dict(self.hyperparams),
                 "fitness": dict(self.fitness), "generation": self.generation,
-                "pareto_rank": self.pareto_rank, "island_id": self.island_id}
+                "pareto_rank": self.pareto_rank, "island_id": self.island_id,
+                "feature_indices": self.selected_indices()}
 
     @staticmethod
     def crossover(p1, p2):
@@ -1150,7 +1151,10 @@ def _evaluate_stacking(ind, X_sub, y_eval, hp_eval, n_splits, fast):
 
             # Train meta-learner on OOF predictions (regularized to prevent stacking overfit)
             # Calibrate meta-learner with Platt scaling for better probability estimates
-            meta_base = LogisticRegression(C=0.5, max_iter=300, random_state=42)
+            # v2: MLP meta-learner (was LR, -0.003 Brier expected)
+            meta_base = MLPClassifier(hidden_layer_sizes=(50, 50), max_iter=500,
+                                      early_stopping=True, validation_fraction=0.15,
+                                      learning_rate='adaptive', random_state=42)
             try:
                 meta = CalibratedClassifierCV(meta_base, method='sigmoid', cv=3)
                 meta.fit(oof_preds, y_tr)
@@ -2672,6 +2676,23 @@ async def api_status():
     return JSONResponse(_safe(dict(live)))
 
 
+@control_api.get("/api/best")
+async def api_best():
+    """Return best chromosome WITH feature indices for Kaggle seeding."""
+    if _evo_best is None:
+        return JSONResponse({"error": "no evolution best yet"}, status_code=404)
+    indices = [i for i, b in enumerate(_evo_best.get("features", [])) if b]
+    return JSONResponse({
+        "brier": _evo_best.get("fitness", {}).get("brier", 1.0),
+        "model_type": _evo_best.get("hyperparams", {}).get("model_type", "xgboost"),
+        "features": indices,
+        "n_features": _evo_best.get("n_features", len(indices)),
+        "hyperparams": _evo_best.get("hyperparams", {}),
+        "fitness": _evo_best.get("fitness", {}),
+        "generation": _evo_best.get("generation", 0),
+    })
+
+
 @control_api.get("/api/results")
 async def api_results():
     latest = RESULTS_DIR / "evolution-latest.json"
@@ -3037,8 +3058,11 @@ async def api_predict(request: Request):
             X_cal = X_train[-cal_slice_size:]
             y_cal = y_train[-cal_slice_size:]
             raw_cal_p = model.predict_proba(X_cal)[:, 1]
-            _predict_lr_meta_cal = LogisticRegression(
-                C=1.0, solver="lbfgs", max_iter=500, random_state=42
+            # v2: MLP meta-learner (was LR, -0.003 Brier expected)
+            _predict_lr_meta_cal = MLPClassifier(
+                hidden_layer_sizes=(50, 50), max_iter=500,
+                early_stopping=True, validation_fraction=0.15,
+                learning_rate='adaptive', random_state=42
             )
             _predict_lr_meta_cal.fit(raw_cal_p.reshape(-1, 1), y_cal)
         elif cal_method_build not in ("none", "venn_abers", "beta"):
