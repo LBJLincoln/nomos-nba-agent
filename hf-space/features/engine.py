@@ -78,7 +78,7 @@ import csv
 import os
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.1-54cat"
+ENGINE_VERSION = "v3.1-54cat"  # merged: background agent added 54cat on top of 51cat-sched
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -441,7 +441,7 @@ class NBAFeatureEngine:
             names.append(f"{prefix}_consistency")       # StdDev of point diff (lower = more consistent)
             names.append(f"{prefix}_recent_margin_std") # Variance in recent margins
 
-        # 6. REST & SCHEDULE (24 features)
+        # 6. REST & SCHEDULE (26 features)
         names.extend([
             "h_rest_days", "a_rest_days",
             "rest_advantage",                       # h_rest - a_rest
@@ -458,6 +458,7 @@ class NBAFeatureEngine:
             "h_miles_7d", "a_miles_7d",            # Total miles in last 7 days
             "schedule_density_diff",                # h_games_7d - a_games_7d
             "combined_fatigue",                     # Composite fatigue score
+            "h_next_is_home", "a_next_is_home",    # Forward schedule: next game is home? (research top-3 predictor)
         ])
 
         # 7. OPPONENT-ADJUSTED (24 features)
@@ -2807,6 +2808,34 @@ class NBAFeatureEngine:
             sigma = (sum((v - mu) ** 2 for v in vals) / len(vals)) ** 0.5
             return max(-3.0, min(3.0, (val - mu) / max(sigma, 0.1)))
 
+        # ── Pre-compute next-game-is-home lookup (Cat 6: h_next_is_home, a_next_is_home) ──
+        # Research (cmunch1/nba-prediction, uncertainty-aware 2025) shows home_next is top-3 predictor.
+        _tg_next = defaultdict(list)  # team → [(game_date, is_home)]
+        for _g in games:
+            if not isinstance(_g, dict):
+                continue
+            _h_raw = _g.get("home_team", "") or ""
+            _a_raw = _g.get("away_team", "") or ""
+            if "home" in _g and isinstance(_g.get("home"), dict):
+                _h_raw = _h_raw or _g["home"].get("team_name", "")
+                _a_raw = _a_raw or (_g.get("away") or {}).get("team_name", "")
+            _gh = resolve(_h_raw)
+            _ga = resolve(_a_raw)
+            _gd = (_g.get("game_date", _g.get("date", "")) or "")[:10]
+            if _gh and _gd:
+                _tg_next[_gh].append((_gd, True))
+            if _ga and _gd:
+                _tg_next[_ga].append((_gd, False))
+        _team_next_is_home = {}  # (team_abbr, game_date) → 1.0=home next, 0.0=away next, 0.5=unknown
+        for _t, _gl in _tg_next.items():
+            _gl.sort(key=lambda x: x[0])
+            for _i in range(len(_gl)):
+                _d = _gl[_i][0]
+                if _i + 1 < len(_gl):
+                    _team_next_is_home[(_t, _d)] = 1.0 if _gl[_i + 1][1] else 0.0
+                else:
+                    _team_next_is_home[(_t, _d)] = 0.5  # last game in data — unknown
+
         X, y = [], []
         n_market = 32 if self.include_market else 0
 
@@ -2952,7 +2981,7 @@ class NBAFeatureEngine:
                 row.append(self._consistency(tr, 10))
                 row.append(self._consistency(tr, 5))
 
-            # 6. REST & SCHEDULE (24 features)
+            # 6. REST & SCHEDULE (26 features)
             h_rest = self._rest_days(home, gd, team_last)
             a_rest = self._rest_days(away, gd, team_last)
             row.extend([
@@ -2980,6 +3009,8 @@ class NBAFeatureEngine:
                 self._miles_in_window(ar_, gd, 7, away),
                 self._games_in_window(hr_, gd, 7) - self._games_in_window(ar_, gd, 7),
                 self._fatigue_score(hr_, gd, home, h_rest) - self._fatigue_score(ar_, gd, away, a_rest),
+                _team_next_is_home.get((home, gd), 0.5),   # h_next_is_home
+                _team_next_is_home.get((away, gd), 0.5),   # a_next_is_home
             ])
 
             # 7. OPPONENT-ADJUSTED (24 features)
