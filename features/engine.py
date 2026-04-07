@@ -3145,9 +3145,9 @@ class NBAFeatureEngine:
                     row.append(self._stat_avg(tr, 10, "opp_paint_pts") / 50.0)
                     row.append(self._stat_avg(tr, 10, "opp_fg3_pct"))
                     row.append(self._stat_avg(tr, 10, "fb_pts") / 20.0)  # proxy: own FB pts
-                    row.append(0.6)  # contest rate placeholder
+                    row.append(min(1.0, self._blk_rate(tr, 10) * 5))  # proxy: blk_rate for shot contest
                     row.append(self._stat_avg(tr, 10, "stl_rate") * 5)  # proxy: deflections
-                    row.append(0.55)  # rim protection placeholder
+                    row.append(self._opp_efg(tr, 10) or 0.5)  # opp eFG% as rim/perimeter defense (fallback 0.5 neutral)
 
                 # 15. POLYMARKET & PREDICTION MARKET (8 features)
                 pmkt = (market_data or {}).get(game.get("id", gd), {})
@@ -6129,7 +6129,7 @@ class NBAFeatureEngine:
                     _h_fav_str,       # line52_home_fav_strength
                 ])
             except Exception:
-                row.extend([3.5, 220.0, 0.5, 0.5, 1.0, 0.05, 0.5, 0.5, 0.0, 0.0, 0.0, 0.952, 3.5, 0.0, 0.0])
+                row.extend([3.5, 220.0, 0.5, 0.5, 0.5, 0.05, 0.5, 0.5, 0.0, 0.0, 0.0, 0.952, 3.5, 0.0, 0.0])  # line52_spread_agree=0.5 (neutral; was 1.0 = biased home-agree)
 
             # ── Cat 53: ATS Record Features (12 features) ──
             # Cover rate derived from _team_ats tracker (populated after each game's features).

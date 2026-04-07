@@ -3145,9 +3145,9 @@ class NBAFeatureEngine:
                     row.append(self._stat_avg(tr, 10, "opp_paint_pts") / 50.0)
                     row.append(self._stat_avg(tr, 10, "opp_fg3_pct"))
                     row.append(self._stat_avg(tr, 10, "fb_pts") / 20.0)  # proxy: own FB pts
-                    row.append(0.6)  # contest rate placeholder
+                    row.append(min(1.0, self._blk_rate(tr, 10) * 5))  # proxy: blk_rate for shot contest
                     row.append(self._stat_avg(tr, 10, "stl_rate") * 5)  # proxy: deflections
-                    row.append(0.55)  # rim protection placeholder
+                    row.append(self._opp_efg(tr, 10) or 0.5)  # opp eFG% as rim/perimeter defense (fallback 0.5 neutral)
 
                 # 15. POLYMARKET & PREDICTION MARKET (8 features)
                 pmkt = (market_data or {}).get(game.get("id", gd), {})

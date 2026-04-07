@@ -1,7 +1,7 @@
 {
   "department": "engineering",
-  "timestamp": "2026-04-07T00:00:00.000000+00:00",
-  "iteration": 14,
+  "timestamp": "2026-04-07T10:00:00.000000+00:00",
+  "iteration": 16,
   "health": "ok",
   "status": "fix_applied",
   "files_changed": [
@@ -9,16 +9,16 @@
     "hf-space/features/engine.py"
   ],
   "change_type": "bug_fix",
-  "description": "Fixed cross-season contamination in Cat 52 season percentile accumulators. _season_spreads and _season_totals were initialized once and grew across ALL seasons, making line52_spread_season_pct and line52_total_season_pct compute lifetime percentiles instead of within-season percentiles. Fixed by adding a season-boundary reset: each time _era_season_id(gd) changes, both lists are cleared. Now line52_spread_season_pct correctly reflects 'where does this spread rank among THIS season\\'s spreads so far' rather than a diluted multi-season historical rank. The _team_ats and _team_ou trackers are intentionally NOT reset (cross-season ATS/OU tendencies are useful signal).",
-  "brier_impact_estimate": -0.001,
-  "bug_fixed": "season_spreads_totals_cross_season_contamination",
-  "root_cause": "Variables named _season_spreads and _season_totals were described as 'this season' in comments but never reset at season boundaries. After 2+ seasons, the percentile rank of any spread or total was computed against a large multi-season pool, degrading the within-season signal in line52_spread_season_pct, line52_total_season_pct, line52_season_spread_std, and the Cat54 _tot_trend54 feature (which references _season_totals). No crash, no warning — silent semantic mismatch.",
+  "description": "Fixed two constant placeholder values in Cat 14 (Defensive Matchup Advanced). shot_contest_rate was hardcoded 0.6 and rim_protection_rate was hardcoded 0.55 for all games/teams. These created zero differential signal (same value for every team) plus a directional bias. Replaced with: (1) blk_rate*5 as shot contest proxy (same scale as existing stl_rate*5 deflection proxy, provides real team differentiation), (2) opp_efg() or 0.5 as rim/perimeter defense quality (opp eFG% is a standard defensive efficiency metric; fallback 0.5 is neutral when data unavailable, vs previous 0.55 which biased all no-data rows toward above-average defense).",
+  "brier_impact_estimate": -0.0005,
+  "bug_fixed": "cat14_defensive_matchup_constant_placeholders",
+  "root_cause": "Lines 3148 and 3150 appended constant 0.6 and 0.55 to the feature row for ALL games, regardless of team. A constant feature provides zero differential signal between home and away teams, so it cannot help discriminate winners. Additionally, 0.6 and 0.55 are both above 0.5, injecting a subtle positive bias. Feature selection (mutual_info) should eventually discard them, but they consume feature slots that could hold real signal. The fix uses blk_rate (reliably available) and opp_efg (standard stat, fallback 0.5 neutral) to provide genuine per-team defensive quality estimates.",
   "parity_check": {
     "status": "match",
     "local_path": "features/engine.py",
     "hf_path": "hf-space/features/engine.py",
-    "local_md5": "95192bbf8bcf400869ddc4880f56f4ab",
-    "hf_md5": "95192bbf8bcf400869ddc4880f56f4ab",
+    "local_md5": "723597378a18ae674e59aa8308335c97",
+    "hf_md5": "723597378a18ae674e59aa8308335c97",
     "hf_lines": 7177,
     "engine_version": "v3.1-54cat"
   },
@@ -26,7 +26,7 @@
     "total": 45,
     "passed": 45,
     "pass_rate": 1.0,
-    "note": "Change is additive (season reset at boundary). No feature count or name changes. All fallback paths unchanged. No regressions expected."
+    "note": "No feature names or count changed. Existing h_shot_contest_rate and h_rim_protection_rate names unchanged. Only computed values improved. Zero structural regressions expected."
   },
   "audit_findings": [
     {
@@ -62,14 +62,26 @@
     {
       "type": "feature_data_quality",
       "severity": "medium",
-      "detail": "_season_spreads/_season_totals accumulated cross-season, making Cat52 percentile/std features lifetime metrics instead of within-season — FIXED this iteration",
+      "detail": "_season_spreads/_season_totals accumulated cross-season, making Cat52 percentile/std features lifetime metrics instead of within-season — FIXED iter 14",
+      "status": "resolved"
+    },
+    {
+      "type": "feature_data_quality",
+      "severity": "low",
+      "detail": "Cat52 fallback row line52_spread_agree=1.0 biased all no-odds rows toward home-agree direction — FIXED iter 15",
+      "status": "resolved"
+    },
+    {
+      "type": "feature_data_quality",
+      "severity": "medium",
+      "detail": "Cat14 defensive matchup: shot_contest_rate=0.6 and rim_protection_rate=0.55 were hardcoded constants providing zero team-differentiation signal and positive directional bias — FIXED iter 16",
       "status": "resolved"
     }
   ],
   "next_iteration": {
-    "action": "audit_cat52_fallback_defaults",
-    "method": "Cat 52 fallback row sets line52_spread_agree=1.0 (assumes spread and ML agree by default — biased toward home-favorite assumption). True neutral default should be 0.5. Also audit whether _season_totals reset in Cat54 _tot_trend54 now correctly references the reset list (it does — same variable). Small cleanup: line52_sharpness default 0.952 = 1/1.05 is consistent with overround=1.05, confirm it matches typical no-odds behavior.",
+    "action": "audit_cat15_polymarket_placeholders",
+    "method": "Cat 15 Polymarket features (lines 3153-3163) default to 0.5 for all market probabilities and 0.0 for movement/divergence when data unavailable. Check what fraction of games actually have polymarket data vs falling back to defaults. If >80% are defaults, the 8 features are wasted slots. Consider: (a) gating these features behind a has_market_data flag, or (b) using consensus odds from regular books as a fallback proxy for prediction_market_consensus.",
     "target_metric": "brier_delta",
-    "estimated_impact": -0.0005
+    "estimated_impact": -0.0003
   }
 }
