@@ -1083,6 +1083,11 @@ def build_predictions_output(
             "away_win_prob": pred.get("away_win_prob", 1 - pred["home_win_prob"]),
             "confidence": pred.get("confidence", "MEDIUM"),
             "model_agreement": pred.get("model_agreement", 0.5),
+            # Propagate model_version so the outer calibrate_game() call
+            # below can detect the "+isotonic" tag from the in-process
+            # IsotonicPostCalibrator (line ~672) and skip a second pass.
+            # Without this the calibration gets applied twice.
+            "model_version": pred.get("model_version", ""),
         }
 
         # Apply post-hoc Platt/isotonic calibration (D5: raw ECE=0.2758, target <0.05)
