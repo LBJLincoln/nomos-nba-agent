@@ -2785,8 +2785,9 @@ class NBAFeatureEngine:
         # spread_home, total, is_home_game) — populated AFTER feature computation each game
         _team_ats = defaultdict(list)      # team → [(gd, covered_ats, spread, is_home_game)]
         _team_ou  = defaultdict(list)      # team → [(gd, went_over, total, is_home_game)]
-        _season_spreads = []               # rolling list of abs(spread) values this season
-        _season_totals  = []               # rolling list of total values this season
+        _season_spreads = []               # rolling list of abs(spread) values THIS season only
+        _season_totals  = []               # rolling list of total values THIS season only
+        _cat52_season_id = None            # tracks current season for spread/total reset
 
         def _era_season_id(date_str):
             """Map game date → season start year (e.g. '2025' for 2025-26 season)."""
@@ -2838,6 +2839,16 @@ class NBAFeatureEngine:
             if not home or not away:
                 continue
             gd = game.get("game_date", game.get("date", ""))[:10]
+
+            # Reset Cat 52/54 season percentile accumulators at each new season boundary.
+            # Without this, _season_spreads/_season_totals grow across ALL seasons, making
+            # line52_spread_season_pct / line52_total_season_pct lifetime percentiles instead
+            # of within-season percentiles (semantic bug: variable name vs actual behavior).
+            _sid_now = _era_season_id(gd)
+            if _cat52_season_id != _sid_now:
+                _season_spreads = []
+                _season_totals  = []
+                _cat52_season_id = _sid_now
 
             hr_ = team_results[home]
             ar_ = team_results[away]

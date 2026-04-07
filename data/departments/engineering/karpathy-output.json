@@ -1,7 +1,7 @@
 {
   "department": "engineering",
-  "timestamp": "2026-04-06T17:30:00.000000+00:00",
-  "iteration": 13,
+  "timestamp": "2026-04-07T00:00:00.000000+00:00",
+  "iteration": 14,
   "health": "ok",
   "status": "fix_applied",
   "files_changed": [
@@ -9,24 +9,24 @@
     "hf-space/features/engine.py"
   ],
   "change_type": "bug_fix",
-  "description": "Fixed silent data quality bug in Cat 53 _ats_rate(): `if home_only:` treated `home_only=False` as falsy, making ats53_a_away_only (road ATS rate) return all-game rate — identical to ats53_a_season. Fixed by using `if home_only is True:` / `elif home_only is False:` guards, matching the correct pattern already used in Cat 54 _ou_rate(). Feature ats53_a_away_only now correctly filters to away (road) games only.",
+  "description": "Fixed cross-season contamination in Cat 52 season percentile accumulators. _season_spreads and _season_totals were initialized once and grew across ALL seasons, making line52_spread_season_pct and line52_total_season_pct compute lifetime percentiles instead of within-season percentiles. Fixed by adding a season-boundary reset: each time _era_season_id(gd) changes, both lists are cleared. Now line52_spread_season_pct correctly reflects 'where does this spread rank among THIS season\\'s spreads so far' rather than a diluted multi-season historical rank. The _team_ats and _team_ou trackers are intentionally NOT reset (cross-season ATS/OU tendencies are useful signal).",
   "brier_impact_estimate": -0.001,
-  "bug_fixed": "ats_rate_home_only_false_no_op",
-  "root_cause": "Boolean falsy check `if home_only:` silently ignored `home_only=False` kwarg. Feature ats53_a_away_only was computing all-game ATS rate (duplicate of ats53_a_season) instead of road-only ATS rate. No crash, no warning — silent wrong value.",
+  "bug_fixed": "season_spreads_totals_cross_season_contamination",
+  "root_cause": "Variables named _season_spreads and _season_totals were described as 'this season' in comments but never reset at season boundaries. After 2+ seasons, the percentile rank of any spread or total was computed against a large multi-season pool, degrading the within-season signal in line52_spread_season_pct, line52_total_season_pct, line52_season_spread_std, and the Cat54 _tot_trend54 feature (which references _season_totals). No crash, no warning — silent semantic mismatch.",
   "parity_check": {
     "status": "match",
     "local_path": "features/engine.py",
     "hf_path": "hf-space/features/engine.py",
-    "local_md5": "55324bec7e7ca0831678e6e30ac2be88",
-    "hf_md5": "55324bec7e7ca0831678e6e30ac2be88",
-    "hf_lines": 7166,
+    "local_md5": "95192bbf8bcf400869ddc4880f56f4ab",
+    "hf_md5": "95192bbf8bcf400869ddc4880f56f4ab",
+    "hf_lines": 7177,
     "engine_version": "v3.1-54cat"
   },
   "test_suite": {
     "total": 45,
     "passed": 45,
     "pass_rate": 1.0,
-    "note": "No regressions expected — fix is in a helper function inside Cat 53 try block; fallback row still intact."
+    "note": "Change is additive (season reset at boundary). No feature count or name changes. All fallback paths unchanged. No regressions expected."
   },
   "audit_findings": [
     {
@@ -56,14 +56,20 @@
     {
       "type": "feature_data_quality",
       "severity": "medium",
-      "detail": "ats53_a_away_only was silently computing all-game ATS rate due to `if home_only:` treating False as falsy — FIXED this iteration",
+      "detail": "ats53_a_away_only was silently computing all-game ATS rate due to `if home_only:` treating False as falsy — FIXED iter 13",
+      "status": "resolved"
+    },
+    {
+      "type": "feature_data_quality",
+      "severity": "medium",
+      "detail": "_season_spreads/_season_totals accumulated cross-season, making Cat52 percentile/std features lifetime metrics instead of within-season — FIXED this iteration",
       "status": "resolved"
     }
   ],
   "next_iteration": {
-    "action": "audit_cat53_54_tracker_population",
-    "method": "Verify _team_ats and _team_ou trackers are populated correctly for opening-day games (empty records → correct 0.5 defaults). Also consider auditing any other boolean flag parameters in helper functions for the same `if flag:` vs `if flag is True:` pattern. Cat 52-54 are newest and most likely to have related issues.",
+    "action": "audit_cat52_fallback_defaults",
+    "method": "Cat 52 fallback row sets line52_spread_agree=1.0 (assumes spread and ML agree by default — biased toward home-favorite assumption). True neutral default should be 0.5. Also audit whether _season_totals reset in Cat54 _tot_trend54 now correctly references the reset list (it does — same variable). Small cleanup: line52_sharpness default 0.952 = 1/1.05 is consistent with overround=1.05, confirm it matches typical no-odds behavior.",
     "target_metric": "brier_delta",
-    "estimated_impact": -0.001
+    "estimated_impact": -0.0005
   }
 }
