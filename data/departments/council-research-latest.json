@@ -1,11 +1,11 @@
 {
     "department": "research",
     "dept_id": "d1",
-    "timestamp": "2026-04-07T06:00:02Z",
+    "timestamp": "2026-04-07T12:00:03Z",
     "model": "claude-sonnet-4-6",
     "budget_usd": 1.50,
     "max_turns": 50,
-    "duration_seconds": 416,
+    "duration_seconds": 583,
     "exit_code": 0,
     "status": "success",
     "log_file": "/home/termius/mon-ipad/logs/councils/d1-research-2026-04-07.log"
