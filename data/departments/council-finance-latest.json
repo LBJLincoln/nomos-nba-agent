@@ -1,12 +1,14 @@
 {
-    "department": "finance",
-    "dept_id": "d8",
-    "timestamp": "2026-04-07T14:00:02Z",
-    "model": "claude-haiku-4-5-20251001",
-    "budget_usd": 0.50,
-    "max_turns": 25,
-    "duration_seconds": 18,
-    "exit_code": 0,
-    "status": "success",
-    "log_file": "/home/termius/mon-ipad/logs/councils/d8-finance-2026-04-07.log"
+  "department": "finance",
+  "dept_id": "d8",
+  "timestamp": "2026-04-07T20:00:04Z",
+  "model": "claude-haiku-4-5-20251001",
+  "budget_usd": 0.5,
+  "max_turns": 25,
+  "duration_seconds": 164,
+  "exit_code": 0,
+  "status": "success",
+  "log_file": "/home/termius/mon-ipad/logs/councils/d8-finance-2026-04-07.log",
+  "experiment_id": "83c18be88a78",
+  "experiment_id_written_at": "2026-04-07T20:22:59.882052+00:00"
 }

@@ -1,12 +1,14 @@
 {
-    "department": "cross-repo",
-    "dept_id": "d9",
-    "timestamp": "2026-04-07T13:00:03Z",
-    "model": "claude-sonnet-4-6",
-    "budget_usd": 1.50,
-    "max_turns": 50,
-    "duration_seconds": 317,
-    "exit_code": 0,
-    "status": "success",
-    "log_file": "/home/termius/mon-ipad/logs/councils/d9-cross-repo-2026-04-07.log"
+  "department": "cross-repo",
+  "dept_id": "d9",
+  "timestamp": "2026-04-07T19:00:04Z",
+  "model": "claude-sonnet-4-6",
+  "budget_usd": 1.5,
+  "max_turns": 50,
+  "duration_seconds": 358,
+  "exit_code": 0,
+  "status": "success",
+  "log_file": "/home/termius/mon-ipad/logs/councils/d9-cross-repo-2026-04-07.log",
+  "experiment_id": "9613650d8626",
+  "experiment_id_written_at": "2026-04-07T20:22:59.884770+00:00"
 }

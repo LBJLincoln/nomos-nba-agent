@@ -1,12 +1,14 @@
 {
-    "department": "evolution",
-    "dept_id": "d3",
-    "timestamp": "2026-04-07T12:00:03Z",
-    "model": "claude-sonnet-4-6",
-    "budget_usd": 2.00,
-    "max_turns": 50,
-    "duration_seconds": 572,
-    "exit_code": 0,
-    "status": "success",
-    "log_file": "/home/termius/mon-ipad/logs/councils/d3-evolution-2026-04-07.log"
+  "department": "evolution",
+  "dept_id": "d3",
+  "timestamp": "2026-04-07T18:00:05Z",
+  "model": "claude-sonnet-4-6",
+  "budget_usd": 2.0,
+  "max_turns": 50,
+  "duration_seconds": 792,
+  "exit_code": 0,
+  "status": "success",
+  "log_file": "/home/termius/mon-ipad/logs/councils/d3-evolution-2026-04-07.log",
+  "experiment_id": "c06fe93e63fb",
+  "experiment_id_written_at": "2026-04-07T20:22:59.638255+00:00"
 }

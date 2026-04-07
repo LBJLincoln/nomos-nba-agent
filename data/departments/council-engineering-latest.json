@@ -1,12 +1,14 @@
 {
-    "department": "engineering",
-    "dept_id": "d2",
-    "timestamp": "2026-04-07T13:00:03Z",
-    "model": "claude-sonnet-4-6",
-    "budget_usd": 2.00,
-    "max_turns": 50,
-    "duration_seconds": 297,
-    "exit_code": 0,
-    "status": "success",
-    "log_file": "/home/termius/mon-ipad/logs/councils/d2-engineering-2026-04-07.log"
+  "department": "engineering",
+  "dept_id": "d2",
+  "timestamp": "2026-04-07T19:00:04Z",
+  "model": "claude-sonnet-4-6",
+  "budget_usd": 2.0,
+  "max_turns": 50,
+  "duration_seconds": 454,
+  "exit_code": 0,
+  "status": "success",
+  "log_file": "/home/termius/mon-ipad/logs/councils/d2-engineering-2026-04-07.log",
+  "experiment_id": "bc7aaa8fa1a4",
+  "experiment_id_written_at": "2026-04-07T20:22:59.635173+00:00"
 }
