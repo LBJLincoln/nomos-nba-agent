@@ -2,7 +2,7 @@
 """
 NBA Quant Feature Engine — 6000+ Features with Genetic Selection
 =================================================================
-Generates ~6000+ feature candidates across 35 categories, then uses
+Generates ~7213 feature candidates across 54 categories, then uses
 genetic algorithm to select optimal 150-400 features.
 
 Categories:

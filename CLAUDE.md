@@ -39,7 +39,7 @@ GOOGLE COLAB (GPU, on-demand)
 
 | File | Role |
 |------|------|
-| `features/engine.py` | Canonical feature engine v3.0 + Cat36 EWMA + Cat37 MOVDA = 37 categories, 6135 raw → 3216 usable |
+| `features/engine.py` | Canonical feature engine v3.1-54cat = 54 categories, 7213 raw features |
 | `hf-space/features/engine.py` | MUST equal root engine (deploy_island.py checks parity) |
 | `hf-space/app.py` | Evolution loop v4 + Gradio UI + API endpoints (all 6 spaces) |
 | `hf-space/deploy_island.py` | Deploy any island: `python3 hf-space/deploy_island.py SPACE ROLE TOKEN` |
@@ -67,7 +67,7 @@ GOOGLE COLAB (GPU, on-demand)
 2. **Feature engine parity** — `features/engine.py` = `hf-space/features/engine.py` always
 3. **1 fix per iteration** — never multiple simultaneous changes
 4. **All experiments tagged** with `feature_engine_version` in Supabase
-5. **ENGINE_VERSION** = `v3.0-37cat` (6135 raw candidates, 37 categories, MOVDA live)
+5. **ENGINE_VERSION** = `v3.1-54cat` (7213 raw features, 54 categories)
 6. **MAX_FEATURES=200** — hard cap enforced in all spaces
 7. **Mutation cap** — adaptive mutation capped at 0.15
 8. **CPU-only** — no neural models on CPU islands, stacking removed
@@ -78,3 +78,21 @@ GOOGLE COLAB (GPU, on-demand)
 |-------|---------|
 | `nba_experiments` | All experiment results + `feature_engine_version` |
 | `research_proposals` | Karpathy loop proposals (proposed/testing/rejected/live) |
+
+
+## Forge v19 — 3 Layers × 8 Departments (2026-04-03T20:12:19Z)
+
+```
+L1 STRATEGIC:  Claude Code CLI + User (vision, milestones, decisions)
+L2 APPLICATION: D1 Research | D2 Engineering | D3 Evolution | D4 Product | D5 Business | D6 Evaluation
+L3 LOGISTICS:   D7 Infra | D8 Finance
+```
+
+Each department runs a Karpathy autoresearch loop:
+- SCAN → PROPOSE → EXECUTE (5-min) → EVALUATE → KEEP/REVERT
+- Council state: data/departments/council-<dept>.json
+- Metrics log: data/departments/<dept>/metrics.jsonl
+- Runner: scripts/councils/department-council.sh <dept>
+
+Shared infra: VM (control tower) + Laptop (local models) + HF Spaces (3 accounts) + GPU burst
+
