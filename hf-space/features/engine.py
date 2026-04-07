@@ -6129,7 +6129,7 @@ class NBAFeatureEngine:
                     _h_fav_str,       # line52_home_fav_strength
                 ])
             except Exception:
-                row.extend([3.5, 220.0, 0.5, 0.5, 1.0, 0.05, 0.5, 0.5, 0.0, 0.0, 0.0, 0.952, 3.5, 0.0, 0.0])
+                row.extend([3.5, 220.0, 0.5, 0.5, 0.5, 0.05, 0.5, 0.5, 0.0, 0.0, 0.0, 0.952, 3.5, 0.0, 0.0])  # line52_spread_agree=0.5 (neutral; was 1.0 = biased home-agree)
 
             # ── Cat 53: ATS Record Features (12 features) ──
             # Cover rate derived from _team_ats tracker (populated after each game's features).
