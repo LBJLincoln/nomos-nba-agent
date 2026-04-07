@@ -3182,12 +3182,17 @@ class NBAFeatureEngine:
 
                 # 15. POLYMARKET & PREDICTION MARKET (8 features)
                 pmkt = (market_data or {}).get(game.get("id", gd), {})
+                # Fall back to book-implied probability from odds_data when polymarket unavailable.
+                # This converts zero-variance constants into real signal for historical games.
+                _pm_book = (odds_data or {}).get((gd, home, away), {})
+                _pm_impl = _pm_book.get("implied_home_prob", 0.5) if _pm_book else 0.5
+                _pm_fair = _pm_book.get("fair_home_prob", 0.5) if _pm_book else 0.5
                 row.extend([
-                    pmkt.get("polymarket_home_prob", 0.5),
+                    pmkt.get("polymarket_home_prob", _pm_impl),       # fallback: book implied prob
                     pmkt.get("polymarket_volume", 0.5),
                     pmkt.get("polymarket_line_movement", 0.0),
                     pmkt.get("polymarket_vs_books", 0.0),
-                    pmkt.get("prediction_market_consensus", 0.5),
+                    pmkt.get("prediction_market_consensus", _pm_fair), # fallback: book fair prob
                     pmkt.get("market_wisdom_confidence", 0.5),
                     pmkt.get("smart_vs_public_divergence", 0.0),
                     pmkt.get("closing_line_value_history", 0.0),

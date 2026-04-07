@@ -1,7 +1,7 @@
 {
   "department": "engineering",
-  "timestamp": "2026-04-07T10:00:00.000000+00:00",
-  "iteration": 16,
+  "timestamp": "2026-04-07T18:30:00.000000+00:00",
+  "iteration": 17,
   "health": "ok",
   "status": "fix_applied",
   "files_changed": [
@@ -9,24 +9,24 @@
     "hf-space/features/engine.py"
   ],
   "change_type": "bug_fix",
-  "description": "Fixed two constant placeholder values in Cat 14 (Defensive Matchup Advanced). shot_contest_rate was hardcoded 0.6 and rim_protection_rate was hardcoded 0.55 for all games/teams. These created zero differential signal (same value for every team) plus a directional bias. Replaced with: (1) blk_rate*5 as shot contest proxy (same scale as existing stl_rate*5 deflection proxy, provides real team differentiation), (2) opp_efg() or 0.5 as rim/perimeter defense quality (opp eFG% is a standard defensive efficiency metric; fallback 0.5 is neutral when data unavailable, vs previous 0.55 which biased all no-data rows toward above-average defense).",
-  "brier_impact_estimate": -0.0005,
-  "bug_fixed": "cat14_defensive_matchup_constant_placeholders",
-  "root_cause": "Lines 3148 and 3150 appended constant 0.6 and 0.55 to the feature row for ALL games, regardless of team. A constant feature provides zero differential signal between home and away teams, so it cannot help discriminate winners. Additionally, 0.6 and 0.55 are both above 0.5, injecting a subtle positive bias. Feature selection (mutual_info) should eventually discard them, but they consume feature slots that could hold real signal. The fix uses blk_rate (reliably available) and opp_efg (standard stat, fallback 0.5 neutral) to provide genuine per-team defensive quality estimates.",
+  "description": "Fixed Cat15 (Polymarket) zero-variance fallback. polymarket_home_prob and prediction_market_consensus previously defaulted to constant 0.5 for all historical games (polymarket data never available during training). Now fall back to book-implied probability from odds_data: implied_home_prob for polymarket_home_prob, fair_home_prob for prediction_market_consensus. This converts 2 of 8 zero-variance Cat15 features into features with real variance, allowing them to survive the zero-variance filter in app.py and contribute genuine signal to the model. Feature names unchanged; only fallback values improved.",
+  "brier_impact_estimate": -0.0003,
+  "bug_fixed": "cat15_polymarket_zero_variance_fallback",
+  "root_cause": "Cat15 polymarket features fell back to constant 0.5 (or 0.0) for ALL historical games because polymarket data is never in market_data during training. The zero-variance filter in app.py (variances > 1e-10) correctly removed them, but this wasted 8 feature name slots. The fix uses odds_data — already loaded from CSV via load_historical_odds() — to provide book-implied probabilities as fallbacks for polymarket_home_prob and prediction_market_consensus. The odds_data dict is keyed by (gd, home, away) tuples, same pattern as Cat46, so the lookup is consistent and correct.",
   "parity_check": {
     "status": "match",
     "local_path": "features/engine.py",
     "hf_path": "hf-space/features/engine.py",
-    "local_md5": "723597378a18ae674e59aa8308335c97",
-    "hf_md5": "723597378a18ae674e59aa8308335c97",
-    "hf_lines": 7177,
+    "local_md5": "9570f4e0d5ec67619fff7a7f99f02a6e",
+    "hf_md5": "9570f4e0d5ec67619fff7a7f99f02a6e",
+    "hf_lines": 7212,
     "engine_version": "v3.1-54cat"
   },
   "test_suite": {
     "total": 45,
     "passed": 45,
     "pass_rate": 1.0,
-    "note": "No feature names or count changed. Existing h_shot_contest_rate and h_rim_protection_rate names unchanged. Only computed values improved. Zero structural regressions expected."
+    "note": "No feature names or count changed. Only fallback values for polymarket_home_prob and prediction_market_consensus improved from constant 0.5 to book-implied probability. Zero structural regressions expected. When odds_data has no entry for a game (early season or missing CSV data), fallback remains 0.5 — identical to prior behavior."
   },
   "audit_findings": [
     {
@@ -76,12 +76,18 @@
       "severity": "medium",
       "detail": "Cat14 defensive matchup: shot_contest_rate=0.6 and rim_protection_rate=0.55 were hardcoded constants providing zero team-differentiation signal and positive directional bias — FIXED iter 16",
       "status": "resolved"
+    },
+    {
+      "type": "feature_data_quality",
+      "severity": "medium",
+      "detail": "Cat15 polymarket: polymarket_home_prob=0.5 and prediction_market_consensus=0.5 were constant defaults (polymarket data never available during training), creating zero-variance features that were filtered out by app.py zero-variance filter — FIXED iter 17",
+      "status": "resolved"
     }
   ],
   "next_iteration": {
-    "action": "audit_cat15_polymarket_placeholders",
-    "method": "Cat 15 Polymarket features (lines 3153-3163) default to 0.5 for all market probabilities and 0.0 for movement/divergence when data unavailable. Check what fraction of games actually have polymarket data vs falling back to defaults. If >80% are defaults, the 8 features are wasted slots. Consider: (a) gating these features behind a has_market_data flag, or (b) using consensus odds from regular books as a fallback proxy for prediction_market_consensus.",
+    "action": "audit_cat15_remaining_zero_variance",
+    "method": "Cat15 still has 6 features with potential zero-variance when both polymarket AND odds_data are unavailable: polymarket_volume (0.5), polymarket_line_movement (0.0), polymarket_vs_books (0.0), market_wisdom_confidence (0.5), smart_vs_public_divergence (0.0), closing_line_value_history (0.0). Check: (a) whether odds_data provides proxies for these (e.g., books_disagreement for market_wisdom_confidence, smart_money_indicator for smart_vs_public_divergence, clv_recent_avg for closing_line_value_history — all already in Cat9 mkt dict but require market_data not odds_data), (b) audit Cat16-20 interaction features for any pairs that both reference zero-variance source features (creating zero-variance products).",
     "target_metric": "brier_delta",
-    "estimated_impact": -0.0003
+    "estimated_impact": -0.0002
   }
 }
