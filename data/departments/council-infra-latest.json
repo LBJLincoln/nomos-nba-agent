@@ -1,16 +1,21 @@
 {
   "department": "infra",
   "dept_id": "d7",
-  "timestamp": "2026-04-08T06:00:01Z",
+  "timestamp": "2026-04-08T12:00:04Z",
   "model": "claude-haiku-4-5-20251001",
   "budget_usd": 0.5,
   "max_turns": 30,
-  "duration_seconds": 632,
+  "duration_seconds": 397,
   "exit_code": 0,
   "status": "success",
   "agent_status": "no_op",
-  "stall_streak": 1,
+  "verified_status": "no_op",
+  "stall_streak": 2,
   "log_file": "/home/termius/mon-ipad/logs/councils/d7-infra-2026-04-08.log",
-  "experiment_id": "7c307cfe58d5",
-  "experiment_id_written_at": "2026-04-08T06:45:13.331762+00:00"
+  "pre_sha": "c1c61c95d1ad138b03a8ed3c773027ace464f562",
+  "real_sha": "8f38664bb7307430368f79de9bdae8094883f836",
+  "agent_claimed_sha": "",
+  "rejected_files": [],
+  "experiment_id": "1b27f775f0c2",
+  "experiment_id_written_at": "2026-04-08T12:45:02.091307+00:00"
 }
