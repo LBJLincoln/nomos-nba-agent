@@ -1107,6 +1107,8 @@ def _build_model(hp, use_gpu=False):
                 num_leaves=min(2 ** hp["max_depth"] - 1, 127),
                 reg_alpha=hp["reg_alpha"],
                 reg_lambda=hp["reg_lambda"],
+                # DART P012: dropout trees — better probability calibration, reduces reliability error
+                boosting_type="dart", drop_rate=0.1, skip_drop=0.5, uniform_drop=True,
                 verbose=-1, random_state=42, n_jobs=-1,
             )
         elif mt == "catboost":
