@@ -1883,6 +1883,7 @@ def _ece(probs, actuals, n_bins=10):
 # S11 (secondary): exploration — higher mutation, wider feature search
 import os as _os
 _SPACE_ROLE = _os.environ.get("SPACE_ROLE", "exploitation")  # "exploitation" or "exploration"
+_SPACE_ID = _os.environ.get("SPACE_ID", _os.environ.get("SPACE_HOST", "unknown"))  # e.g. "Nomos42/nba-evo-5"
 
 _ROLE_CONFIGS = {
     "exploitation": {  # S10: proven optimal
@@ -2155,6 +2156,13 @@ def evolution_loop():
 
     # ── INFINITE LOOP (Island Model + NSGA-II) ──
     cycle = 0
+    # Cycle-level stagnation: counts cycles where best_brier didn't beat all-time record.
+    # Unlike per-generation stagnation (which resets on diversify), this is never gamed.
+    # Trigger: if stuck for CYCLE_STAGNATION_HARD cycles → emergency full reset of model types.
+    _cycles_no_brier_improvement = 0
+    _brier_at_last_cycle_improvement = float(best_ever.fitness["brier"]) if best_ever else 1.0
+    CYCLE_STAGNATION_HARD = 25  # ~25 cycles × 3-5 min = ~75-125 min without improvement
+
     while True:
         cycle += 1
         live["cycle"] = cycle
@@ -2507,6 +2515,44 @@ def evolution_loop():
             live["top5"] = results["top5"]
             log(f"Results saved: evolution-{ts}.json")
 
+            # ── Cycle-level stagnation tracking (not gamed by per-gen diversify resets) ──
+            _current_brier = best_ever.fitness["brier"]
+            if _current_brier < _brier_at_last_cycle_improvement - 0.0002:
+                _cycles_no_brier_improvement = 0
+                _brier_at_last_cycle_improvement = _current_brier
+                log(f"[CYCLE-STAG] Brier improved to {_current_brier:.5f} — counter reset")
+            else:
+                _cycles_no_brier_improvement += 1
+                log(f"[CYCLE-STAG] No improvement for {_cycles_no_brier_improvement} cycles "
+                    f"(best={_current_brier:.5f}, need <{_brier_at_last_cycle_improvement - 0.0002:.5f})")
+
+            # Hard intervention: if stuck for CYCLE_STAGNATION_HARD cycles, reseed model types
+            if _cycles_no_brier_improvement >= CYCLE_STAGNATION_HARD:
+                log(f"[CYCLE-STAG] HARD RESET after {_cycles_no_brier_improvement} cycles stuck — "
+                    f"reseeding model type distribution", "WARN")
+                # Replace bottom 60% of population with fresh individuals using unexplored model types
+                all_inds = island_model.get_all_individuals()
+                all_inds.sort(key=lambda x: x.fitness.get("composite", 0), reverse=True)
+                keep = all_inds[:int(len(all_inds) * 0.4)]  # keep top 40%
+                unused_types = [t for t in CPU_MODEL_TYPES
+                                if t not in {i.hyperparams.get("model_type") for i in keep}]
+                if not unused_types:
+                    unused_types = CPU_MODEL_TYPES
+                for idx, ind in enumerate(all_inds[int(len(all_inds) * 0.4):]):
+                    mt = unused_types[idx % len(unused_types)]
+                    fresh = Individual(n_feat, TARGET_FEATURES, model_type=mt)
+                    fresh.island_id = ind.island_id
+                    # Replace in island
+                    for isl in island_model.islands:
+                        for i, m in enumerate(isl):
+                            if m is ind:
+                                isl[i] = fresh
+                                break
+                mutation_rate = min(0.15, mutation_rate * 2.0)
+                _cycles_no_brier_improvement = 0
+                log(f"[CYCLE-STAG] Reseeded {len(all_inds) - len(keep)} individuals with types: "
+                    f"{unused_types[:5]}. Mutation boosted to {mutation_rate:.4f}")
+
             # ── Supabase: log cycle ──
             try:
                 _db_url = os.environ.get("DATABASE_URL", "")
@@ -2521,8 +2567,9 @@ def evolution_loop():
                         (cycle, generation, best_brier, best_roi, best_sharpe, best_calibration,
                          best_composite, best_features, best_model_type, pop_size, mutation_rate,
                          crossover_rate, stagnation, games, feature_candidates, cycle_duration_s,
-                         avg_composite, pop_diversity, top5, selected_features)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                         avg_composite, pop_diversity, top5, selected_features,
+                         space_id, cycles_no_brier_improvement)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                         (cycle, generation, float(best_ever.fitness["brier"]), float(best_ever.fitness["roi"]),
                          float(best_ever.fitness["sharpe"]), float(best_ever.fitness.get("calibration", 0)),
                          float(best_ever.fitness["composite"]), int(best_ever.n_features),
@@ -2530,7 +2577,8 @@ def evolution_loop():
                          float(CROSSOVER_RATE), stagnation, len(games), n_feat,
                          float(time.time() - cycle_start), avg_comp, pop_diversity,
                          json.dumps(results.get("top5", [])[:5], default=str),
-                         json.dumps(sel_names[:50], default=str)))
+                         json.dumps(sel_names[:50], default=str),
+                         _SPACE_ID, _cycles_no_brier_improvement))
                     _cur.close()
                     _dbconn.close()
                     log("[SUPABASE] Cycle logged OK")
