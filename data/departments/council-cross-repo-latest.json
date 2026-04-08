@@ -1,16 +1,16 @@
 {
   "department": "cross-repo",
   "dept_id": "d9",
-  "timestamp": "2026-04-08T01:00:01Z",
+  "timestamp": "2026-04-08T07:00:04Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 121,
+  "duration_seconds": 301,
   "exit_code": 0,
   "status": "success",
   "agent_status": "HEALTHY",
   "stall_streak": 1,
   "log_file": "/home/termius/mon-ipad/logs/councils/d9-cross-repo-2026-04-08.log",
-  "experiment_id": "05e203b4a0fd",
-  "experiment_id_written_at": "2026-04-08T01:15:02.133232+00:00"
+  "experiment_id": "5c8483ffa964",
+  "experiment_id_written_at": "2026-04-08T08:15:06.115759+00:00"
 }

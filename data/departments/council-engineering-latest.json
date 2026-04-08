@@ -1,16 +1,16 @@
 {
   "department": "engineering",
   "dept_id": "d2",
-  "timestamp": "2026-04-08T01:00:01Z",
+  "timestamp": "2026-04-08T07:00:04Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 2.0,
   "max_turns": 50,
-  "duration_seconds": 193,
-  "exit_code": 0,
-  "status": "success",
+  "duration_seconds": 1654,
+  "exit_code": 1,
+  "status": "failed",
   "agent_status": "unknown",
-  "stall_streak": 1,
+  "stall_streak": 2,
   "log_file": "/home/termius/mon-ipad/logs/councils/d2-engineering-2026-04-08.log",
-  "experiment_id": "013f8fe31a7f",
-  "experiment_id_written_at": "2026-04-08T01:15:02.125187+00:00"
+  "experiment_id": "d4da1e516c31",
+  "experiment_id_written_at": "2026-04-08T07:45:08.863342+00:00"
 }
