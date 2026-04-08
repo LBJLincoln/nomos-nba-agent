@@ -1,16 +1,21 @@
 {
   "department": "finance",
   "dept_id": "d8",
-  "timestamp": "2026-04-08T08:00:04Z",
+  "timestamp": "2026-04-08T20:00:01Z",
   "model": "claude-haiku-4-5-20251001",
   "budget_usd": 0.5,
   "max_turns": 25,
-  "duration_seconds": 361,
-  "exit_code": 0,
-  "status": "success",
+  "duration_seconds": 182,
+  "exit_code": 1,
+  "status": "failed",
   "agent_status": "shipped",
-  "stall_streak": 0,
+  "verified_status": "hallucinated",
+  "stall_streak": 1,
   "log_file": "/home/termius/mon-ipad/logs/councils/d8-finance-2026-04-08.log",
-  "experiment_id": "226a2e56ab1d",
-  "experiment_id_written_at": "2026-04-08T08:45:01.716690+00:00"
+  "pre_sha": "4e28679417bf0774534813fbb0000d63100bd008",
+  "real_sha": "b3ffdfcea2b47c237118fc60cc86cb53ec00b1ea",
+  "agent_claimed_sha": "",
+  "rejected_files": [],
+  "experiment_id": "cd9b2da2629c",
+  "experiment_id_written_at": "2026-04-08T20:15:01.904191+00:00"
 }

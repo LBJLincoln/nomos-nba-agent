@@ -1,21 +1,23 @@
 {
   "department": "research",
   "dept_id": "d1",
-  "timestamp": "2026-04-08T12:00:04Z",
+  "timestamp": "2026-04-08T18:00:01Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 344,
-  "exit_code": 0,
-  "status": "success",
+  "duration_seconds": 194,
+  "exit_code": 1,
+  "status": "failed",
   "agent_status": "completed",
   "verified_status": "completed",
-  "stall_streak": 3,
+  "stall_streak": 4,
   "log_file": "/home/termius/mon-ipad/logs/councils/d1-research-2026-04-08.log",
-  "pre_sha": "dbdf237b4a6577936d98cb90c9bd94a291c73d63",
-  "real_sha": "5c48c17f39b9105707de73ef502a8b5819f74ca9",
+  "pre_sha": "869ed6a6149d9dd1af6eff01f1b1aefd56f3ef9e",
+  "real_sha": "8fb75395d0cc6d352e12383a9d8f3fac18cc3573",
   "agent_claimed_sha": "",
-  "rejected_files": [],
-  "experiment_id": "c8fd5a213a6d",
-  "experiment_id_written_at": "2026-04-08T12:15:08.794758+00:00"
+  "rejected_files": [
+    "data/arena/agent-states-v5.json"
+  ],
+  "experiment_id": "54d042de8aa2",
+  "experiment_id_written_at": "2026-04-08T18:15:02.117740+00:00"
 }
