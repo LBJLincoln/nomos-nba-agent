@@ -3187,13 +3187,19 @@ class NBAFeatureEngine:
                 _pm_book = (odds_data or {}).get((gd, home, away), {})
                 _pm_impl = _pm_book.get("implied_home_prob", 0.5) if _pm_book else 0.5
                 _pm_fair = _pm_book.get("fair_home_prob", 0.5) if _pm_book else 0.5
+                # market_wisdom_confidence proxy: 1 - normalized(books_disagreement).
+                # books_disagreement = max(implied_home_prob) - min(implied_home_prob) across books,
+                # computed in load_historical_odds() for games with multi-book CSV data.
+                # Scale: 0.0 disagree → confidence 1.0; 0.10 disagree → confidence 0.0.
+                _bd = _pm_book.get("books_disagreement", None)
+                _mwc_fallback = max(0.0, 1.0 - min(1.0, _bd * 10.0)) if _bd is not None else 0.5
                 row.extend([
                     pmkt.get("polymarket_home_prob", _pm_impl),       # fallback: book implied prob
                     pmkt.get("polymarket_volume", 0.5),
                     pmkt.get("polymarket_line_movement", 0.0),
                     pmkt.get("polymarket_vs_books", 0.0),
                     pmkt.get("prediction_market_consensus", _pm_fair), # fallback: book fair prob
-                    pmkt.get("market_wisdom_confidence", 0.5),
+                    pmkt.get("market_wisdom_confidence", _mwc_fallback),  # proxy: 1-norm(books_disagree)
                     pmkt.get("smart_vs_public_divergence", 0.0),
                     pmkt.get("closing_line_value_history", 0.0),
                 ])
