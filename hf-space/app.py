@@ -48,7 +48,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.base import clone
+from sklearn.base import clone, BaseEstimator, ClassifierMixin
 import xgboost as xgb
 import lightgbm as lgbm
 
@@ -639,10 +639,10 @@ def build_features(games):
 # GENETIC INDIVIDUAL
 # ═══════════════════════════════════════════════════════
 
-# All model types the GA can evolve (13 total)
+# All model types the GA can evolve (14 total)
 ALL_MODEL_TYPES = [
     # Tree-based (fast, reliable)
-    "xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees",
+    "xgboost", "xgboost_brier", "lightgbm", "lightgbm_brier", "catboost", "random_forest", "extra_trees",
     # Ensemble
     "stacking",
     # Neural nets (slower, potentially more powerful)
@@ -655,13 +655,14 @@ ALL_MODEL_TYPES = [
 NEURAL_NET_TYPES = {"lstm", "transformer", "tabnet", "ft_transformer", "deep_ensemble", "mlp", "autogluon"}
 
 # Fast model types (for islands that prioritize speed)
-FAST_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "random_forest", "extra_trees", "logistic_regression"]
+FAST_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "lightgbm_brier", "random_forest", "extra_trees", "logistic_regression"]
 
 # CPU-viable model types (tree-based + stacking w/ MLP meta-learner, excludes neural nets)
 # Stacking re-added: v2 MLP(50,50) meta-learner replaces LR (was 0.24733, expect -0.003 Brier)
 # logistic_regression added: MDPI 2026 shows LR achieves best Brier (0.199) among tabular models
 # due to inherent calibration — beating XGBoost (0.202) and RF on probability quality
-CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "catboost", "random_forest", "extra_trees", "logistic_regression", "stacking"]
+# lightgbm_brier added: LGBMRegressor(MSE) on binary labels = Brier minimisation (Apr 8, cycle79)
+CPU_MODEL_TYPES = ["xgboost", "xgboost_brier", "lightgbm", "lightgbm_brier", "catboost", "random_forest", "extra_trees", "logistic_regression", "stacking"]
 
 
 # ── Custom Brier objective for XGBoost ──
@@ -673,6 +674,42 @@ def _brier_objective(y_true, y_pred):
     grad = 2.0 * (p - y_true) * p * (1.0 - p)
     hess = 2.0 * p * (1.0 - p) + 1e-6  # Simplified + stability
     return grad, hess
+
+
+# ── LightGBM Brier classifier — MSE on binary labels = Brier minimisation ──
+# Training LGBMRegressor(objective='regression') on y∈{0,1} directly minimises
+# E[(p-y)^2] = Brier score. Avoids custom-objective predict_proba complications.
+# Added: cycle79 Apr 8, 2026 — arXiv 2508.02725 Aug 2025 (NCAA: Brier-loss → −0.016 vs BCE)
+class LGBMBrierClassifier(BaseEstimator, ClassifierMixin):
+    """sklearn-compatible wrapper: LGBMRegressor trained on binary labels.
+    Equivalent to minimising Brier score directly. predict_proba-compatible.
+    Inherits BaseEstimator for get_params/set_params (required by sklearn clone)."""
+
+    def __init__(self, n_estimators=100, max_depth=-1, learning_rate=0.05,
+                 subsample=0.8, num_leaves=31, reg_alpha=0.0, reg_lambda=1.0,
+                 min_child_samples=20, feature_fraction=0.7,
+                 random_state=42, n_jobs=-1):
+        self._reg = lgbm.LGBMRegressor(
+            n_estimators=n_estimators, max_depth=max_depth,
+            learning_rate=learning_rate, subsample=subsample,
+            num_leaves=num_leaves, reg_alpha=reg_alpha, reg_lambda=reg_lambda,
+            min_child_samples=min_child_samples, colsample_bytree=feature_fraction,
+            objective='regression',  # MSE on {0,1} labels = Brier minimisation
+            random_state=random_state, n_jobs=n_jobs, verbose=-1,
+        )
+        self.classes_ = np.array([0, 1])
+
+    def fit(self, X, y, **kwargs):
+        self._reg.fit(X, y)
+        return self
+
+    def predict_proba(self, X):
+        p = np.clip(self._reg.predict(X), 0.0, 1.0)
+        return np.column_stack([1.0 - p, p])
+
+    def predict(self, X):
+        p = self._reg.predict(X)
+        return (p >= 0.5).astype(int)
 
 
 class Individual:
@@ -766,7 +803,9 @@ class Individual:
         if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(8, self.hyperparams["max_depth"] + random.randint(-2, 2)))
         if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.3, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
         if random.random() < 0.08: self.hyperparams["model_type"] = random.choice(CPU_MODEL_TYPES if not _HAS_GPU else ALL_MODEL_TYPES)
-        if random.random() < 0.05: self.hyperparams["calibration"] = random.choices(["none", "sigmoid", "venn_abers", "beta", "lr_meta", "lr_platt", "isotonic_temporal"], weights=[40, 11, 11, 15, 8, 9, 6], k=1)[0]
+        # Calibration mutation: reduced "none" bias (was 40→22%) to give calibrated models more exposure.
+        # isotonic_temporal raised 6→10%: proven best on temporal holdout (MDPI Jan 2026). cycle79.
+        if random.random() < 0.05: self.hyperparams["calibration"] = random.choices(["none", "sigmoid", "venn_abers", "beta", "lr_meta", "lr_platt", "isotonic_temporal"], weights=[22, 12, 14, 18, 12, 12, 10], k=1)[0]
         # Neural net hyperparams mutation
         if random.random() < 0.10: self.hyperparams["nn_hidden_dims"] = random.choice([64, 128, 256, 512])
         if random.random() < 0.10: self.hyperparams["nn_n_layers"] = max(1, min(6, self.hyperparams.get("nn_n_layers", 2) + random.randint(-1, 1)))
@@ -1470,6 +1509,16 @@ def _build(hp):
                                        min_child_samples=20, feature_fraction=0.7,
                                        boosting_type="dart", drop_rate=0.1,
                                        verbose=-1, random_state=42, n_jobs=-1)
+        elif mt == "lightgbm_brier":
+            # LGBMBrierClassifier: MSE on {0,1} labels = direct Brier minimisation.
+            # GBDT (not DART) for compatibility. num_leaves tuned same as lightgbm.
+            return LGBMBrierClassifier(
+                n_estimators=n_est, max_depth=depth, learning_rate=lr,
+                subsample=hp["subsample"], num_leaves=min(2 ** depth - 1, 31),
+                reg_alpha=reg_a, reg_lambda=reg_l,
+                min_child_samples=20, feature_fraction=hp.get("colsample_bytree", 0.7),
+                random_state=42, n_jobs=-1,
+            )
         elif mt == "catboost":
             from catboost import CatBoostClassifier
             return CatBoostClassifier(iterations=min(n_est, 100), depth=min(depth, 6),
