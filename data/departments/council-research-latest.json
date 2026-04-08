@@ -1,14 +1,16 @@
 {
   "department": "research",
   "dept_id": "d1",
-  "timestamp": "2026-04-07T18:00:05Z",
+  "timestamp": "2026-04-08T00:00:02Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 537,
+  "duration_seconds": 660,
   "exit_code": 0,
   "status": "success",
-  "log_file": "/home/termius/mon-ipad/logs/councils/d1-research-2026-04-07.log",
-  "experiment_id": "65f9eb422f14",
-  "experiment_id_written_at": "2026-04-07T20:22:59.631700+00:00"
+  "agent_status": "completed",
+  "stall_streak": 1,
+  "log_file": "/home/termius/mon-ipad/logs/councils/d1-research-2026-04-08.log",
+  "experiment_id": "b5762af45ea7",
+  "experiment_id_written_at": "2026-04-08T00:15:02.407412+00:00"
 }
