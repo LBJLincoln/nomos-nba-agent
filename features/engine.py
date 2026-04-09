@@ -54,7 +54,8 @@ Categories:
   52. ODDS LINE FEATURES (15 features — spread magnitude, total, vig, season percentiles)
   53. ATS RECORD FEATURES (12 features — cover rate last 10/season, streaks, home/road splits)
   54. OVER/UNDER RECORD FEATURES (12 features — over rate last 10/season, pace vs total)
-  ≈ 6296+ feature candidates
+  55. MARKET CONSENSUS DEVIATION (10 features — cross-instrument divergence, fair prob, vig distortion)
+  ≈ 6306+ feature candidates
 
 Architecture inspired by:
   - Starlizard: 500+ features, genetic selection, real-time adjustment
@@ -78,7 +79,7 @@ import csv
 import os
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.1-54cat"  # merged: background agent added 54cat on top of 51cat-sched
+ENGINE_VERSION = "v3.1-55cat"  # Cat55: market consensus deviation (MDPI 2026 fused model)
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -2725,6 +2726,24 @@ class NBAFeatureEngine:
             "ou54_a_away_over",             # Away over rate in road games only
             "ou54_total_trend",             # Season total trend: last 10 avg vs season avg total
             "ou54_margin_vs_total_10",      # Avg (actual_total - ou_line) last 10 for combined games
+        ])
+
+        # 55. MARKET CONSENSUS DEVIATION (10 features) — MDPI 2026 fused model / arXiv 2502.05676
+        # Cross-instrument disagreement: how much ML odds vs spread-implied fair prob diverge.
+        # Key insight: fused model AUC 0.95 vs 0.76/0.94 separate components (MDPI Information 2026).
+        # Vig-free spread probability uses sigmoid: p = 1/(1 + exp(spread/7.5)) where spread<0=home fav.
+        # Expected Brier delta: -0.002 to -0.004.
+        names.extend([
+            "cmd55_fair_h_prob",             # Vig-removed home prob from spread (sigmoid)
+            "cmd55_fair_a_prob",             # Vig-removed away prob (1 - fair_h)
+            "cmd55_ml_vs_spread_gap",        # |ml_implied_h - fair_h_spread| (instrument disagreement)
+            "cmd55_books_internal_disagree", # 1 if ML and spread favor different teams
+            "cmd55_market_edge_h",           # (ml_implied_h-0.5)×(fair_h-0.5)×4 (compound home edge)
+            "cmd55_liquidity_proxy",         # Total line normalized: (total-190)/60, clipped [0,1]
+            "cmd55_ml_confidence",           # |ml_implied_h - 0.5| (market conviction via ML odds)
+            "cmd55_spread_confidence",       # |spread_home| / 10, clipped [0,1] (spread conviction)
+            "cmd55_consensus_strength",      # avg(ml_confidence, spread_confidence) (joint conviction)
+            "cmd55_vig_distortion",          # |fair_h - ml_implied_h| (vig shifts probability by this)
         ])
 
         self.feature_names = names
@@ -6313,6 +6332,59 @@ class NBAFeatureEngine:
                 ])
             except Exception:
                 row.extend([0.5, 0.5, 0.5, 0.5, 0.0, 0.0, 0.5, 0.0, 0.5, 0.5, 0.0, 0.0])
+
+            # ── Cat 55: Market Consensus Deviation (10 features) ──
+            # Cross-instrument divergence: spread-fair-prob vs ML-implied-prob.
+            try:
+                _odds55  = (odds_data or {}).get((gd, home, away), {})
+                _sp55    = _odds55.get('spread_home', None)
+                _ip55h   = _odds55.get('implied_home_prob', 0.5)
+                _tot55   = float(_odds55.get('total', 220.0) or 220.0)
+
+                # Fair home win prob from spread via sigmoid (vig-removed)
+                # spread_home < 0 → home favored → higher prob
+                if _sp55 is not None:
+                    _fair_h55 = 1.0 / (1.0 + math.exp(float(_sp55) / 7.5))
+                else:
+                    _fair_h55 = 0.5
+                _fair_a55 = 1.0 - _fair_h55
+
+                # Instrument disagreement: ML odds vs spread-implied fair prob
+                _ml_vs_sp55 = abs(_ip55h - _fair_h55)
+
+                # Books internal disagreement: do ML and spread agree on favorite?
+                _ml_dir55   = 1 if _ip55h > 0.5 else -1
+                _sp_dir55   = -1 if (_sp55 is not None and float(_sp55) < 0) else 1
+                _disagree55 = 0.0 if _ml_dir55 == _sp_dir55 else 1.0
+
+                # Compound home edge: positive only if BOTH instruments favor home
+                _edge_h55 = (_ip55h - 0.5) * (_fair_h55 - 0.5) * 4.0
+
+                # Liquidity proxy: higher totals = more liquid market = more reliable
+                _liq55 = min(1.0, max(0.0, (_tot55 - 190.0) / 60.0))
+
+                # Market confidence from each instrument
+                _ml_conf55 = abs(_ip55h - 0.5)
+                _sp_conf55 = min(1.0, abs(float(_sp55) / 10.0)) if _sp55 is not None else 0.35
+                _consensus55 = (_ml_conf55 + _sp_conf55) / 2.0
+
+                # Vig distortion: how much vig shifts ML prob away from fair prob
+                _vig_dist55 = abs(_fair_h55 - _ip55h)
+
+                row.extend([
+                    _fair_h55,               # cmd55_fair_h_prob
+                    _fair_a55,               # cmd55_fair_a_prob
+                    _ml_vs_sp55,             # cmd55_ml_vs_spread_gap
+                    _disagree55,             # cmd55_books_internal_disagree
+                    _edge_h55,               # cmd55_market_edge_h
+                    _liq55,                  # cmd55_liquidity_proxy
+                    _ml_conf55,              # cmd55_ml_confidence
+                    _sp_conf55,              # cmd55_spread_confidence
+                    _consensus55,            # cmd55_consensus_strength
+                    _vig_dist55,             # cmd55_vig_distortion
+                ])
+            except Exception:
+                row.extend([0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.35, 0.175, 0.0])
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
