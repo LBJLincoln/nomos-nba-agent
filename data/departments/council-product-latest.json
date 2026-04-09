@@ -1,24 +1,21 @@
 {
   "department": "product",
   "dept_id": "d4",
-  "timestamp": "2026-04-09T14:00:03Z",
+  "timestamp": "2026-04-09T20:00:02Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 254,
+  "duration_seconds": 256,
   "exit_code": 1,
   "status": "failed",
   "agent_status": "unknown",
   "verified_status": "unknown",
-  "stall_streak": 6,
+  "stall_streak": 7,
   "log_file": "/home/termius/mon-ipad/logs/councils/d4-product-2026-04-09.log",
-  "pre_sha": "53446a9b98eb17464e57fe286e15541a8abec716",
-  "real_sha": "221f47df2cf390e0868ec41d608d591dce1d6830",
+  "pre_sha": "207ddc4a13694156e6f4d3c7fd69e96bc68fdc1d",
+  "real_sha": "4dc28651d7b85172da61f8b1ab4ebd9b83682fd8",
   "agent_claimed_sha": "",
-  "rejected_files": [
-    "data/arena/agent-states-v5.json",
-    "data/karpathy/nba-history.json"
-  ],
-  "experiment_id": "1b90b10beeeb",
-  "experiment_id_written_at": "2026-04-09T14:15:03.664421+00:00"
+  "rejected_files": [],
+  "experiment_id": "487cb7b8a2dc",
+  "experiment_id_written_at": "2026-04-09T20:15:02.024965+00:00"
 }

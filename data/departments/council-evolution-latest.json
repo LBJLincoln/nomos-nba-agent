@@ -1,21 +1,21 @@
 {
   "department": "evolution",
   "dept_id": "d3",
-  "timestamp": "2026-04-09T12:00:01Z",
+  "timestamp": "2026-04-09T18:00:01Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 2.0,
   "max_turns": 50,
-  "duration_seconds": 182,
+  "duration_seconds": 181,
   "exit_code": 1,
   "status": "failed",
   "agent_status": "shipped",
   "verified_status": "shipped",
   "stall_streak": 0,
   "log_file": "/home/termius/mon-ipad/logs/councils/d3-evolution-2026-04-09.log",
-  "pre_sha": "0ae167c0f41ab83563632205ba7b8e467bf00439",
-  "real_sha": "532f7e25e8ae24dc4487287e7273b16f07c3e219",
+  "pre_sha": "11c0811e350e095f023bd0b20c7acc759eaedaf6",
+  "real_sha": "d4baf44f200590d38bdb648a11574f6a12938e83",
   "agent_claimed_sha": "",
   "rejected_files": [],
-  "experiment_id": "b8b0371c0006",
-  "experiment_id_written_at": "2026-04-09T12:15:01.654414+00:00"
+  "experiment_id": "aa62efed1352",
+  "experiment_id_written_at": "2026-04-09T18:15:01.451730+00:00"
 }
