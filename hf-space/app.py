@@ -803,9 +803,11 @@ class Individual:
         if random.random() < 0.15: self.hyperparams["max_depth"] = max(2, min(8, self.hyperparams["max_depth"] + random.randint(-2, 2)))
         if random.random() < 0.15: self.hyperparams["learning_rate"] = max(0.001, min(0.3, self.hyperparams["learning_rate"] * 10 ** random.uniform(-0.3, 0.3)))
         if random.random() < 0.08: self.hyperparams["model_type"] = random.choice(CPU_MODEL_TYPES if not _HAS_GPU else ALL_MODEL_TYPES)
-        # Calibration mutation: reduced "none" bias (was 40→22%) to give calibrated models more exposure.
-        # isotonic_temporal raised 6→10%: proven best on temporal holdout (MDPI Jan 2026). cycle79.
-        if random.random() < 0.05: self.hyperparams["calibration"] = random.choices(["none", "sigmoid", "venn_abers", "beta", "lr_meta", "lr_platt", "isotonic_temporal"], weights=[22, 12, 14, 18, 12, 12, 10], k=1)[0]
+        # Calibration mutation: venn_abers boosted 14→25 to match init weight and preserve demonstrated
+        # advantage (S13 pareto_best_brier 0.21773 used venn_abers; delta -0.00543 vs no calibration).
+        # "none" reduced 22→16: GA was drifting back to uncalibrated models, losing hard-won gains.
+        # Brain cycle 82, 2026-04-09.
+        if random.random() < 0.05: self.hyperparams["calibration"] = random.choices(["none", "sigmoid", "venn_abers", "beta", "lr_meta", "lr_platt", "isotonic_temporal"], weights=[16, 12, 25, 20, 9, 10, 8], k=1)[0]
         # Neural net hyperparams mutation
         if random.random() < 0.10: self.hyperparams["nn_hidden_dims"] = random.choice([64, 128, 256, 512])
         if random.random() < 0.10: self.hyperparams["nn_n_layers"] = max(1, min(6, self.hyperparams.get("nn_n_layers", 2) + random.randint(-1, 1)))

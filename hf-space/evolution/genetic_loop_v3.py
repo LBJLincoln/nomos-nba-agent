@@ -850,7 +850,11 @@ class Individual:
             "reg_alpha": 10 ** random.uniform(-6, 1),
             "reg_lambda": 10 ** random.uniform(-6, 1),
             "model_type": model_type or random.choice(GPU_MODEL_TYPES),
-            "calibration": random.choice(["isotonic", "sigmoid", "none"]),
+            # venn_abers added (brain cycle 82, 2026-04-09): HF island best (pareto 0.21773) uses
+            # venn_abers; GPU Kaggle loop was missing this option entirely.
+            "calibration": random.choices(
+                ["none", "sigmoid", "venn_abers", "beta", "isotonic", "isotonic_temporal"],
+                weights=[15, 12, 25, 20, 15, 13], k=1)[0],
             # Neural net hyperparams
             "nn_hidden_dims": random.choice([64, 128, 256]),
             "nn_n_layers": random.randint(2, 4),
@@ -956,7 +960,10 @@ class Individual:
         if random.random() < 0.08:
             self.hyperparams["model_type"] = random.choice(GPU_MODEL_TYPES)
         if random.random() < 0.05:
-            self.hyperparams["calibration"] = random.choice(["isotonic", "sigmoid", "none"])
+            # Aligned with HF island weights; venn_abers dominant (brain cycle 82).
+            self.hyperparams["calibration"] = random.choices(
+                ["none", "sigmoid", "venn_abers", "beta", "isotonic", "isotonic_temporal"],
+                weights=[16, 12, 25, 20, 14, 13], k=1)[0]
         # Neural net hyperparams
         if random.random() < 0.10:
             self.hyperparams["nn_hidden_dims"] = random.choice([64, 128, 256, 512])
