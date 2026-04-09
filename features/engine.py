@@ -58,7 +58,8 @@ Categories:
   56. DIRECTIONAL CIRCADIAN ADVANTAGE (10 features — signed westbound/eastbound travel, 8.5pp effect)
   57. SEQUENTIAL EXPONENTIAL FORM (12 features — α-weighted momentum, hot hand, form variance)
   58. MODEL CONFIDENCE & CALIBRATION ANCHORS (10 features — spread confidence, H2H consistency)
-  ≈ 6338+ feature candidates
+  59. OPPONENT GRAPH FEATURES (12 features — 2nd-order SOS, transitive wins, common-opp advantage)
+  ≈ 6350+ feature candidates
 
 Architecture inspired by:
   - Starlizard: 500+ features, genetic selection, real-time adjustment
@@ -82,7 +83,7 @@ import csv
 import os
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.1-58cat"  # Cat56-58: directional circadian, sequential form, calibration anchors
+ENGINE_VERSION = "v3.1-59cat"  # Cat59: opponent graph features (arXiv 2303.16741 GATv2-TCN approach)
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -2800,6 +2801,25 @@ class NBAFeatureEngine:
             "cal58_a_road_wp_hist",          # Full historical road win rate for away team
             "cal58_compound_confidence",     # spread_conf × (1 - b2b_uncertainty)
             "cal58_matchup_mkt_compound",    # h2h_consistency × spread_confidence
+        ])
+
+        # 59. OPPONENT GRAPH FEATURES (12 features — arXiv 2303.16741 GATv2-TCN approach)
+        # "Who you play affects how you play" — 2nd-order schedule strength, transitive wins,
+        # common-opponent advantage. GATv2-TCN finding: opponent scheduling is a latent
+        # performance signal not captured by raw SOS or rolling win%.
+        names.extend([
+            "opp59_h_opp_sos5",      # 2nd-order SOS: quality of home's last-5 opps' own schedules
+            "opp59_a_opp_sos5",      # Same for away
+            "opp59_common_opp_h_adv",# Home margin advantage vs shared recent opponents (norm -1→1)
+            "opp59_common_opp_count",# Shared opponent count / 10 (confidence in above estimate)
+            "opp59_h_beat_quality",  # Home win% vs above-.500 opponents in last 10 games
+            "opp59_a_beat_quality",  # Same for away
+            "opp59_h_sos_trend",     # Difficulty trend: sos_last3 − sos_prev3 (+ = getting harder)
+            "opp59_a_sos_trend",     # Same for away
+            "opp59_sched_asymmetry", # h_sos5 − a_sos5 (+ = home faced harder recent schedule)
+            "opp59_h_opp_form",      # Form of home's recent opponents at time of matchup
+            "opp59_a_opp_form",      # Form of away's recent opponents at time of matchup
+            "opp59_graph_transitive",# Home beat teams that also beat away's recent nemeses (0→1)
         ])
 
         self.feature_names = names
@@ -6607,6 +6627,99 @@ class NBAFeatureEngine:
                 ])
             except Exception:
                 row.extend([0.35, 0.8, 0.0, 0.0, 0.0, 0.75, 0.6, 0.4, 0.35, 0.0])
+
+            # ── Cat 59: Opponent Graph Features (12 features) ──
+            # arXiv 2303.16741 (GATv2-TCN): opponent scheduling is a latent performance signal.
+            # "Who you play affects how you play" — 2nd-order SOS, transitive wins, common-opp advantage.
+            try:
+                _h59_rec = hr_[-10:]
+                _a59_rec = ar_[-10:]
+
+                # 2nd-order SOS: average quality of opponents' own recent opponents
+                def _opp59_sos2(records, n=5):
+                    rec = records[-n:]
+                    vals = []
+                    for _r in rec:
+                        _opp_recs = team_results.get(_r[3], [])
+                        if _opp_recs:
+                            _opp_opp_wps = []
+                            for _r2 in _opp_recs[-5:]:
+                                _opp2_recs = team_results.get(_r2[3], [])
+                                if _opp2_recs:
+                                    _opp_opp_wps.append(self._wp(_opp2_recs, 82))
+                            if _opp_opp_wps:
+                                vals.append(sum(_opp_opp_wps) / len(_opp_opp_wps))
+                    return sum(vals) / len(vals) if vals else 0.5
+
+                _h59_sos2 = _opp59_sos2(_h59_rec)
+                _a59_sos2 = _opp59_sos2(_a59_rec)
+
+                # Common opponent advantage: home's margin vs shared recent opponents
+                _h59_opp_margins = {_r[3]: _r[2] for _r in _h59_rec}
+                _a59_opp_margins = {_r[3]: _r[2] for _r in _a59_rec}
+                _common59 = set(_h59_opp_margins.keys()) & set(_a59_opp_margins.keys())
+                if _common59:
+                    _h59_cm = [_h59_opp_margins[_t] for _t in _common59]
+                    _a59_cm = [_a59_opp_margins[_t] for _t in _common59]
+                    _common59_adv = max(-1.0, min(1.0,
+                        (sum(_h59_cm) / len(_h59_cm) - sum(_a59_cm) / len(_a59_cm)) / 20.0))
+                else:
+                    _common59_adv = 0.0
+                _common59_count = min(1.0, len(_common59) / 10.0)
+
+                # Beat quality: win% specifically against above-.500 opponents
+                _h59_beat_q = self._wp_vs_quality(_h59_rec, team_results, above=True)
+                _a59_beat_q = self._wp_vs_quality(_a59_rec, team_results, above=True)
+
+                # SOS trend: last 3 games vs the 3 before that
+                _h59_sos3  = self._sos(hr_, team_results, 3)
+                _h59_sos63 = self._sos(hr_[-6:-3], team_results, 3) if len(hr_) >= 6 else _h59_sos3
+                _a59_sos3  = self._sos(ar_, team_results, 3)
+                _a59_sos63 = self._sos(ar_[-6:-3], team_results, 3) if len(ar_) >= 6 else _a59_sos3
+                _h59_sos_trend = _h59_sos3 - _h59_sos63
+                _a59_sos_trend = _a59_sos3 - _a59_sos63
+
+                # Schedule asymmetry: which team faced harder opponents recently
+                _h59_sos5 = self._sos(_h59_rec, team_results, 5)
+                _a59_sos5 = self._sos(_a59_rec, team_results, 5)
+                _59_sched_asym = _h59_sos5 - _a59_sos5
+
+                # Opponent form: were recent opponents hot or cold going into that game?
+                def _opp59_form(records, n=5):
+                    rec = records[-n:]
+                    vals = []
+                    for _r in rec:
+                        _opp_recs = team_results.get(_r[3], [])
+                        if _opp_recs:
+                            vals.append(self._wp(_opp_recs[-5:], 5))
+                    return sum(vals) / len(vals) if vals else 0.5
+
+                _h59_opp_form = _opp59_form(_h59_rec)
+                _a59_opp_form = _opp59_form(_a59_rec)
+
+                # Transitive graph advantage: home beat teams that also beat away's recent nemeses
+                # home_beat ∩ away_beaten_by → home has proven strength over away's weak spots
+                _h59_wins_vs = {_r[3] for _r in _h59_rec if _r[2] > 0}
+                _a59_beaten_by = {_r[3] for _r in _a59_rec if _r[2] <= 0}
+                _transitive59_raw = len(_h59_wins_vs & _a59_beaten_by)
+                _transitive59 = min(1.0, _transitive59_raw / max(1.0, len(_a59_beaten_by)))
+
+                row.extend([
+                    _h59_sos2,          # opp59_h_opp_sos5
+                    _a59_sos2,          # opp59_a_opp_sos5
+                    _common59_adv,      # opp59_common_opp_h_adv
+                    _common59_count,    # opp59_common_opp_count
+                    _h59_beat_q,        # opp59_h_beat_quality
+                    _a59_beat_q,        # opp59_a_beat_quality
+                    _h59_sos_trend,     # opp59_h_sos_trend
+                    _a59_sos_trend,     # opp59_a_sos_trend
+                    _59_sched_asym,     # opp59_sched_asymmetry
+                    _h59_opp_form,      # opp59_h_opp_form
+                    _a59_opp_form,      # opp59_a_opp_form
+                    _transitive59,      # opp59_graph_transitive
+                ])
+            except Exception:
+                row.extend([0.5, 0.5, 0.0, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5])
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
