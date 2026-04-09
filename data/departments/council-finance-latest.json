@@ -1,21 +1,26 @@
 {
   "department": "finance",
   "dept_id": "d8",
-  "timestamp": "2026-04-09T02:00:01Z",
+  "timestamp": "2026-04-09T08:00:04Z",
   "model": "claude-haiku-4-5-20251001",
   "budget_usd": 0.5,
   "max_turns": 25,
-  "duration_seconds": 181,
+  "duration_seconds": 233,
   "exit_code": 1,
   "status": "failed",
   "agent_status": "shipped",
   "verified_status": "hallucinated",
-  "stall_streak": 2,
+  "stall_streak": 3,
   "log_file": "/home/termius/mon-ipad/logs/councils/d8-finance-2026-04-09.log",
-  "pre_sha": "cca56f848df0d8435e7e17b26ee092a3b3c321c7",
-  "real_sha": "890f3d6320a45c7d791cbe743ffa9dabca4f1939",
+  "pre_sha": "90812785245544d6d7572d4b42e11098a51d5c54",
+  "real_sha": "7082091d8cf326f6a262a32f7b6e0cc52a4587f2",
   "agent_claimed_sha": "",
-  "rejected_files": [],
-  "experiment_id": "663280a31af9",
-  "experiment_id_written_at": "2026-04-09T02:15:01.286416+00:00"
+  "rejected_files": [
+    "data/karpathy/nba-best-config.json",
+    "data/karpathy/political-best-config.json",
+    "data/karpathy/political-history.json",
+    "data/karpathy/schedule-log.json"
+  ],
+  "experiment_id": "f8bf2770b528",
+  "experiment_id_written_at": "2026-04-09T08:15:01.848369+00:00"
 }
