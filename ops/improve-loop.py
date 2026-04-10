@@ -40,7 +40,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "ops"))
 
 # Load env
-for env_file in [ROOT / ".env.local", Path("/home/lahargnedebartoli/mon-ipad/.env.local")]:
+for env_file in [ROOT / ".env.local", Path("/home/termius/mon-ipad/.env.local")]:
     if env_file.exists():
         for line in env_file.read_text().splitlines():
             line = line.strip()
@@ -772,14 +772,14 @@ def persist_results(results: Dict, X, y, games_count: int):
         log(f"No improvement vs previous best ({prev_best:.4f})")
 
     # Sync to mon-ipad for website
-    sync_file = Path("/home/lahargnedebartoli/mon-ipad/data/nba-agent/improve-results.json")
+    sync_file = Path("/home/termius/mon-ipad/data/nba-agent/improve-results.json")
     try:
         sync_file.write_text(json.dumps(record, indent=2))
     except Exception:
         pass
 
     # Also update quant-summary with latest results
-    summary_file = Path("/home/lahargnedebartoli/mon-ipad/data/nba-agent/quant-summary.json")
+    summary_file = Path("/home/termius/mon-ipad/data/nba-agent/quant-summary.json")
     try:
         summary = json.loads(summary_file.read_text()) if summary_file.exists() else {}
         summary["best_brier"] = best["brier"]
@@ -881,7 +881,7 @@ def main():
     args = parser.parse_args()
 
     # Save PID
-    pid_file = Path("/home/lahargnedebartoli/mon-ipad/data/nba-improve.pid")
+    pid_file = Path("/home/termius/mon-ipad/data/nba-improve.pid")
     pid_file.parent.mkdir(parents=True, exist_ok=True)
     pid_file.write_text(str(os.getpid()))
 

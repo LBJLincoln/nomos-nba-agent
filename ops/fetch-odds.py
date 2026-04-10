@@ -13,7 +13,7 @@ Sources:
                               Set THERUNDOWN_API_KEY in .env.local
 
 NOTE: The Odds API (the-odds-api.com) has been REMOVED — quota exhausted, paid service.
-      Use /home/lahargnedebartoli/mon-ipad/scripts/fetch_free_odds.py as the primary odds script.
+      Use /home/termius/mon-ipad/scripts/fetch_free_odds.py as the primary odds script.
 
 Usage:
     python3 ops/fetch-odds.py              # One-shot fetch
@@ -61,7 +61,7 @@ if _env.exists():
 ODDS_API_KEY = ""  # DISABLED: the-odds-api.com quota exhausted (paid service)
 THERUNDOWN_API_KEY = os.environ.get("THERUNDOWN_API_KEY", "")  # Free tier at therundown.io
 ODDS_API_IO_KEY = os.environ.get("ODDS_API_IO_KEY", "")        # Free tier at odds-api.io
-# NOTE: Primary odds script is now /home/lahargnedebartoli/mon-ipad/scripts/fetch_free_odds.py
+# NOTE: Primary odds script is now /home/termius/mon-ipad/scripts/fetch_free_odds.py
 
 TEAM_ABBREV = {
     "Oklahoma City Thunder": "OKC", "Boston Celtics": "BOS", "Cleveland Cavaliers": "CLE",

@@ -34,7 +34,7 @@ sys.path.insert(0, str(ROOT))
 
 # ── Load .env.local ──────────────────────────────────────────────────────────
 def _load_env():
-    for env_path in [ROOT / ".env.local", Path("/home/lahargnedebartoli/mon-ipad/.env.local")]:
+    for env_path in [ROOT / ".env.local", Path("/home/termius/mon-ipad/.env.local")]:
         if env_path.exists():
             for line in env_path.read_text().splitlines():
                 line = line.strip()
@@ -1093,7 +1093,7 @@ def build_predictions_output(
         # Apply post-hoc Platt/isotonic calibration (D5: raw ECE=0.2758, target <0.05)
         try:
             import sys as _sys
-            _sys.path.insert(0, '/home/lahargnedebartoli/mon-ipad/scripts')
+            _sys.path.insert(0, '/home/termius/mon-ipad/scripts')
             from calibration import IsotonicCalibration as _IsoCal
             _cal = _IsoCal()
             game_entry = _cal.calibrate_game(game_entry)

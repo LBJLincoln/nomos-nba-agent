@@ -231,7 +231,7 @@ def load_historical_odds(csv_path=None):
         candidates = [
             os.path.join(os.path.dirname(__file__), '..', 'data', 'historical-odds', 'nba_2025-26_odds.csv'),
             os.path.join(os.path.dirname(__file__), 'data', 'historical-odds', 'nba_2025-26_odds.csv'),
-            '/home/lahargnedebartoli/nomos-nba-agent/data/historical-odds/nba_2025-26_odds.csv',
+            '/home/termius/nomos-nba-agent/data/historical-odds/nba_2025-26_odds.csv',
         ]
         for c in candidates:
             if os.path.exists(c):

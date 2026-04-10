@@ -89,7 +89,7 @@ result = {"games_evaluated": 0, "correct": 0, "accuracy": None}
 picks_file = root / "data" / "latest-picks.json"
 if not picks_file.exists():
     # Try mon-ipad path
-    picks_file = Path("/home/lahargnedebartoli/mon-ipad/data/nba-agent/latest-picks.json")
+    picks_file = Path("/home/termius/mon-ipad/data/nba-agent/latest-picks.json")
 
 if picks_file.exists():
     try:

@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT))
 
 # ── Load .env.local ──────────────────────────────────────────────────────────
 def _load_env():
-    for env_path in [ROOT / ".env.local", Path("/home/lahargnedebartoli/mon-ipad/.env.local")]:
+    for env_path in [ROOT / ".env.local", Path("/home/termius/mon-ipad/.env.local")]:
         if env_path.exists():
             for line in env_path.read_text().splitlines():
                 line = line.strip()
