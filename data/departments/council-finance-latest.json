@@ -1,21 +1,23 @@
 {
   "department": "finance",
   "dept_id": "d8",
-  "timestamp": "2026-04-10T08:00:03Z",
+  "timestamp": "2026-04-10T14:00:02Z",
   "model": "claude-haiku-4-5-20251001",
   "budget_usd": 0.5,
   "max_turns": 25,
-  "duration_seconds": 195,
+  "duration_seconds": 219,
   "exit_code": 1,
   "status": "failed",
   "agent_status": "shipped",
   "verified_status": "hallucinated",
-  "stall_streak": 7,
+  "stall_streak": 8,
   "log_file": "/home/termius/mon-ipad/logs/councils/d8-finance-2026-04-10.log",
-  "pre_sha": "400047954f4da77c342e751eea16179b0faa0b11",
-  "real_sha": "745f451b55510d1fdae28baeea8d8dd87e907b5f",
+  "pre_sha": "92115656d8b9821e8c41270ea8430e2b79b91ad4",
+  "real_sha": "f551a2d98c974d34cec8b115087129b8a07f4adc",
   "agent_claimed_sha": "",
-  "rejected_files": [],
-  "experiment_id": "c58545e39bc1",
-  "experiment_id_written_at": "2026-04-10T08:15:02.011818+00:00"
+  "rejected_files": [
+    "data/karpathy/nba-best-config.json"
+  ],
+  "experiment_id": "107202b21dcd",
+  "experiment_id_written_at": "2026-04-10T14:15:03.899629+00:00"
 }

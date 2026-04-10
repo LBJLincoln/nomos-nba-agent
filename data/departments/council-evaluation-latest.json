@@ -1,21 +1,21 @@
 {
   "department": "evaluation",
   "dept_id": "d6",
-  "timestamp": "2026-04-10T07:00:01Z",
+  "timestamp": "2026-04-10T13:00:01Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 245,
+  "duration_seconds": 259,
   "exit_code": 1,
   "status": "failed",
   "agent_status": "shipped",
   "verified_status": "shipped",
   "stall_streak": 0,
   "log_file": "/home/termius/mon-ipad/logs/councils/d6-evaluation-2026-04-10.log",
-  "pre_sha": "b9995b0ba68b7b3a466868ec81a802883c87c5ac",
-  "real_sha": "9919d4c0011b889de9e59070e4b8337a09775031",
+  "pre_sha": "1f22667db7f26f43c9dbebfd12c171093a0228e7",
+  "real_sha": "d302dc4a62e6cc5006fc96e47bc8a5a18e7c5ed6",
   "agent_claimed_sha": "",
   "rejected_files": [],
-  "experiment_id": "acbb00c2a46a",
-  "experiment_id_written_at": "2026-04-10T07:15:03.453291+00:00"
+  "experiment_id": "d979ff6be325",
+  "experiment_id_written_at": "2026-04-10T13:15:03.915272+00:00"
 }
