@@ -1,21 +1,21 @@
 {
   "department": "business",
   "dept_id": "d5",
-  "timestamp": "2026-04-10T02:00:04Z",
+  "timestamp": "2026-04-10T08:00:03Z",
   "model": "claude-haiku-4-5-20251001",
   "budget_usd": 0.5,
   "max_turns": 25,
-  "duration_seconds": 233,
+  "duration_seconds": 174,
   "exit_code": 1,
   "status": "failed",
   "agent_status": "no_op",
   "verified_status": "no_op",
-  "stall_streak": 7,
+  "stall_streak": 8,
   "log_file": "/home/termius/mon-ipad/logs/councils/d5-business-2026-04-10.log",
-  "pre_sha": "d73cb0a9234493d64568d198f334df1f88f01f39",
-  "real_sha": "c5e1002e014c870359e1c1cc609c8867afc73fda",
+  "pre_sha": "3ca7970922a5024f3db576325ad8040c0dbb9fc0",
+  "real_sha": "400047954f4da77c342e751eea16179b0faa0b11",
   "agent_claimed_sha": "978f3f14",
   "rejected_files": [],
-  "experiment_id": "eb13be569d2b",
-  "experiment_id_written_at": "2026-04-10T02:15:04.962730+00:00"
+  "experiment_id": "4b3c556ba823",
+  "experiment_id_written_at": "2026-04-10T08:15:02.003052+00:00"
 }
