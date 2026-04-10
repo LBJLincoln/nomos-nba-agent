@@ -1,23 +1,25 @@
 {
   "department": "research",
   "dept_id": "d1",
-  "timestamp": "2026-04-09T18:00:01Z",
+  "timestamp": "2026-04-10T00:00:01Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 179,
+  "duration_seconds": 189,
   "exit_code": 1,
   "status": "failed",
   "agent_status": "completed",
   "verified_status": "completed",
-  "stall_streak": 8,
-  "log_file": "/home/termius/mon-ipad/logs/councils/d1-research-2026-04-09.log",
-  "pre_sha": "c2d3ddec5006585962b090f0903189ca1e0b66cc",
-  "real_sha": "11c0811e350e095f023bd0b20c7acc759eaedaf6",
+  "stall_streak": 9,
+  "log_file": "/home/termius/mon-ipad/logs/councils/d1-research-2026-04-10.log",
+  "pre_sha": "2d3cc9f49dea07cc69760f108b2c845e680ce173",
+  "real_sha": "7610b79434de81cd604d4fd2982a29c572e947e6",
   "agent_claimed_sha": "",
   "rejected_files": [
-    "data/arena/agent-states-v5.json"
+    "data/experiments/nba-experiment-2026-04-10.json",
+    "data/experiments/nba-experiment-2026-04-10.md",
+    "data/nba-agent/odds-history/2026-04-10.json"
   ],
-  "experiment_id": "841f04950f82",
-  "experiment_id_written_at": "2026-04-09T18:15:01.450461+00:00"
+  "experiment_id": "4c0b8c3ab5bc",
+  "experiment_id_written_at": "2026-04-10T00:15:02.133667+00:00"
 }
