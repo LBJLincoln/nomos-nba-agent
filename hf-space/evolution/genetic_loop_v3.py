@@ -1781,7 +1781,7 @@ def callback_to_vm(results):
 
     # Also try to write to shared mon-ipad data if accessible
     try:
-        shared = Path("/home/termius/mon-ipad/data/nba-agent/evolution-latest.json")
+        shared = Path("/home/lahargnedebartoli/mon-ipad/data/nba-agent/evolution-latest.json")
         if shared.parent.exists():
             shared.write_text(json.dumps(results, indent=2, default=str))
             print(f"  [CALLBACK] Wrote to mon-ipad")

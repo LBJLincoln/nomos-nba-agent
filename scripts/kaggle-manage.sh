@@ -4,7 +4,7 @@
 
 KERNEL_ID="alexismoret6/nba-quant-gpu-evolution-v2"
 NOTEBOOK_DIR="/tmp/kaggle-push"
-NOTEBOOK_SRC="/home/termius/nomos-nba-agent/colab/nba_gpu_v2_kaggle.ipynb"
+NOTEBOOK_SRC="/home/lahargnedebartoli/nomos-nba-agent/colab/nba_gpu_v2_kaggle.ipynb"
 
 case "${1:-status}" in
   status)

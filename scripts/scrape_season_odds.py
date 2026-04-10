@@ -17,7 +17,7 @@ Sources (tried in priority order):
 
 3. Local odds snapshots (The Odds API)
    - Coverage: Mar 15-17, 2026 only (API quota exhausted after that)
-   - Path: /home/termius/nomos-nba-agent/data/odds-*.json
+   - Path: /home/lahargnedebartoli/nomos-nba-agent/data/odds-*.json
    - Format: decimal moneylines, Pinnacle/FanDuel
 
 Output: data/historical-odds/nba_2025-26_odds.csv

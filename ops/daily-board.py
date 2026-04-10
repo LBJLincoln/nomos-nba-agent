@@ -27,7 +27,7 @@ sys.path.insert(0, str(ROOT / "models"))
 sys.path.insert(0, str(ROOT / "ops"))
 
 # Load env
-for env_file in [ROOT / ".env.local", Path("/home/termius/mon-ipad/.env.local")]:
+for env_file in [ROOT / ".env.local", Path("/home/lahargnedebartoli/mon-ipad/.env.local")]:
     if env_file.exists():
         for line in env_file.read_text().splitlines():
             line = line.strip()

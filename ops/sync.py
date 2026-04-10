@@ -8,7 +8,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parent.parent
-SYNC_DIR = Path("/home/termius/mon-ipad/data/nba-agent")
+SYNC_DIR = Path("/home/lahargnedebartoli/mon-ipad/data/nba-agent")
 
 def sync():
     """Push latest metrics to mon-ipad."""
