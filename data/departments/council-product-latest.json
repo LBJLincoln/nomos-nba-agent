@@ -1,23 +1,23 @@
 {
   "department": "product",
   "dept_id": "d4",
-  "timestamp": "2026-04-10T14:00:02Z",
+  "timestamp": "2026-04-11T02:00:03Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 265,
-  "exit_code": 1,
-  "status": "failed",
-  "agent_status": "unknown",
-  "verified_status": "unknown",
-  "stall_streak": 10,
-  "log_file": "/home/termius/mon-ipad/logs/councils/d4-product-2026-04-10.log",
-  "pre_sha": "99551765fcb1682036a811b1b83394b78130c7f6",
-  "real_sha": "37cf586e046aaa7d4862dbf9bd1f046ac5c361a1",
+  "duration_seconds": 846,
+  "exit_code": 0,
+  "status": "success",
+  "agent_status": "shipped",
+  "verified_status": "shipped",
+  "stall_streak": 0,
+  "log_file": "/home/termius/mon-ipad/logs/councils/d4-product-2026-04-11.log",
+  "pre_sha": "9c6534a56c8216d197f6ac128eb11aee51b22e83",
+  "real_sha": "bc204aa29d81ad14339b2a743dc3b059e3599efc",
   "agent_claimed_sha": "",
   "rejected_files": [
     "data/arena/agent-states-v5.json"
   ],
-  "experiment_id": "aadc4462bc1c",
-  "experiment_id_written_at": "2026-04-10T14:15:03.896557+00:00"
+  "experiment_id": "0369a74ade98",
+  "experiment_id_written_at": "2026-04-11T02:15:09.853395+00:00"
 }
