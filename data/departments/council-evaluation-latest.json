@@ -1,21 +1,24 @@
 {
   "department": "evaluation",
   "dept_id": "d6",
-  "timestamp": "2026-04-11T07:00:01Z",
+  "timestamp": "2026-04-11T13:00:02Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 224,
+  "duration_seconds": 208,
   "exit_code": 0,
   "status": "success",
-  "agent_status": "no_op",
-  "verified_status": "no_op",
+  "agent_status": "shipped",
+  "verified_status": "hallucinated",
   "stall_streak": 1,
   "log_file": "/home/termius/mon-ipad/logs/councils/d6-evaluation-2026-04-11.log",
-  "pre_sha": "4f505ef15418c3a1bc1b658aff11cf6ea5e1fc4e",
-  "real_sha": "b459484e53c5a788c8c5a2986ff7d1c4d81665b4",
-  "agent_claimed_sha": "",
-  "rejected_files": [],
-  "experiment_id": "f8c8c6541c65",
-  "experiment_id_written_at": "2026-04-11T07:15:03.884696+00:00"
+  "pre_sha": "a06298f3752bf01d531914e5eecbb3bfe5692639",
+  "real_sha": "3039bc65b2c16e9fb63564c8794d82d63bde6ef9",
+  "agent_claimed_sha": "22c6591d",
+  "rejected_files": [
+    "data/nba-agent/full-season-backtest.json",
+    "research-vault/raw/councils/council-engineering-latest.md"
+  ],
+  "experiment_id": "9d6a09ff5dce",
+  "experiment_id_written_at": "2026-04-11T13:45:04.204161+00:00"
 }

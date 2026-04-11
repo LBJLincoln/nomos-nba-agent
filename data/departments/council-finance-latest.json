@@ -1,28 +1,23 @@
 {
   "department": "finance",
   "dept_id": "d8",
-  "timestamp": "2026-04-11T02:00:03Z",
+  "timestamp": "2026-04-10T14:00:02Z",
   "model": "claude-haiku-4-5-20251001",
   "budget_usd": 0.5,
   "max_turns": 25,
-  "duration_seconds": 314,
-  "exit_code": 0,
-  "status": "success",
-  "agent_status": "no_op",
-  "verified_status": "no_op",
-  "stall_streak": 9,
-  "log_file": "/home/termius/mon-ipad/logs/councils/d8-finance-2026-04-11.log",
-  "pre_sha": "2ccacc97bb000856a307609803021b47f11b39b1",
-  "real_sha": "3b996b45decf3f6dda249a384e7f4f2d19cb234f",
+  "duration_seconds": 219,
+  "exit_code": 1,
+  "status": "failed",
+  "agent_status": "shipped",
+  "verified_status": "hallucinated",
+  "stall_streak": 8,
+  "log_file": "/home/termius/mon-ipad/logs/councils/d8-finance-2026-04-10.log",
+  "pre_sha": "92115656d8b9821e8c41270ea8430e2b79b91ad4",
+  "real_sha": "f551a2d98c974d34cec8b115087129b8a07f4adc",
   "agent_claimed_sha": "",
   "rejected_files": [
-    "research-vault/raw/councils/council-business-latest.md",
-    "research-vault/raw/councils/council-cross-repo-latest.md",
-    "research-vault/raw/councils/council-product-latest.md",
-    "research-vault/raw/experiments/nba-experiment-2026-04-11.md",
-    "research-vault/raw/political/political-experiment-2026-04-11.md",
-    "research-vault/raw/scientific/political-experiment-2026-04-11.md"
+    "data/karpathy/nba-best-config.json"
   ],
-  "experiment_id": "a2f2fa71b06b",
-  "experiment_id_written_at": "2026-04-11T02:45:06.863441+00:00"
+  "experiment_id": "107202b21dcd",
+  "experiment_id_written_at": "2026-04-10T14:15:03.899629+00:00"
 }

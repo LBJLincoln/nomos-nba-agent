@@ -1,25 +1,28 @@
 {
   "department": "research",
   "dept_id": "d1",
-  "timestamp": "2026-04-11T06:00:01Z",
+  "timestamp": "2026-04-11T12:00:01Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 265,
+  "duration_seconds": 85,
   "exit_code": 0,
   "status": "success",
   "agent_status": "completed",
   "verified_status": "completed",
-  "stall_streak": 0,
+  "stall_streak": 12,
   "log_file": "/home/termius/mon-ipad/logs/councils/d1-research-2026-04-11.log",
-  "pre_sha": "778007d56ed24b6bb5346ad6b9fb950d120dc1fd",
-  "real_sha": "",
+  "pre_sha": "130709cc0bfe4addc77fb4fc6a844d099262e705",
+  "real_sha": "6becd335c70b43a8f0bfda766004c5020c6025d9",
   "agent_claimed_sha": "",
   "rejected_files": [
-    "data/monitoring/history/monitor-2026-04-11_0600.json",
-    "data/research/github-betting-scan-2026-04-11.json",
-    "data/research/github-scan-2026-04-11.json"
+    "data/arena/agent-states-v5.json",
+    "data/gpu-burst/latest-zerogpu-result.json",
+    "data/gpu-burst/zerogpu-log.jsonl",
+    "data/monitoring/dagshub-status.json",
+    "data/monitoring/history/monitor-2026-04-11_1200.json",
+    "data/monitoring/metrics.csv"
   ],
-  "experiment_id": "c9e52e4527b8",
-  "experiment_id_written_at": "2026-04-11T06:15:01.896252+00:00"
+  "experiment_id": "1f88f89405c5",
+  "experiment_id_written_at": "2026-04-11T12:15:01.920742+00:00"
 }
