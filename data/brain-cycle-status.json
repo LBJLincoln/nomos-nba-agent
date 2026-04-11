@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-04-11T04:00:00Z",
+  "brain_cycle": 91,
+  "fleet_status": "ALL_SLEEPING_503",
+  "consecutive_sleeping_cycles": 2,
+  "last_online": "2026-04-10T16:45Z",
+  "fleet_best_brier": 0.22249,
+  "all_time_best_brier": 0.2157,
+  "checkpoint_threshold": 0.21837,
+  "watch_island": "S15 (gen-860 Brier 0.21906 — gap to checkpoint: 0.00069)",
+  "islands": {
+    "S10": {"url": "nomos42-nba-quant.hf.space", "role": "exploitation", "last_brier": 0.22412, "last_gen": 469},
+    "S11": {"url": "nomos42-nba-quant-2.hf.space", "role": "exploration", "last_brier": 0.22249, "last_gen": 1023},
+    "S12": {"url": "nomos42-nba-evo-3.hf.space", "role": "extra_trees", "last_brier": 0.2273, "last_gen": 1074},
+    "S13": {"url": "nomos42-nba-evo-4.hf.space", "role": "catboost", "last_brier": 0.22316, "last_gen": 1027},
+    "S14": {"url": "nomos42-nba-evo-5.hf.space", "role": "lightgbm", "last_brier": 0.22308, "last_gen": 611},
+    "S15": {"url": "nomos42-nba-evo-6.hf.space", "role": "wide_search", "last_brier": 0.22291, "last_gen": 864}
+  },
+  "pending_improvements": [
+    {
+      "id": "PROP-C91-001",
+      "title": "XGBoost Direct Brier Objective (reg:squarederror)",
+      "file": "mon-ipad/data/research-proposals/2026-04-11-xgboost-squared-error-brier-objective.md",
+      "target": "S13 (catboost island) — add use_brier_objective flag to chromosome",
+      "estimated_improvement": 0.003,
+      "status": "READY_TO_IMPLEMENT",
+      "implementation_notes": "Add XGBRegressor branch when use_brier_objective=True. Clip outputs to [0.02, 0.98]."
+    }
+  ],
+  "action_required": [
+    "Check keepalive-spaces.sh cron — all islands sleeping 2 consecutive cycles",
+    "When S13 wakes: implement XGBoost Brier-objective experiment",
+    "When S15 wakes: verify if Brier < 0.21837 for checkpoint"
+  ],
+  "engine_version": "v3.1-59cat",
+  "engine_parity": "MAINTAINED — all 6 islands same version"
+}
