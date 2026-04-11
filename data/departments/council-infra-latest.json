@@ -1,23 +1,21 @@
 {
   "department": "infra",
   "dept_id": "d7",
-  "timestamp": "2026-04-11T00:00:02Z",
+  "timestamp": "2026-04-11T06:00:01Z",
   "model": "claude-haiku-4-5-20251001",
   "budget_usd": 0.5,
   "max_turns": 30,
-  "duration_seconds": 193,
+  "duration_seconds": 100,
   "exit_code": 0,
   "status": "success",
   "agent_status": "shipped",
   "verified_status": "hallucinated",
-  "stall_streak": 0,
+  "stall_streak": 1,
   "log_file": "/home/termius/mon-ipad/logs/councils/d7-infra-2026-04-11.log",
-  "pre_sha": "ede0c3bed53794583955ef3166d2d51a4beda86a",
-  "real_sha": "",
+  "pre_sha": "778007d56ed24b6bb5346ad6b9fb950d120dc1fd",
+  "real_sha": "28e1e6d7ac25616bb4ffae680f9528613ed766f1",
   "agent_claimed_sha": "",
-  "rejected_files": [
-    "scripts/gpu-burst/cross-island-sync.py"
-  ],
-  "experiment_id": "22d2a86033a3",
-  "experiment_id_written_at": "2026-04-11T00:15:01.234318+00:00"
+  "rejected_files": [],
+  "experiment_id": "9779260d683e",
+  "experiment_id_written_at": "2026-04-11T06:15:01.899464+00:00"
 }
