@@ -6719,7 +6719,7 @@ class NBAFeatureEngine:
                     _transitive59,      # opp59_graph_transitive
                 ])
             except Exception:
-                row.extend([0.5, 0.5, 0.0, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5])
+                row.extend([0.5, 0.5, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0])
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
