@@ -6444,8 +6444,11 @@ class NBAFeatureEngine:
                 _sp_conf55 = min(1.0, abs(float(_sp55) / 10.0)) if _sp55 is not None else 0.35
                 _consensus55 = (_ml_conf55 + _sp_conf55) / 2.0
 
-                # Vig distortion: how much vig shifts ML prob away from fair prob
-                _vig_dist55 = abs(_fair_h55 - _ip55h)
+                # Vig distortion: how much vig shifts ML prob away from vig-removed fair ML prob.
+                # _ip55h is raw implied (vig-inclusive); fair_home_prob is vig-removed via overround.
+                # Previously this was abs(_fair_h55 - _ip55h) which duplicated cmd55_ml_vs_spread_gap.
+                _vig_fair_h55 = float(_odds55.get('fair_home_prob', _ip55h) or _ip55h)
+                _vig_dist55 = abs(_ip55h - _vig_fair_h55)
 
                 row.extend([
                     _fair_h55,               # cmd55_fair_h_prob
