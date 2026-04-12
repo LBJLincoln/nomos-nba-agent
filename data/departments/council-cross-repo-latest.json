@@ -1,21 +1,28 @@
 {
   "department": "cross-repo",
   "dept_id": "d9",
-  "timestamp": "2026-04-11T13:00:02Z",
+  "timestamp": "2026-04-12T01:00:04Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 370,
+  "duration_seconds": 566,
   "exit_code": 0,
   "status": "success",
   "agent_status": "shipped",
   "verified_status": "shipped",
   "stall_streak": 0,
-  "log_file": "/home/termius/mon-ipad/logs/councils/d9-cross-repo-2026-04-11.log",
-  "pre_sha": "3039bc65b2c16e9fb63564c8794d82d63bde6ef9",
-  "real_sha": "5404400f93122a641d854174b7326fbb46c8ff29",
+  "log_file": "/home/termius/mon-ipad/logs/councils/d9-cross-repo-2026-04-12.log",
+  "pre_sha": "cc7c410ee758a796c47f3cf5837a58828cb8764e",
+  "real_sha": "877e37241dd2e181ec03b789c7efb4a95f426d4a",
   "agent_claimed_sha": "",
-  "rejected_files": [],
-  "experiment_id": "12aa1e910905",
-  "experiment_id_written_at": "2026-04-11T13:45:04.211609+00:00"
+  "rejected_files": [
+    "data/experiments/nba-experiment-2026-04-12.json",
+    "data/experiments/nba-experiment-2026-04-12.md",
+    "scripts/arena/trading-floor-v5.py"
+  ],
+  "brier_before": 0.1909689543969487,
+  "brier_after": 0.1909689543969487,
+  "brier_delta": 0.0,
+  "experiment_id": "0958911f5be5",
+  "experiment_id_written_at": "2026-04-12T01:45:04.513961+00:00"
 }
