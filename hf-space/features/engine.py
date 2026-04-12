@@ -4656,6 +4656,7 @@ class NBAFeatureEngine:
             row.append(1.0 if abs(self._netrtg(hr_, 10) - self._netrtg(ar_, 10)) > 10 else 0.0)
 
             # ── 32. BAYESIAN PRIORS (220 features) ──
+            _bay32 = {}  # save per-team values for game-level differentials below
             for prefix, team_key, tr in [("h", home, hr_), ("a", away, ar_)]:
                 pd_ = (player_data or {}).get(team_key, {})
                 n_gp = len(tr)
@@ -4721,20 +4722,31 @@ class NBAFeatureEngine:
                                 (team_elo[team_key] - 1500) / 400 * 0.3 +
                                 self._netrtg(tr, 10) / 20 * 0.3)
                 row.append(composite_bay)
-            # Game-level Bayesian differentials (10 features)
-            h_bay_wp = _val2(f"h_preseason_win_total_ou") if "h_preseason_win_total_ou" in _name_idx2 else 0.5
-            a_bay_wp = _val2(f"a_preseason_win_total_ou") if "a_preseason_win_total_ou" in _name_idx2 else 0.5
-            # Use freshly computed values from the row
-            row.append(h_bay_wp - a_bay_wp)       # preseason diff
-            row.append(0.0)                         # vegas win total diff
-            row.append(0.0)                         # franchise diff
-            row.append(0.0)                         # coach wp diff
-            row.append(0.0)                         # coach tenure diff
-            row.append(0.0)                         # prior blend diff
-            row.append(0.0)                         # regression diff
-            row.append(0.0)                         # championship odds diff
-            row.append(0.0)                         # system maturity diff
-            row.append(0.0)                         # composite diff
+                _bay32[prefix] = {
+                    'preseason_wp':    preseason_wp,
+                    'vegas_wp':        pd_.get("vegas_season_win_total", 41.0) / 82.0,
+                    'franchise_wp':    pd_.get("franchise_wp_5yr", 0.5),
+                    'coach_wp':        pd_.get("coach_career_wp", 0.5),
+                    'coach_tenure':    min(1.0, coach_tenure / 5.0),
+                    'bayesian_blend':  bayesian_blend,
+                    'regression':      regression_target,
+                    'champ_odds':      pd_.get("vegas_championship_odds", 0.03),
+                    'system_maturity': 1.0 - prior_weight,
+                    'composite':       composite_bay,
+                }
+            # Game-level Bayesian differentials (10 features) — computed from _bay32 saved above
+            _hb32 = _bay32.get('h', {})
+            _ab32 = _bay32.get('a', {})
+            row.append(_hb32.get('preseason_wp', 0.5)    - _ab32.get('preseason_wp', 0.5))
+            row.append(_hb32.get('vegas_wp', 0.5)        - _ab32.get('vegas_wp', 0.5))
+            row.append(_hb32.get('franchise_wp', 0.5)    - _ab32.get('franchise_wp', 0.5))
+            row.append(_hb32.get('coach_wp', 0.5)        - _ab32.get('coach_wp', 0.5))
+            row.append(_hb32.get('coach_tenure', 0.4)    - _ab32.get('coach_tenure', 0.4))
+            row.append(_hb32.get('bayesian_blend', 0.5)  - _ab32.get('bayesian_blend', 0.5))
+            row.append(_hb32.get('regression', 0.5)      - _ab32.get('regression', 0.5))
+            row.append(_hb32.get('champ_odds', 0.03)     - _ab32.get('champ_odds', 0.03))
+            row.append(_hb32.get('system_maturity', 0.5) - _ab32.get('system_maturity', 0.5))
+            row.append(_hb32.get('composite', 0.0)       - _ab32.get('composite', 0.0))
 
             # ── 33. NETWORK/GRAPH FEATURES (220 features) ──
             # Compute lightweight graph features from win/loss records
