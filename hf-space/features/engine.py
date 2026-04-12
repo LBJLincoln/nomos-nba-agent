@@ -3094,10 +3094,10 @@ class NBAFeatureEngine:
                 ARENA_ALTITUDE.get(home, 500),
                 ARENA_ALTITUDE.get(away, 500),
                 ARENA_ALTITUDE.get(home, 500) - ARENA_ALTITUDE.get(away, 500),
-                abs(TIMEZONE_ET.get(home, 0) - TIMEZONE_ET.get(self._last_location(hr_), 0)),
-                abs(TIMEZONE_ET.get(away, 0) - TIMEZONE_ET.get(self._last_location(ar_), 0)),
-                (abs(TIMEZONE_ET.get(home, 0) - TIMEZONE_ET.get(self._last_location(hr_), 0)) -
-                 abs(TIMEZONE_ET.get(away, 0) - TIMEZONE_ET.get(self._last_location(ar_), 0))),
+                abs(TIMEZONE_ET.get(home, 0) - TIMEZONE_ET.get(self._last_location(hr_, home), 0)),
+                abs(TIMEZONE_ET.get(away, 0) - TIMEZONE_ET.get(self._last_location(ar_, away), 0)),
+                (abs(TIMEZONE_ET.get(home, 0) - TIMEZONE_ET.get(self._last_location(hr_, home), 0)) -
+                 abs(TIMEZONE_ET.get(away, 0) - TIMEZONE_ET.get(self._last_location(ar_, away), 0))),
                 self._games_in_window(hr_, gd, 7),
                 self._games_in_window(ar_, gd, 7),
                 self._miles_in_window(hr_, gd, 7, home),
@@ -4090,7 +4090,7 @@ class NBAFeatureEngine:
 
                 # Circadian disruption (recent timezone impact)
                 row.append(abs(TIMEZONE_ET.get(team_key, 0) -
-                              TIMEZONE_ET.get(self._last_location(tr), 0)) / 3.0)
+                              TIMEZONE_ET.get(self._last_location(tr, team_key), 0)) / 3.0)
 
                 # Early season load: heavy in first 30 games
                 early_games = [r for r in tr[:30]]
@@ -4324,7 +4324,7 @@ class NBAFeatureEngine:
                 row.append(high_alt_g / max(len(tr), 1))
                 row.append(1.0 if high_alt_g > 5 else high_alt_g / 5.0)
                 # Timezone disruption
-                last_loc = self._last_location(tr)
+                last_loc = self._last_location(tr, team_key)
                 tz_shift = abs(t_tz - TIMEZONE_ET.get(last_loc, 0))
                 row.append(tz_shift / 3.0)
                 row.append(1.0 if t_tz < TIMEZONE_ET.get(last_loc, 0) else 0.0)
@@ -4344,8 +4344,8 @@ class NBAFeatureEngine:
             # Game-level venue differentials (16 features)
             row.append((h_alt - a_alt) / 5280.0)
             row.append(abs(h_alt - a_alt) / 5280.0)
-            row.append((abs(h_tz - TIMEZONE_ET.get(self._last_location(hr_), 0)) -
-                        abs(a_tz - TIMEZONE_ET.get(self._last_location(ar_), 0))) / 3.0)
+            row.append((abs(h_tz - TIMEZONE_ET.get(self._last_location(hr_, home), 0)) -
+                        abs(a_tz - TIMEZONE_ET.get(self._last_location(ar_, away), 0))) / 3.0)
             row.append(abs(h_tz - a_tz) / 3.0)
             row.append(h_alt / 5280.0)
             row.append(0.85)   # attendance ratio
@@ -5775,8 +5775,8 @@ class NBAFeatureEngine:
             try:
                 _h_dist = self._travel_dist(hr_, home) / 500.0  # Normalize: ~500mi = 1 unit
                 _a_dist = self._travel_dist(ar_, away) / 500.0
-                _h_tz = abs(TIMEZONE_ET.get(home, 0) - TIMEZONE_ET.get(self._last_location(hr_), 0))
-                _a_tz = abs(TIMEZONE_ET.get(away, 0) - TIMEZONE_ET.get(self._last_location(ar_), 0))
+                _h_tz = abs(TIMEZONE_ET.get(home, 0) - TIMEZONE_ET.get(self._last_location(hr_, home), 0))
+                _a_tz = abs(TIMEZONE_ET.get(away, 0) - TIMEZONE_ET.get(self._last_location(ar_, away), 0))
                 _h_b2b = 1.0 if h_rest <= 1 else 0.0
                 _a_b2b = 1.0 if a_rest <= 1 else 0.0
                 # Fatigue index: travel + timezone disruption + back-to-back penalty - rest recovery
@@ -6469,8 +6469,8 @@ class NBAFeatureEngine:
             # Chronobiology Int'l 2022 + ScienceDaily 2024: signed westbound/eastbound effect.
             # Westbound home = 63.5% win rate, eastbound = 55.0%; net +8.5pp directional signal.
             try:
-                _h56_last = self._last_location(hr_)
-                _a56_last = self._last_location(ar_)
+                _h56_last = self._last_location(hr_, home)
+                _a56_last = self._last_location(ar_, away)
                 _h56_home_tz = TIMEZONE_ET.get(home, 0)
                 _a56_away_tz = TIMEZONE_ET.get(away, 0)
                 _h56_last_tz = TIMEZONE_ET.get(_h56_last, _h56_home_tz) if _h56_last else _h56_home_tz
@@ -6944,10 +6944,12 @@ class NBAFeatureEngine:
         c2 = ARENA_COORDS[team]
         return haversine(c1[0], c1[1], c2[0], c2[1])
 
-    def _last_location(self, records):
+    def _last_location(self, records, team=None):
         if not records:
-            return "ATL"
-        return records[-1][3] if not records[-1][4].get("is_home", False) else records[-1][3]
+            return team if team else "ATL"
+        # If team was away last game → last location = opponent's arena (records[-1][3])
+        # If team was home last game → last location = own arena (team abbreviation)
+        return records[-1][3] if not records[-1][4].get("is_home", False) else (team if team else records[-1][3])
 
     def _games_in_window(self, records, game_date, days):
         if not game_date or not records:
