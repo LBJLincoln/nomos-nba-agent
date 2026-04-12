@@ -6497,10 +6497,10 @@ class NBAFeatureEngine:
                 _dir56_edge = max(-1.0, min(1.0, _h56_west_adv - _a56_east_pen + 0.5))
 
                 # Schedule density: games in last 7 days
-                _h56_density = len([r for r in (hr_ or [])[-14:] if hasattr(r[0], 'days') is False
-                                    and (gd - r[0]).days <= 7]) if hr_ else 0
-                _a56_density = len([r for r in (ar_ or [])[-14:] if hasattr(r[0], 'days') is False
-                                    and (gd - r[0]).days <= 7]) if ar_ else 0
+                # Dates are ISO strings "YYYY-MM-DD"; lexicographic comparison works for ordering.
+                _7ago56 = (datetime.strptime(gd, '%Y-%m-%d') - timedelta(days=7)).strftime('%Y-%m-%d')
+                _h56_density = sum(1 for r in (hr_ or [])[-14:] if r[0] >= _7ago56)
+                _a56_density = sum(1 for r in (ar_ or [])[-14:] if r[0] >= _7ago56)
 
                 row.extend([
                     max(-1.0, min(1.0, _h56_signed / 3.0)),   # circ56_h_signed_tz
