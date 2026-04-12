@@ -1,28 +1,28 @@
 {
   "department": "research",
   "dept_id": "d1",
-  "timestamp": "2026-04-12T00:03:00Z",
+  "timestamp": "2026-04-12T06:00:04Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 85,
+  "duration_seconds": 800,
   "exit_code": 0,
   "status": "success",
-  "agent_status": "dns_failure",
+  "agent_status": "completed",
   "verified_status": "completed",
-  "stall_streak": 13,
-  "log_file": "/home/termius/mon-ipad/logs/councils/d1-research-2026-04-11.log",
-  "pre_sha": "130709cc0bfe4addc77fb4fc6a844d099262e705",
-  "real_sha": "6becd335c70b43a8f0bfda766004c5020c6025d9",
+  "stall_streak": 0,
+  "log_file": "/home/termius/mon-ipad/logs/councils/d1-research-2026-04-12.log",
+  "pre_sha": "45d49359fb5d0c940c5075d932f97dba87b9e07a",
+  "real_sha": "",
   "agent_claimed_sha": "",
   "rejected_files": [
-    "data/arena/agent-states-v5.json",
     "data/gpu-burst/latest-zerogpu-result.json",
     "data/gpu-burst/zerogpu-log.jsonl",
-    "data/monitoring/dagshub-status.json",
-    "data/monitoring/history/monitor-2026-04-11_1200.json",
-    "data/monitoring/metrics.csv"
+    "data/research/github-scan-2026-04-12.json"
   ],
-  "experiment_id": "1f88f89405c5",
-  "experiment_id_written_at": "2026-04-11T12:15:01.920742+00:00"
+  "brier_before": 0.1909689543969487,
+  "brier_after": 0.1909689543969487,
+  "brier_delta": 0.0,
+  "experiment_id": "b557b057e773",
+  "experiment_id_written_at": "2026-04-12T06:15:17.620811+00:00"
 }

@@ -1,35 +1,26 @@
 {
   "department": "engineering",
   "dept_id": "d2",
-  "timestamp": "2026-04-12T01:00:04Z",
+  "timestamp": "2026-04-12T07:00:04Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 2.0,
   "max_turns": 50,
-  "duration_seconds": 1399,
+  "duration_seconds": 1316,
   "exit_code": 1,
   "status": "failed",
   "agent_status": "unknown",
   "verified_status": "unknown",
-  "stall_streak": 13,
+  "stall_streak": 14,
   "log_file": "/home/termius/mon-ipad/logs/councils/d2-engineering-2026-04-12.log",
-  "pre_sha": "13e882f8641ac580addbb9c9e8bb319bf6999a16",
-  "real_sha": "",
+  "pre_sha": "3d8c3b0a7e1d193ce6dab4771c0d51c8d83cae40",
+  "real_sha": "378944a74939c4cf7a8f871e837cec997e00e0d6",
   "agent_claimed_sha": "",
   "rejected_files": [
-    "data/arena/agent-states-v5.json",
-    "data/arena/cpcv-watcher-state.json",
-    "data/monitoring/drift-calibration.json",
-    "data/monitoring/drift-concept.json",
-    "data/monitoring/drift-data.json",
-    "data/monitoring/drift-summary.json",
-    "data/nba-agent/full-season-backtest.json",
-    "data/nba-agent/live-odds.json",
-    "data/nba-agent/market-data.json",
-    "data/nba-agent/odds-latest.json"
+    "data/arena/agent-states-v5.json"
   ],
   "brier_before": 0.1909689543969487,
   "brier_after": 0.1909689543969487,
   "brier_delta": 0.0,
-  "experiment_id": "315717e12516",
-  "experiment_id_written_at": "2026-04-12T01:45:04.018596+00:00"
+  "experiment_id": "d9ab431e6701",
+  "experiment_id_written_at": "2026-04-12T07:45:02.247457+00:00"
 }
