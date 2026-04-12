@@ -1,24 +1,27 @@
 {
   "department": "evaluation",
   "dept_id": "d6",
-  "timestamp": "2026-04-12T07:00:04Z",
+  "timestamp": "2026-04-12T01:00:04Z",
   "model": "claude-sonnet-4-6",
   "budget_usd": 1.5,
   "max_turns": 50,
-  "duration_seconds": 353,
+  "duration_seconds": 423,
   "exit_code": 0,
   "status": "success",
-  "agent_status": "no_op",
-  "verified_status": "no_op",
-  "stall_streak": 3,
+  "agent_status": "shipped",
+  "verified_status": "hallucinated",
+  "stall_streak": 2,
   "log_file": "/home/termius/mon-ipad/logs/councils/d6-evaluation-2026-04-12.log",
-  "pre_sha": "378944a74939c4cf7a8f871e837cec997e00e0d6",
-  "real_sha": "386570c49913af6f57d99b63db0e16c66b56a3d1",
-  "agent_claimed_sha": "",
-  "rejected_files": [],
+  "pre_sha": "ded4185f09da2f5d034549a4498df88c56fe5f07",
+  "real_sha": "cc7c410ee758a796c47f3cf5837a58828cb8764e",
+  "agent_claimed_sha": "8332e3e3",
+  "rejected_files": [
+    ".claude/agent-memory/karpathy-researcher/MEMORY.md",
+    ".claude/agent-memory/karpathy-researcher/research_cycle_april2026_sota_papers.md"
+  ],
   "brier_before": 0.1909689543969487,
   "brier_after": 0.1909689543969487,
   "brier_delta": 0.0,
-  "experiment_id": "1490dd33d4c9",
-  "experiment_id_written_at": "2026-04-12T07:45:02.250866+00:00"
+  "experiment_id": "82dd7b23b1f6",
+  "experiment_id_written_at": "2026-04-12T01:45:04.024259+00:00"
 }
