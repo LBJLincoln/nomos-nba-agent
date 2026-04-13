@@ -2569,9 +2569,8 @@ def evolution_loop():
                         (cycle, generation, best_brier, best_roi, best_sharpe, best_calibration,
                          best_composite, best_features, best_model_type, pop_size, mutation_rate,
                          crossover_rate, stagnation, games, feature_candidates, cycle_duration_s,
-                         avg_composite, pop_diversity, top5, selected_features,
-                         space_id, cycles_no_brier_improvement)
-                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                         avg_composite, pop_diversity, top5, selected_features)
+                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                         (cycle, generation, float(best_ever.fitness["brier"]), float(best_ever.fitness["roi"]),
                          float(best_ever.fitness["sharpe"]), float(best_ever.fitness.get("calibration", 0)),
                          float(best_ever.fitness["composite"]), int(best_ever.n_features),
@@ -2579,8 +2578,7 @@ def evolution_loop():
                          float(CROSSOVER_RATE), stagnation, len(games), n_feat,
                          float(time.time() - cycle_start), avg_comp, pop_diversity,
                          json.dumps(results.get("top5", [])[:5], default=str),
-                         json.dumps(sel_names[:50], default=str),
-                         _SPACE_ID, _cycles_no_brier_improvement))
+                         json.dumps(sel_names[:50], default=str)))
                     _cur.close()
                     _dbconn.close()
                     log("[SUPABASE] Cycle logged OK")
@@ -3285,6 +3283,183 @@ async def api_predict(request: Request):
 
     except Exception as e:
         return JSONResponse({"error": f"prediction failed: {str(e)[:200]}"}, status_code=500)
+
+
+@control_api.post("/api/fit-calibration")
+async def api_fit_calibration(request: Request):
+    """Fit isotonic calibration from the best model's walk-forward holdout predictions.
+
+    Uses the best evolved individual to produce OOS predictions via TimeSeriesSplit,
+    then fits isotonic regression on (raw_prob, outcome) pairs.
+
+    Returns JSON breakpoints compatible with IsotonicPostCalibrator.
+
+    Body (optional):
+      {"n_splits": 5, "n_breakpoints": 20, "write_local": true}
+    """
+    global _evo_X, _evo_y, _evo_features, _evo_best
+
+    if _evo_best is None or _evo_X is None:
+        return JSONResponse({"error": "evolution not ready"}, status_code=503)
+
+    try:
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+
+        n_splits = body.get("n_splits", 5)
+        n_breakpoints = body.get("n_breakpoints", 20)
+        write_local = body.get("write_local", True)
+
+        best = _evo_best
+        selected = [i for i, b in enumerate(best["features"]) if b]
+        hp = dict(best["hyperparams"])
+
+        if len(selected) < 5:
+            return JSONResponse({"error": "best individual has too few features"}, status_code=503)
+
+        X_sub = np.nan_to_num(_evo_X[:, selected], nan=0.0, posinf=1e6, neginf=-1e6)
+        y = _evo_y
+
+        # Build the base model (no in-loop calibration — we want raw probs)
+        hp_build = dict(hp)
+        hp_build["calibration"] = "none"
+        hp_build["n_estimators"] = min(hp.get("n_estimators", 150), 200)
+        hp_build["max_depth"] = min(hp.get("max_depth", 6), 8)
+        if hp_build.get("model_type") == "stacking":
+            hp_build["model_type"] = "xgboost"
+
+        model = _build(hp_build)
+        if model is None:
+            return JSONResponse({"error": "model build failed"}, status_code=500)
+
+        # Walk-forward: collect OOS raw predictions
+        tscv = TimeSeriesSplit(n_splits=n_splits)
+        all_raw = []
+        all_actual = []
+        PURGE_GAP = 5
+
+        for ti, vi in tscv.split(X_sub):
+            try:
+                ti_safe = ti[:-PURGE_GAP] if len(ti) > PURGE_GAP + 50 else ti
+                m = clone(model)
+                m.fit(X_sub[ti_safe], y[ti_safe])
+                p = m.predict_proba(X_sub[vi])[:, 1]
+                p = np.clip(p, 0.025, 0.975)
+                all_raw.extend(p.tolist())
+                all_actual.extend(y[vi].tolist())
+            except Exception:
+                pass
+
+        if len(all_raw) < 50:
+            return JSONResponse({
+                "error": f"insufficient OOS predictions ({len(all_raw)}), need 50+"
+            }, status_code=422)
+
+        raw_arr = np.array(all_raw)
+        act_arr = np.array(all_actual)
+
+        # Brier before calibration
+        brier_before = float(np.mean((raw_arr - act_arr) ** 2))
+
+        # Fit isotonic regression (sklearn is available on HF Space)
+        from sklearn.isotonic import IsotonicRegression
+        ir = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
+        ir.fit(raw_arr, act_arr)
+
+        # Produce compact breakpoints on a fine grid
+        x_grid = np.linspace(0.0, 1.0, max(n_breakpoints, 10))
+        y_grid = ir.predict(x_grid)
+        y_grid = np.maximum.accumulate(y_grid)  # ensure strict monotonicity
+
+        # Brier after calibration (in-sample, for reporting)
+        cal_probs = ir.predict(raw_arr)
+        brier_after = float(np.mean((cal_probs - act_arr) ** 2))
+
+        # ECE before/after
+        def _ece_quick(probs, actuals, n_bins=10):
+            bins_e = np.linspace(0, 1, n_bins + 1)
+            ece_val = 0.0
+            for i in range(n_bins):
+                mask = (probs >= bins_e[i]) & (probs < bins_e[i + 1])
+                if mask.sum() == 0:
+                    continue
+                ece_val += mask.sum() / len(probs) * abs(probs[mask].mean() - actuals[mask].mean())
+            return float(ece_val)
+
+        ece_before = _ece_quick(raw_arr, act_arr)
+        ece_after = _ece_quick(cal_probs, act_arr)
+
+        now = datetime.now(timezone.utc).isoformat()
+        result = {
+            "x_points": [round(float(x), 4) for x in x_grid],
+            "y_points": [round(float(y), 4) for y in y_grid],
+            "metadata": {
+                "identity": False,
+                "n_samples": len(all_raw),
+                "n_breakpoints": len(x_grid),
+                "fitted_on": "HF Space",
+                "fitted_at": now,
+                "model_type": hp.get("model_type", "unknown"),
+                "n_features": len(selected),
+                "generation": best.get("generation", -1),
+                "brier_before": round(brier_before, 5),
+                "brier_after": round(brier_after, 5),
+                "brier_delta": round(brier_after - brier_before, 5),
+                "ece_before": round(ece_before, 5),
+                "ece_after": round(ece_after, 5),
+            },
+            # Also output calibration-map.json format for scripts/calibration.py
+            "calibration_map": {
+                "_meta": {
+                    "version": "3.0",
+                    "created": now[:10],
+                    "generated_at": now,
+                    "source": "HF Space /api/fit-calibration (sklearn IsotonicRegression)",
+                    "model_version": f"{hp.get('model_type', 'unknown')}-gen{best.get('generation', '?')}",
+                    "n_games_used": len(all_raw),
+                    "brier_before": round(brier_before, 5),
+                    "brier_after": round(brier_after, 5),
+                    "ece_before": round(ece_before, 5),
+                    "ece_after": round(ece_after, 5),
+                },
+                "bin_edges": [0.0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                "raw_centers": [0.1, 0.3, 0.5, 0.7, 0.9],
+                "calibrated_centers": [
+                    round(float(ir.predict(np.array([c]))[0]), 4)
+                    for c in [0.1, 0.3, 0.5, 0.7, 0.9]
+                ],
+                "bin_counts": [
+                    int(((raw_arr >= lo) & (raw_arr < hi)).sum())
+                    for lo, hi in [(0.0, 0.2), (0.2, 0.4), (0.4, 0.6), (0.6, 0.8), (0.8, 1.0)]
+                ],
+            },
+        }
+
+        # Optionally write to local persistent storage
+        if write_local:
+            bp_path = DATA_DIR / "isotonic_breakpoints.json"
+            bp_path.write_text(json.dumps({
+                "x_points": result["x_points"],
+                "y_points": result["y_points"],
+                "metadata": result["metadata"],
+            }, indent=2))
+            cm_path = DATA_DIR / "calibration-map.json"
+            cm_path.write_text(json.dumps(result["calibration_map"], indent=2))
+            # Update in-memory calibration map
+            global _CAL_MAP
+            _CAL_MAP = (
+                result["calibration_map"]["bin_edges"],
+                result["calibration_map"]["raw_centers"],
+                result["calibration_map"]["calibrated_centers"],
+            )
+
+        return JSONResponse(result)
+
+    except Exception as e:
+        return JSONResponse({"error": f"fit-calibration failed: {str(e)[:300]}"}, status_code=500)
 
 
 with gr.Blocks(title="NOMOS NBA QUANT — Genetic Evolution", theme=gr.themes.Monochrome()) as app:
