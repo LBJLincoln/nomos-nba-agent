@@ -1,76 +1,76 @@
 {
-  "timestamp": "2026-04-14T14:15:41.464911+00:00",
+  "timestamp": "2026-04-14T20:15:06.602230+00:00",
   "council": "d3-evolution",
   "subject": "Trading Floor v3 Rationale Pattern Mining",
   "findings": {
-    "best_agent": "gemini-anl",
+    "best_agent": "qwen-arb",
     "top_winning_keywords": [
       {
-        "keyword": "altitude",
-        "mentions": 2,
-        "wins": 2,
+        "keyword": "consensus",
+        "mentions": 3,
+        "wins": 3,
         "win_rate": 1.0
       },
       {
         "keyword": "public",
-        "mentions": 2,
-        "wins": 2,
-        "win_rate": 1.0
-      },
-      {
-        "keyword": "consensus",
         "mentions": 1,
         "wins": 1,
         "win_rate": 1.0
       },
       {
-        "keyword": "back-to-back",
-        "mentions": 1,
-        "wins": 1,
-        "win_rate": 1.0
+        "keyword": "sharp",
+        "mentions": 11,
+        "wins": 9,
+        "win_rate": 0.818
       },
       {
-        "keyword": "travel",
-        "mentions": 1,
-        "wins": 1,
-        "win_rate": 1.0
-      },
-      {
-        "keyword": "shooting",
-        "mentions": 1,
-        "wins": 1,
-        "win_rate": 1.0
-      },
-      {
-        "keyword": "rebound",
-        "mentions": 6,
-        "wins": 5,
-        "win_rate": 0.833
-      },
-      {
-        "keyword": "defrtg",
-        "mentions": 9,
-        "wins": 6,
-        "win_rate": 0.667
-      },
-      {
-        "keyword": "form",
-        "mentions": 380,
-        "wins": 244,
-        "win_rate": 0.642
+        "keyword": "home court",
+        "mentions": 14,
+        "wins": 9,
+        "win_rate": 0.643
       },
       {
         "keyword": "net rating",
-        "mentions": 867,
-        "wins": 547,
-        "win_rate": 0.631
+        "mentions": 466,
+        "wins": 291,
+        "win_rate": 0.624
+      },
+      {
+        "keyword": "model",
+        "mentions": 352,
+        "wins": 216,
+        "win_rate": 0.614
+      },
+      {
+        "keyword": "pace",
+        "mentions": 124,
+        "wins": 74,
+        "win_rate": 0.597
+      },
+      {
+        "keyword": "form",
+        "mentions": 544,
+        "wins": 321,
+        "win_rate": 0.59
+      },
+      {
+        "keyword": "line",
+        "mentions": 52,
+        "wins": 30,
+        "win_rate": 0.577
+      },
+      {
+        "keyword": "edge",
+        "mentions": 380,
+        "wins": 219,
+        "win_rate": 0.576
       }
     ]
   },
   "verdicts": [
-    "Top-winning rationale keywords (win rate): altitude (100% n=2), public (100% n=2), consensus (100% n=1), back-to-back (100% n=1), travel (100% n=1)",
+    "Top-winning rationale keywords (win rate): consensus (100% n=3), public (100% n=1), sharp (82% n=11), home court (64% n=14), net rating (62% n=466)",
     "\u2192 Seed D2 Engineering to add features for top keywords (e.g. rest differential, altitude dummy)"
   ],
-  "experiment_id": "da5b75814a37",
-  "experiment_id_written_at": "2026-04-14T14:45:04.195964+00:00"
+  "experiment_id": "5b25d63a9bec",
+  "experiment_id_written_at": "2026-04-14T20:45:02.011525+00:00"
 }
