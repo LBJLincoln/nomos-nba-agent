@@ -1,42 +1,76 @@
 {
-  "department": "evolution",
-  "dept_id": "d3",
-  "timestamp": "2026-04-12T00:00:12Z",
-  "model": "claude-sonnet-4-6",
-  "budget_usd": 2.0,
-  "max_turns": 50,
-  "duration_seconds": 998,
-  "exit_code": 0,
-  "status": "success",
-  "agent_status": "no_op",
-  "verified_status": "no_op",
-  "stall_streak": 1,
-  "log_file": "/home/termius/mon-ipad/logs/councils/d3-evolution-2026-04-12.log",
-  "pre_sha": "3dfc9b2773e56979b5de7495ffc3592cfaca9da9",
-  "real_sha": "5e279c61ad90f97d51b3f657e1e74dd30f12eaa4",
-  "agent_claimed_sha": "",
-  "rejected_files": [
-    "data/arena/docs/political-claude-season-2025-26.md",
-    "data/arena/docs/political-codex-season-2025-26.md",
-    "data/arena/docs/political-gemini-season-2025-26.md",
-    "data/arena/docs/political-grok-season-2025-26.md",
-    "data/arena/docs/political-openrouter-season-2025-26.md",
-    "data/arena/political-trading-floor-iteration.json",
-    "data/arena/political/political-trading-floor-2026-04-12.json",
-    "data/arena/political/political-trading-floor-latest.json",
-    "data/arena/traders/political-claude-state.json",
-    "data/arena/traders/political-codex-state.json",
-    "data/arena/traders/political-gemini-state.json",
-    "data/arena/traders/political-grok-state.json",
-    "data/arena/traders/political-openrouter-state.json",
-    "data/gpu-burst/latest-zerogpu-result.json",
-    "data/gpu-burst/zerogpu-log.jsonl",
-    "data/scientific-results/political-experiment-2026-04-12.json",
-    "data/scientific-results/political-experiment-2026-04-12.md"
+  "timestamp": "2026-04-14T14:15:41.464911+00:00",
+  "council": "d3-evolution",
+  "subject": "Trading Floor v3 Rationale Pattern Mining",
+  "findings": {
+    "best_agent": "gemini-anl",
+    "top_winning_keywords": [
+      {
+        "keyword": "altitude",
+        "mentions": 2,
+        "wins": 2,
+        "win_rate": 1.0
+      },
+      {
+        "keyword": "public",
+        "mentions": 2,
+        "wins": 2,
+        "win_rate": 1.0
+      },
+      {
+        "keyword": "consensus",
+        "mentions": 1,
+        "wins": 1,
+        "win_rate": 1.0
+      },
+      {
+        "keyword": "back-to-back",
+        "mentions": 1,
+        "wins": 1,
+        "win_rate": 1.0
+      },
+      {
+        "keyword": "travel",
+        "mentions": 1,
+        "wins": 1,
+        "win_rate": 1.0
+      },
+      {
+        "keyword": "shooting",
+        "mentions": 1,
+        "wins": 1,
+        "win_rate": 1.0
+      },
+      {
+        "keyword": "rebound",
+        "mentions": 6,
+        "wins": 5,
+        "win_rate": 0.833
+      },
+      {
+        "keyword": "defrtg",
+        "mentions": 9,
+        "wins": 6,
+        "win_rate": 0.667
+      },
+      {
+        "keyword": "form",
+        "mentions": 380,
+        "wins": 244,
+        "win_rate": 0.642
+      },
+      {
+        "keyword": "net rating",
+        "mentions": 867,
+        "wins": 547,
+        "win_rate": 0.631
+      }
+    ]
+  },
+  "verdicts": [
+    "Top-winning rationale keywords (win rate): altitude (100% n=2), public (100% n=2), consensus (100% n=1), back-to-back (100% n=1), travel (100% n=1)",
+    "\u2192 Seed D2 Engineering to add features for top keywords (e.g. rest differential, altitude dummy)"
   ],
-  "brier_before": 0.1909689543969487,
-  "brier_after": 0.1909689543969487,
-  "brier_delta": 0.0,
-  "experiment_id": "6874dfa681e8",
-  "experiment_id_written_at": "2026-04-12T17:15:11.171272+00:00"
+  "experiment_id": "da5b75814a37",
+  "experiment_id_written_at": "2026-04-14T14:45:04.195964+00:00"
 }

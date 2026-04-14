@@ -1,27 +1,160 @@
 {
-  "department": "evaluation",
-  "dept_id": "d6",
-  "timestamp": "2026-04-12T01:00:04Z",
-  "model": "claude-sonnet-4-6",
-  "budget_usd": 1.5,
-  "max_turns": 50,
-  "duration_seconds": 423,
-  "exit_code": 0,
-  "status": "success",
-  "agent_status": "shipped",
-  "verified_status": "hallucinated",
-  "stall_streak": 2,
-  "log_file": "/home/termius/mon-ipad/logs/councils/d6-evaluation-2026-04-12.log",
-  "pre_sha": "ded4185f09da2f5d034549a4498df88c56fe5f07",
-  "real_sha": "cc7c410ee758a796c47f3cf5837a58828cb8764e",
-  "agent_claimed_sha": "8332e3e3",
-  "rejected_files": [
-    ".claude/agent-memory/karpathy-researcher/MEMORY.md",
-    ".claude/agent-memory/karpathy-researcher/research_cycle_april2026_sota_papers.md"
+  "timestamp": "2026-04-14T14:15:41.464911+00:00",
+  "council": "d6-evaluation",
+  "subject": "Trading Floor v3 Calibration Audit",
+  "findings": {
+    "n_agents": 10,
+    "well_calibrated": [
+      "qwen-arb"
+    ],
+    "overconfident": [
+      "mistral-small",
+      "mistral-ministral"
+    ],
+    "best_bankroll": 100.0,
+    "worst_bankroll": 0.0,
+    "bankroll_spread": 100.0
+  },
+  "per_agent_summary": {
+    "qwen-quant": {
+      "trader_id": "qwen-quant",
+      "days_traded": 81,
+      "total_allocations": 248,
+      "wins": 137,
+      "losses": 111,
+      "win_rate": 0.552,
+      "avg_confidence": 0.665,
+      "calibration_gap": 0.113,
+      "avg_declared_edge": 0.0518,
+      "realized_ev": -0.0228,
+      "final_bankroll": 3.88,
+      "best_bankroll": 2063.04,
+      "worst_bankroll": 3.88
+    },
+    "qwen-arb": {
+      "trader_id": "qwen-arb",
+      "days_traded": 175,
+      "total_allocations": 593,
+      "wins": 385,
+      "losses": 208,
+      "win_rate": 0.649,
+      "avg_confidence": 0.665,
+      "calibration_gap": 0.016,
+      "avg_declared_edge": 0.1207,
+      "realized_ev": 0.054,
+      "final_bankroll": 42.9,
+      "best_bankroll": 882.37,
+      "worst_bankroll": 7.13
+    },
+    "llama-contra": {
+      "trader_id": "llama-contra",
+      "days_traded": 16,
+      "total_allocations": 65,
+      "wins": 34,
+      "losses": 31,
+      "win_rate": 0.523,
+      "avg_confidence": 0.67,
+      "calibration_gap": 0.147,
+      "avg_declared_edge": 0.0471,
+      "realized_ev": 0.0749,
+      "final_bankroll": 0.0,
+      "best_bankroll": 227.39,
+      "worst_bankroll": 0.0
+    },
+    "gemini-anl": {
+      "trader_id": "gemini-anl",
+      "days_traded": 175,
+      "total_allocations": 0,
+      "all_cash_days": 175,
+      "final_bankroll": 100.0
+    },
+    "gemini-tact": {
+      "trader_id": "gemini-tact",
+      "days_traded": 175,
+      "total_allocations": 0,
+      "all_cash_days": 175,
+      "final_bankroll": 100.0
+    },
+    "mistral-large": {
+      "trader_id": "mistral-large",
+      "days_traded": 32,
+      "total_allocations": 124,
+      "wins": 76,
+      "losses": 48,
+      "win_rate": 0.613,
+      "avg_confidence": 0.676,
+      "calibration_gap": 0.063,
+      "avg_declared_edge": 0.0898,
+      "realized_ev": -0.0651,
+      "final_bankroll": 4.53,
+      "best_bankroll": 96.92,
+      "worst_bankroll": 4.53
+    },
+    "mistral-medium": {
+      "trader_id": "mistral-medium",
+      "days_traded": 16,
+      "total_allocations": 59,
+      "wins": 32,
+      "losses": 27,
+      "win_rate": 0.542,
+      "avg_confidence": 0.691,
+      "calibration_gap": 0.149,
+      "avg_declared_edge": 0.0849,
+      "realized_ev": 0.0448,
+      "final_bankroll": 2.32,
+      "best_bankroll": 380.56,
+      "worst_bankroll": 2.32
+    },
+    "mistral-small": {
+      "trader_id": "mistral-small",
+      "days_traded": 30,
+      "total_allocations": 60,
+      "wins": 35,
+      "losses": 25,
+      "win_rate": 0.583,
+      "avg_confidence": 0.758,
+      "calibration_gap": 0.175,
+      "avg_declared_edge": 0.1017,
+      "realized_ev": -0.0723,
+      "final_bankroll": 4.7,
+      "best_bankroll": 130.41,
+      "worst_bankroll": 4.7
+    },
+    "mistral-nemo": {
+      "trader_id": "mistral-nemo",
+      "days_traded": 29,
+      "total_allocations": 106,
+      "wins": 58,
+      "losses": 48,
+      "win_rate": 0.547,
+      "avg_confidence": 0.68,
+      "calibration_gap": 0.133,
+      "avg_declared_edge": 0.0449,
+      "realized_ev": 0.0414,
+      "final_bankroll": 2.91,
+      "best_bankroll": 248.51,
+      "worst_bankroll": 2.91
+    },
+    "mistral-ministral": {
+      "trader_id": "mistral-ministral",
+      "days_traded": 30,
+      "total_allocations": 120,
+      "wins": 46,
+      "losses": 74,
+      "win_rate": 0.383,
+      "avg_confidence": 0.696,
+      "calibration_gap": 0.313,
+      "avg_declared_edge": 0.0587,
+      "realized_ev": -0.2228,
+      "final_bankroll": 3.83,
+      "best_bankroll": 98.12,
+      "worst_bankroll": 3.83
+    }
+  },
+  "verdicts": [
+    "2 agent(s) overconfident (gap>0.15): mistral-small, mistral-ministral",
+    "<50% agents well-calibrated \u2014 tighten prompt edge-computation instructions"
   ],
-  "brier_before": 0.1909689543969487,
-  "brier_after": 0.1909689543969487,
-  "brier_delta": 0.0,
-  "experiment_id": "82dd7b23b1f6",
-  "experiment_id_written_at": "2026-04-12T01:45:04.024259+00:00"
+  "experiment_id": "ad7ed73d4279",
+  "experiment_id_written_at": "2026-04-14T14:45:04.201621+00:00"
 }
