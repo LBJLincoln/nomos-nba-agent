@@ -13,7 +13,8 @@ from pathlib import Path
 from huggingface_hub import HfApi, CommitOperationAdd
 
 SPACE_ID = "lbjlincoln/nomos-nba-quant"
-HF_TOKEN = os.environ.get("HF_TOKEN") or os.environ.get("HF_TOKEN_2")
+# LBJLincoln account = canonical HF_TOKEN; HF_TOKEN_NBA (LBJLincoln26) as fallback
+HF_TOKEN = os.environ.get("HF_TOKEN") or os.environ.get("HF_TOKEN_NBA")
 LOCAL_DIR = Path(__file__).parent
 
 SECRETS = {
@@ -52,7 +53,10 @@ SECRETS = {
     "KIMI_API_KEY": os.environ.get("KIMI_API_KEY", ""),
     # LiteLLM removed — direct provider calls only
     # ── Telegram ──
+    # TELEGRAM_BOT_TOKEN = admin @Nomos42Bot (main channel, kept as canonical).
+    # BOT_TOKEN_NBA      = @Nomos42NBABot (paying users' picks bot).
     "TELEGRAM_BOT_TOKEN": os.environ.get("TELEGRAM_BOT_TOKEN", ""),
+    "BOT_TOKEN_NBA": os.environ.get("BOT_TOKEN_NBA", ""),
     "ADMIN_TELEGRAM_ID": os.environ.get("ADMIN_TELEGRAM_ID", ""),
     "TELEGRAM_CHANNEL_ID": os.environ.get("TELEGRAM_CHANNEL_ID", ""),
     # ── Search / Research ──
@@ -63,10 +67,12 @@ SECRETS = {
     # ── GitHub ──
     "GH_TOKEN": os.environ.get("GH_TOKEN", ""),
     "GITHUB_TOKEN": os.environ.get("GITHUB_TOKEN", ""),
-    # ── HuggingFace ──
+    # ── HuggingFace (4 accounts, role-based names — renamed 2026-04-15) ──
+    # HF_TOKEN (LBJLincoln) kept — it's the SDK default and legitimate canonical name.
     "HF_TOKEN": os.environ.get("HF_TOKEN", ""),
-    "HF_TOKEN_2": os.environ.get("HF_TOKEN_2", ""),
-    "HF_TOKEN_3": os.environ.get("HF_TOKEN_3", ""),
+    "HF_TOKEN_NBA": os.environ.get("HF_TOKEN_NBA", ""),
+    "HF_TOKEN_LLM": os.environ.get("HF_TOKEN_LLM", ""),
+    "HF_TOKEN_COUNCILS": os.environ.get("HF_TOKEN_COUNCILS", ""),
     # ── Infrastructure ──
     "VM_CALLBACK_URL": os.environ.get("VM_CALLBACK_URL", "http://34.136.180.66:8080"),
     "VM_HOST": os.environ.get("VM_HOST", ""),

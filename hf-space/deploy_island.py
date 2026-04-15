@@ -6,8 +6,8 @@ Usage:
     python3 hf-space/deploy_island.py SPACE_ID ROLE [HF_TOKEN_VAR]
 
 Examples:
-    python3 hf-space/deploy_island.py LBJLincoln26/nba-evo-3 extra_trees_specialist HF_TOKEN_2
-    python3 hf-space/deploy_island.py LBJLincoln26/nba-evo-4 catboost_specialist HF_TOKEN_2
+    python3 hf-space/deploy_island.py LBJLincoln26/nba-evo-3 extra_trees_specialist HF_TOKEN_NBA
+    python3 hf-space/deploy_island.py LBJLincoln26/nba-evo-4 catboost_specialist HF_TOKEN_NBA
 
 Roles:
     exploitation       — S10 default: mut=0.09, feat=63 (proven optimal)
