@@ -14,7 +14,7 @@ from pathlib import Path
 from huggingface_hub import HfApi, CommitOperationAdd
 
 SPACE_ID = "lbjlincoln/nomos-nba-quant-2"
-HF_TOKEN = os.environ.get("HF_TOKEN") or os.environ.get("HF_TOKEN_2")
+HF_TOKEN = os.environ.get("HF_TOKEN") or os.environ.get("HF_TOKEN_NBA")
 LOCAL_DIR = Path(__file__).parent
 
 # Same secrets as S10 + SPACE_ROLE override
