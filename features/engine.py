@@ -59,7 +59,12 @@ Categories:
   57. SEQUENTIAL EXPONENTIAL FORM (12 features — α-weighted momentum, hot hand, form variance)
   58. MODEL CONFIDENCE & CALIBRATION ANCHORS (10 features — spread confidence, H2H consistency)
   59. OPPONENT GRAPH FEATURES (12 features — 2nd-order SOS, transitive wins, common-opp advantage)
-  ≈ 6350+ feature candidates
+  60. SCORE MARGIN DISTRIBUTION (12 features — margin percentiles, skew, kurtosis proxy)
+  61. PACE-ADJUSTED NET RATING (10 features — offensive/defensive efficiency, tempo mismatch)
+  62. CLUTCH PERFORMANCE (10 features — close-game DNA, ≤5pt margin win%, edge)
+  63. PYTHAGOREAN LUCK (12 features — Morey expected WP, luck gap, regression signal)
+  64. OPPONENT-ELO-WEIGHTED PERFORMANCE (10 features — quality-adjusted rolling stats, trend)
+  ≈ 6400+ feature candidates
 
 Architecture inspired by:
   - Starlizard: 500+ features, genetic selection, real-time adjustment
@@ -83,7 +88,7 @@ import csv
 import os
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.1-59cat"  # Cat59: opponent graph features (arXiv 2303.16741 GATv2-TCN approach)
+ENGINE_VERSION = "v3.1-65cat"  # Cat65: Style Matchup Advantage (4-factor offense vs defense matchup edges)
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -2820,6 +2825,105 @@ class NBAFeatureEngine:
             "opp59_h_opp_form",      # Form of home's recent opponents at time of matchup
             "opp59_a_opp_form",      # Form of away's recent opponents at time of matchup
             "opp59_graph_transitive",# Home beat teams that also beat away's recent nemeses (0→1)
+        ])
+
+        # 60. SCORE MARGIN DISTRIBUTION (12 features)
+        # Pythagorean expectation works because margin distribution reveals true quality.
+        # arXiv 2506.01923 (NBA game-level Bayesian): margin-shape features improve AUC by 2-3%.
+        # Teams winning by narrow margins are fragile; teams with heavy-tail blowout wins are elite.
+        names.extend([
+            "mdist60_h_margin_mean",         # Home avg point diff last 10 (raw strength)
+            "mdist60_a_margin_mean",         # Away avg point diff last 10
+            "mdist60_h_margin_skew",         # Home margin skewness (+ = more blowout wins)
+            "mdist60_a_margin_skew",         # Away margin skewness
+            "mdist60_h_close_loss_rate",     # Home pct of losses by ≤5 pts (fragile losses)
+            "mdist60_a_close_loss_rate",     # Away pct of losses by ≤5 pts
+            "mdist60_h_blowout_win_rate",    # Home pct of wins by ≥15 pts (dominance signal)
+            "mdist60_a_blowout_win_rate",    # Away pct of wins by ≥15 pts
+            "mdist60_h_margin_iqr",          # Home interquartile range of margins (consistency)
+            "mdist60_a_margin_iqr",          # Away interquartile range of margins
+            "mdist60_margin_shape_diff",     # h_skew - a_skew (which team has heavier right tail)
+            "mdist60_quality_gap",           # (h_blowout_win - h_close_loss) - same for away
+        ])
+
+        # ── Cat 61: Pace-Adjusted Net Rating (10 features) ──
+        names.extend([
+            "pace61_h_off_rtg",              # Home offensive rating (pts per 100 poss)
+            "pace61_a_off_rtg",              # Away offensive rating
+            "pace61_h_def_rtg",              # Home defensive rating (opp pts per 100 poss)
+            "pace61_a_def_rtg",              # Away defensive rating
+            "pace61_h_net_rtg",              # Home net rating (off - def)
+            "pace61_a_net_rtg",              # Away net rating
+            "pace61_net_rtg_diff",           # h_net - a_net (pace-adjusted strength gap)
+            "pace61_h_pace",                 # Home possessions per game (normalized)
+            "pace61_a_pace",                 # Away possessions per game (normalized)
+            "pace61_pace_mismatch",          # |h_pace - a_pace| (tempo clash signal)
+        ])
+
+        # ── Cat 62: Clutch Performance — close-game DNA (10 features) ──
+        names.extend([
+            "clutch62_h_close_winpct",       # Home win% in games decided by ≤5 pts
+            "clutch62_a_close_winpct",       # Away win% in games decided by ≤5 pts
+            "clutch62_h_clutch_edge",        # Home close_winpct - overall_winpct (clutch lift)
+            "clutch62_a_clutch_edge",        # Away close_winpct - overall_winpct
+            "clutch62_h_close_freq",         # Fraction of home games that were close
+            "clutch62_a_close_freq",         # Fraction of away games that were close
+            "clutch62_close_wr_diff",        # h_close_winpct - a_close_winpct
+            "clutch62_clutch_edge_diff",     # h_clutch_edge - a_clutch_edge
+            "clutch62_h_close_margin_avg",   # Home avg margin in close games (signed)
+            "clutch62_a_close_margin_avg",   # Away avg margin in close games (signed)
+        ])
+
+        # ── Cat 63: Pythagorean Luck — expected vs actual win% (12 features) ──
+        # Morey exponent 13.91 (Basketball-Reference standard). Teams outperforming
+        # their Pythagorean expectation regress; underperformers bounce back.
+        names.extend([
+            "pyth63_h_pyth_wp5",             # Home Pythagorean win% (last 5)
+            "pyth63_a_pyth_wp5",             # Away Pythagorean win% (last 5)
+            "pyth63_h_pyth_wp10",            # Home Pythagorean win% (last 10)
+            "pyth63_a_pyth_wp10",            # Away Pythagorean win% (last 10)
+            "pyth63_h_luck5",                # Home actual WP - pyth WP (last 5, +luck)
+            "pyth63_a_luck5",                # Away actual WP - pyth WP (last 5)
+            "pyth63_h_luck10",               # Home actual WP - pyth WP (last 10)
+            "pyth63_a_luck10",               # Away actual WP - pyth WP (last 10)
+            "pyth63_pyth_wp_diff",            # h_pyth_wp10 - a_pyth_wp10
+            "pyth63_luck_diff",              # h_luck10 - a_luck10 (who's luckier)
+            "pyth63_h_regression_signal",    # |luck10| — magnitude of regression expected
+            "pyth63_a_regression_signal",    # |luck10| — magnitude of regression expected
+        ])
+
+        # ── Cat 64: Opponent-Elo-Weighted Performance (10 features) ──
+        # Weight rolling stats by opponent Elo: +10 margin vs 1600-Elo team > +10 vs 1400-Elo.
+        # Separates true quality from schedule-inflated stats.
+        names.extend([
+            "elow64_h_wp10",                 # Home Elo-weighted win% (last 10)
+            "elow64_a_wp10",                 # Away Elo-weighted win% (last 10)
+            "elow64_h_margin10",             # Home Elo-weighted avg margin (last 10)
+            "elow64_a_margin10",             # Away Elo-weighted avg margin (last 10)
+            "elow64_h_netrtg10",             # Home Elo-weighted net rating (last 10)
+            "elow64_a_netrtg10",             # Away Elo-weighted net rating (last 10)
+            "elow64_wp_diff",                # h_elo_wp - a_elo_wp
+            "elow64_margin_diff",            # h_elo_margin - a_elo_margin
+            "elow64_h_trend",                # h_elo_margin5 - h_elo_margin10 (improving?)
+            "elow64_a_trend",                # a_elo_margin5 - a_elo_margin10 (improving?)
+        ])
+
+        # ── Cat 65: Style Matchup Advantage (12 features) ──
+        # Measures how each team's offensive strengths exploit the opponent's defensive gaps.
+        # e.g. high-3PA offense vs poor 3P-defense = large matchup advantage.
+        names.extend([
+            "style65_h_efg_vs_opp_def",      # Home eFG% - Away opp_eFG% (shooting edge)
+            "style65_a_efg_vs_opp_def",      # Away eFG% - Home opp_eFG% (shooting edge)
+            "style65_h_tov_vs_opp_force",    # Home TOV rate - Away opp_TOV rate (ball security edge)
+            "style65_a_tov_vs_opp_force",    # Away TOV rate - Home opp_TOV rate
+            "style65_h_orb_vs_opp_drb",      # Home ORB% - Away opp_ORB% (glass edge)
+            "style65_a_orb_vs_opp_drb",      # Away ORB% - Home opp_ORB%
+            "style65_h_ftr_vs_opp_ftr",      # Home FT rate - Away opp_FT rate (foul-drawing edge)
+            "style65_a_ftr_vs_opp_ftr",      # Away FT rate - Home opp_FT rate
+            "style65_matchup_asymmetry",     # |h_composite_edge - a_composite_edge|
+            "style65_h_composite_edge",      # Weighted sum of h's 4-factor edges
+            "style65_a_composite_edge",      # Weighted sum of a's 4-factor edges
+            "style65_net_style_edge",        # h_composite - a_composite (positive = home style advantage)
         ])
 
         self.feature_names = names
@@ -6721,6 +6825,288 @@ class NBAFeatureEngine:
             except Exception:
                 row.extend([0.5, 0.5, 0.0, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.5])
 
+            # ── Cat 60: Score Margin Distribution (12 features) ──
+            # Margin shape reveals true quality: skewness, close-loss fragility, blowout dominance.
+            try:
+                _h60_margins = [_r[2] for _r in hr_[-10:]] if hr_ else []
+                _a60_margins = [_r[2] for _r in ar_[-10:]] if ar_ else []
+
+                def _mdist60_stats(margins):
+                    if not margins:
+                        return 0.0, 0.0, 0.0, 0.0, 0.0
+                    n = len(margins)
+                    mean = sum(margins) / n
+                    if n < 3:
+                        return mean, 0.0, 0.0, 0.0, max(margins) - min(margins) if n > 1 else 0.0
+                    var = sum((m - mean) ** 2 for m in margins) / n
+                    std = var ** 0.5 if var > 0 else 1e-6
+                    skew = sum(((m - mean) / std) ** 3 for m in margins) / n if std > 1e-6 else 0.0
+                    skew = max(-3.0, min(3.0, skew))
+                    sorted_m = sorted(margins)
+                    q1 = sorted_m[n // 4] if n >= 4 else sorted_m[0]
+                    q3 = sorted_m[3 * n // 4] if n >= 4 else sorted_m[-1]
+                    iqr = (q3 - q1) / 30.0
+                    losses = [m for m in margins if m < 0]
+                    close_loss = sum(1 for m in losses if m >= -5) / max(1, len(losses))
+                    wins = [m for m in margins if m > 0]
+                    blowout_win = sum(1 for m in wins if m >= 15) / max(1, len(wins))
+                    return mean / 20.0, skew, close_loss, blowout_win, max(-1.0, min(1.0, iqr))
+
+                _h60_mean, _h60_skew, _h60_cl, _h60_bw, _h60_iqr = _mdist60_stats(_h60_margins)
+                _a60_mean, _a60_skew, _a60_cl, _a60_bw, _a60_iqr = _mdist60_stats(_a60_margins)
+
+                row.extend([
+                    _h60_mean,                             # mdist60_h_margin_mean
+                    _a60_mean,                             # mdist60_a_margin_mean
+                    _h60_skew,                             # mdist60_h_margin_skew
+                    _a60_skew,                             # mdist60_a_margin_skew
+                    _h60_cl,                               # mdist60_h_close_loss_rate
+                    _a60_cl,                               # mdist60_a_close_loss_rate
+                    _h60_bw,                               # mdist60_h_blowout_win_rate
+                    _a60_bw,                               # mdist60_a_blowout_win_rate
+                    _h60_iqr,                              # mdist60_h_margin_iqr
+                    _a60_iqr,                              # mdist60_a_margin_iqr
+                    _h60_skew - _a60_skew,                 # mdist60_margin_shape_diff
+                    (_h60_bw - _h60_cl) - (_a60_bw - _a60_cl),  # mdist60_quality_gap
+                ])
+            except Exception:
+                row.extend([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+            # ── Cat 61: Pace-Adjusted Net Rating (10 features) ──
+            # Possessions ≈ FGA + 0.44*FTA - ORB + TOV; net rating = (pts/poss)*100
+            try:
+                def _pace61_ratings(recs, stat_fn):
+                    if not recs:
+                        return 0.5, 0.5, 0.0, 0.5
+                    off_rtgs, def_rtgs, paces = [], [], []
+                    for _r in recs[-10:]:
+                        _s = stat_fn(_r)
+                        if not _s:
+                            continue
+                        fga = _s.get('fga', 0) or 0
+                        fta = _s.get('fta', 0) or 0
+                        orb = _s.get('orb', 0) or 0
+                        tov = _s.get('tov', _s.get('to', 0)) or 0
+                        pts = _r[2] if _r[2] is not None else 0
+                        opp_pts = _r[3] if len(_r) > 3 and _r[3] is not None else 0
+                        poss = fga + 0.44 * fta - orb + tov
+                        if poss < 10:
+                            continue
+                        off_rtgs.append((pts / poss) * 100.0)
+                        def_rtgs.append((opp_pts / poss) * 100.0)
+                        paces.append(poss)
+                    if not off_rtgs:
+                        return 0.5, 0.5, 0.0, 0.5
+                    o = sum(off_rtgs) / len(off_rtgs) / 200.0
+                    d = sum(def_rtgs) / len(def_rtgs) / 200.0
+                    p = sum(paces) / len(paces) / 200.0
+                    return max(0.0, min(1.0, o)), max(0.0, min(1.0, d)), o - d, max(0.0, min(1.0, p))
+
+                def _h_stat61(r):
+                    return r[4] if len(r) > 4 else None
+                def _a_stat61(r):
+                    return r[5] if len(r) > 5 else None
+
+                # Build enriched records: (date, opp, own_score, opp_score, own_stats, opp_stats)
+                _h61_recs = []
+                for _r in hr_[-10:]:
+                    if len(_r) >= 6:
+                        _h61_recs.append(_r)
+                    elif len(_r) >= 4:
+                        _h61_recs.append(_r)
+
+                _a61_recs = []
+                for _r in ar_[-10:]:
+                    if len(_r) >= 6:
+                        _a61_recs.append(_r)
+                    elif len(_r) >= 4:
+                        _a61_recs.append(_r)
+
+                _h61_off, _h61_def, _h61_net, _h61_pace = _pace61_ratings(_h61_recs, _h_stat61)
+                _a61_off, _a61_def, _a61_net, _a61_pace = _pace61_ratings(_a61_recs, _a_stat61)
+
+                row.extend([
+                    _h61_off,                              # pace61_h_off_rtg
+                    _a61_off,                              # pace61_a_off_rtg
+                    _h61_def,                              # pace61_h_def_rtg
+                    _a61_def,                              # pace61_a_def_rtg
+                    _h61_net,                              # pace61_h_net_rtg
+                    _a61_net,                              # pace61_a_net_rtg
+                    _h61_net - _a61_net,                   # pace61_net_rtg_diff
+                    _h61_pace,                             # pace61_h_pace
+                    _a61_pace,                             # pace61_a_pace
+                    abs(_h61_pace - _a61_pace),            # pace61_pace_mismatch
+                ])
+            except Exception:
+                row.extend([0.5, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.5, 0.0])
+
+            # ── Cat 62: Clutch Performance — close-game DNA (10 features) ──
+            try:
+                def _clutch62(recs):
+                    if not recs:
+                        return 0.5, 0.0, 0.0, 0.0
+                    wins = sum(1 for r in recs if r[2] > r[3])
+                    overall_wr = wins / len(recs) if recs else 0.5
+                    close = [(r[2] - r[3]) for r in recs if abs(r[2] - r[3]) <= 5]
+                    close_wins = sum(1 for m in close if m > 0)
+                    close_wr = close_wins / len(close) if close else 0.5
+                    close_freq = len(close) / len(recs) if recs else 0.0
+                    clutch_edge = close_wr - overall_wr
+                    close_margin = sum(close) / len(close) if close else 0.0
+                    return close_wr, clutch_edge, close_freq, close_margin / 20.0
+
+                _h62_recs = [(r[0], r[1], r[2], r[3]) for r in hr_[-15:] if len(r) >= 4 and r[2] is not None and r[3] is not None]
+                _a62_recs = [(r[0], r[1], r[2], r[3]) for r in ar_[-15:] if len(r) >= 4 and r[2] is not None and r[3] is not None]
+
+                _h62_cwr, _h62_ce, _h62_cf, _h62_cm = _clutch62(_h62_recs)
+                _a62_cwr, _a62_ce, _a62_cf, _a62_cm = _clutch62(_a62_recs)
+
+                row.extend([
+                    _h62_cwr,                  # clutch62_h_close_winpct
+                    _a62_cwr,                  # clutch62_a_close_winpct
+                    _h62_ce,                   # clutch62_h_clutch_edge
+                    _a62_ce,                   # clutch62_a_clutch_edge
+                    _h62_cf,                   # clutch62_h_close_freq
+                    _a62_cf,                   # clutch62_a_close_freq
+                    _h62_cwr - _a62_cwr,       # clutch62_close_wr_diff
+                    _h62_ce - _a62_ce,         # clutch62_clutch_edge_diff
+                    _h62_cm,                   # clutch62_h_close_margin_avg
+                    _a62_cm,                   # clutch62_a_close_margin_avg
+                ])
+            except Exception:
+                row.extend([0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+            # ── Cat 63: Pythagorean Luck (12 features) ──
+            try:
+                _MOREY = 13.91
+
+                def _pyth63(recs, n):
+                    recent = recs[-n:] if len(recs) >= n else recs
+                    if len(recent) < 3:
+                        return 0.5, 0.5, 0.0
+                    pf = sum(r[4].get("pts", 100) for r in recent)
+                    pa = sum(r[4].get("opp_pts", 100) for r in recent)
+                    if pf + pa == 0:
+                        return 0.5, 0.5, 0.0
+                    pyth_wp = pf ** _MOREY / max(pf ** _MOREY + pa ** _MOREY, 1e-9)
+                    actual_wp = sum(1 for r in recent if r[1]) / len(recent)
+                    luck = actual_wp - pyth_wp
+                    return pyth_wp, actual_wp, luck
+
+                _h63_pw5, _h63_aw5, _h63_l5 = _pyth63(hr_, 5)
+                _a63_pw5, _a63_aw5, _a63_l5 = _pyth63(ar_, 5)
+                _h63_pw10, _h63_aw10, _h63_l10 = _pyth63(hr_, 10)
+                _a63_pw10, _a63_aw10, _a63_l10 = _pyth63(ar_, 10)
+
+                row.extend([
+                    _h63_pw5,                      # pyth63_h_pyth_wp5
+                    _a63_pw5,                      # pyth63_a_pyth_wp5
+                    _h63_pw10,                     # pyth63_h_pyth_wp10
+                    _a63_pw10,                     # pyth63_a_pyth_wp10
+                    _h63_l5,                       # pyth63_h_luck5
+                    _a63_l5,                       # pyth63_a_luck5
+                    _h63_l10,                      # pyth63_h_luck10
+                    _a63_l10,                      # pyth63_a_luck10
+                    _h63_pw10 - _a63_pw10,         # pyth63_pyth_wp_diff
+                    _h63_l10 - _a63_l10,           # pyth63_luck_diff
+                    abs(_h63_l10),                 # pyth63_h_regression_signal
+                    abs(_a63_l10),                 # pyth63_a_regression_signal
+                ])
+            except Exception:
+                row.extend([0.5, 0.5, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+            # ── Cat 64: Opponent-Elo-Weighted Performance (10 features) ──
+            try:
+                def _elow64(recs, n, team_elo_ref):
+                    recent = recs[-n:] if len(recs) >= n else recs
+                    if len(recent) < 3:
+                        return 0.5, 0.0, 0.0
+                    total_w = 0.0
+                    wp_w = 0.0
+                    margin_w = 0.0
+                    netrtg_w = 0.0
+                    for r in recent:
+                        opp = r[3]
+                        opp_elo = team_elo_ref.get(opp, 1500.0)
+                        w = opp_elo / 1500.0
+                        total_w += w
+                        wp_w += w * (1.0 if r[1] else 0.0)
+                        margin_w += w * r[2]
+                        ortg = r[4].get("ortg", 100)
+                        drtg = r[4].get("drtg", 100)
+                        netrtg_w += w * (ortg - drtg)
+                    if total_w < 1e-9:
+                        return 0.5, 0.0, 0.0
+                    return wp_w / total_w, margin_w / total_w, netrtg_w / total_w
+
+                _h64_wp10, _h64_m10, _h64_nr10 = _elow64(hr_, 10, team_elo)
+                _a64_wp10, _a64_m10, _a64_nr10 = _elow64(ar_, 10, team_elo)
+                _h64_wp5, _h64_m5, _h64_nr5 = _elow64(hr_, 5, team_elo)
+                _a64_wp5, _a64_m5, _a64_nr5 = _elow64(ar_, 5, team_elo)
+
+                row.extend([
+                    _h64_wp10,                         # elow64_h_wp10
+                    _a64_wp10,                         # elow64_a_wp10
+                    _h64_m10,                          # elow64_h_margin10
+                    _a64_m10,                          # elow64_a_margin10
+                    _h64_nr10,                         # elow64_h_netrtg10
+                    _a64_nr10,                         # elow64_a_netrtg10
+                    _h64_wp10 - _a64_wp10,             # elow64_wp_diff
+                    _h64_m10 - _a64_m10,               # elow64_margin_diff
+                    _h64_m5 - _h64_m10,                # elow64_h_trend
+                    _a64_m5 - _a64_m10,                # elow64_a_trend
+                ])
+            except Exception:
+                row.extend([0.5, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+            # ── Cat 65: Style Matchup Advantage (12 features) ──
+            try:
+                _h65_efg = self._efg(hr_, 10)
+                _a65_efg = self._efg(ar_, 10)
+                _h65_opp_efg = self._opp_efg(hr_, 10)
+                _a65_opp_efg = self._opp_efg(ar_, 10)
+                _h65_tov = self._tov_rate(hr_, 10)
+                _a65_tov = self._tov_rate(ar_, 10)
+                _h65_opp_tov = self._opp_tov_rate(hr_, 10)
+                _a65_opp_tov = self._opp_tov_rate(ar_, 10)
+                _h65_orb = self._orb_rate(hr_, 10)
+                _a65_orb = self._orb_rate(ar_, 10)
+                _h65_opp_orb = self._opp_orb_rate(hr_, 10)
+                _a65_opp_orb = self._opp_orb_rate(ar_, 10)
+                _h65_ftr = self._ft_rate(hr_, 10)
+                _a65_ftr = self._ft_rate(ar_, 10)
+                _h65_opp_ftr = self._opp_ft_rate(hr_, 10)
+                _a65_opp_ftr = self._opp_ft_rate(ar_, 10)
+
+                _h65_efg_edge = _h65_efg - _a65_opp_efg
+                _a65_efg_edge = _a65_efg - _h65_opp_efg
+                _h65_tov_edge = _a65_opp_tov - _h65_tov
+                _a65_tov_edge = _h65_opp_tov - _a65_tov
+                _h65_orb_edge = _h65_orb - _a65_opp_orb
+                _a65_orb_edge = _a65_orb - _h65_opp_orb
+                _h65_ftr_edge = _h65_ftr - _a65_opp_ftr
+                _a65_ftr_edge = _a65_ftr - _h65_opp_ftr
+
+                _h65_comp = 0.40 * _h65_efg_edge + 0.25 * _h65_tov_edge + 0.20 * _h65_orb_edge + 0.15 * _h65_ftr_edge
+                _a65_comp = 0.40 * _a65_efg_edge + 0.25 * _a65_tov_edge + 0.20 * _a65_orb_edge + 0.15 * _a65_ftr_edge
+
+                row.extend([
+                    _h65_efg_edge,                     # style65_h_efg_vs_opp_def
+                    _a65_efg_edge,                     # style65_a_efg_vs_opp_def
+                    _h65_tov_edge,                     # style65_h_tov_vs_opp_force
+                    _a65_tov_edge,                     # style65_a_tov_vs_opp_force
+                    _h65_orb_edge,                     # style65_h_orb_vs_opp_drb
+                    _a65_orb_edge,                     # style65_a_orb_vs_opp_drb
+                    _h65_ftr_edge,                     # style65_h_ftr_vs_opp_ftr
+                    _a65_ftr_edge,                     # style65_a_ftr_vs_opp_ftr
+                    abs(_h65_comp - _a65_comp),        # style65_matchup_asymmetry
+                    _h65_comp,                         # style65_h_composite_edge
+                    _a65_comp,                         # style65_a_composite_edge
+                    _h65_comp - _a65_comp,             # style65_net_style_edge
+                ])
+            except Exception:
+                row.extend([0.0] * 12)
+
             X.append(row)
             y.append(1 if hs > as_ else 0)
 
@@ -7513,7 +7899,7 @@ def genetic_feature_selection(X, y, feature_names, n_generations=50,
     def fitness(chromosome):
         """Evaluate chromosome fitness = negative Brier score."""
         selected = [i for i, bit in enumerate(chromosome) if bit]
-        if len(selected) < 10 or len(selected) > 400:
+        if len(selected) < 10 or len(selected) > target_features:
             return -0.30  # Penalty for too few or too many
         X_sub = X[:, selected]
         briers = []
