@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-14T20:15:06.602230+00:00",
+  "timestamp": "2026-04-15T02:15:06.197136+00:00",
   "council": "d3-evolution",
   "subject": "Trading Floor v3 Rationale Pattern Mining",
   "findings": {
@@ -71,6 +71,6 @@
     "Top-winning rationale keywords (win rate): consensus (100% n=3), public (100% n=1), sharp (82% n=11), home court (64% n=14), net rating (62% n=466)",
     "\u2192 Seed D2 Engineering to add features for top keywords (e.g. rest differential, altitude dummy)"
   ],
-  "experiment_id": "5b25d63a9bec",
-  "experiment_id_written_at": "2026-04-14T20:45:02.011525+00:00"
+  "experiment_id": "ec830196ed21",
+  "experiment_id_written_at": "2026-04-15T02:45:02.057621+00:00"
 }

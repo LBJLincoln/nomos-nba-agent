@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-14T20:15:06.602230+00:00",
+  "timestamp": "2026-04-15T02:15:06.197136+00:00",
   "council": "d6-evaluation",
   "subject": "Trading Floor v3 Calibration Audit",
   "findings": {
@@ -157,6 +157,6 @@
     "3 agent(s) overconfident (gap>0.15): qwen-quant, mistral-medium, mistral-ministral",
     "<50% agents well-calibrated \u2014 tighten prompt edge-computation instructions"
   ],
-  "experiment_id": "2d7ffbeead81",
-  "experiment_id_written_at": "2026-04-14T20:45:02.013798+00:00"
+  "experiment_id": "e11f75f79464",
+  "experiment_id_written_at": "2026-04-15T02:45:02.059700+00:00"
 }
