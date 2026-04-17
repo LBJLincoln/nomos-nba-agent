@@ -1962,6 +1962,8 @@ remote_config = {
     "pending_params": {},
     "injected_features": [],     # Feature ideas from OpenClaw
     "commands": [],              # Queued commands (restart, diversify, etc.)
+    "pending_elites": [],        # Promoted configs (e.g. from Karpathy GPU runs)
+    "promotion_log": [],         # Last 50 promotion events
 }
 
 
@@ -2675,6 +2677,53 @@ def evolution_loop():
                 log(f"REMOTE: mutation boosted to {mutation_rate}")
         remote_config["commands"] = []
 
+        # ── Consume pending elite promotions (e.g. from Karpathy GPU wins) ──
+        if remote_config.get("pending_elites"):
+            for elite_cfg in remote_config["pending_elites"]:
+                try:
+                    feat_idxs = elite_cfg.get("feature_indices", [])
+                    mask = [0] * n_feat
+                    for idx in feat_idxs:
+                        if 0 <= int(idx) < n_feat:
+                            mask[int(idx)] = 1
+                    ind = Individual.__new__(Individual)
+                    ind.features = mask
+                    ind.hyperparams = {
+                        "n_estimators": int(elite_cfg.get("n_estimators", 200)),
+                        "max_depth": int(elite_cfg.get("max_depth", 6)),
+                        "learning_rate": float(elite_cfg.get("learning_rate", 0.05)),
+                        "subsample": float(elite_cfg.get("subsample", 0.8)),
+                        "colsample_bytree": float(elite_cfg.get("colsample_bytree", 0.7)),
+                        "min_child_weight": int(elite_cfg.get("min_samples_leaf", 5)),
+                        "reg_alpha": float(elite_cfg.get("reg_alpha", 0.01)),
+                        "reg_lambda": float(elite_cfg.get("reg_lambda", 0.1)),
+                        "model_type": elite_cfg.get("model_type", "random_forest"),
+                        "calibration": elite_cfg.get("calibration", "venn_abers"),
+                        "nn_hidden_dims": 128, "nn_n_layers": 2, "nn_dropout": 0.3,
+                        "nn_epochs": 50, "nn_batch_size": 64,
+                    }
+                    ind.fitness = {"brier": 1.0, "roi": 0.0, "sharpe": 0.0, "calibration": 1.0, "composite": 0.0}
+                    ind.pareto_rank = 999; ind.crowding_dist = 0.0
+                    ind.island_id = 0; ind.generation = generation
+                    ind._enforce_feature_cap()
+                    isl0 = island_model.islands[0]
+                    if isl0:
+                        isl0.sort(key=lambda x: x.fitness.get("composite", 0))
+                        isl0[0] = ind
+                    src = elite_cfg.get("brier_source", "unknown")
+                    log(f"REMOTE PROMOTE: injected elite ({ind.hyperparams['model_type']} "
+                        f"n_est={ind.hyperparams['n_estimators']} n_feat={ind.n_features}) src={src}")
+                    remote_config["promotion_log"].append({
+                        "ts": time.time(), "generation": generation,
+                        "model_type": ind.hyperparams["model_type"],
+                        "n_features": ind.n_features, "source": src,
+                    })
+                    if len(remote_config["promotion_log"]) > 50:
+                        remote_config["promotion_log"] = remote_config["promotion_log"][-50:]
+                except Exception as e:
+                    log(f"[PROMOTE] failed: {e}")
+            remote_config["pending_elites"] = []
+
         # Refresh data every 10 cycles
         if cycle % 10 == 0:
             try:
@@ -2951,6 +3000,31 @@ async def api_inject_features(request: Request):
                          "total_pool": len(remote_config["injected_features"])})
 
 
+@control_api.post("/api/promote-config")
+async def api_promote_config(request: Request):
+    """Promote a GPU-discovered config as an elite individual in island 0.
+
+    Body (from data/karpathy/nba-best-config.json):
+    {
+      "model_type": "random_forest",
+      "n_estimators": 275, "max_depth": 13, "min_samples_leaf": 5,
+      "max_features_ratio": 0.32,
+      "feature_indices": [0, 3, 7, ...],
+      "brier_source": "karpathy_lightning_0.21218"
+    }
+    """
+    body = await request.json()
+    if not isinstance(body.get("feature_indices"), list) or len(body["feature_indices"]) == 0:
+        return JSONResponse({"error": "feature_indices (non-empty list) required"}, status_code=400)
+    remote_config["pending_elites"].append(body)
+    return JSONResponse({
+        "status": "queued",
+        "queued_count": len(remote_config["pending_elites"]),
+        "will_inject_into": "island_0",
+        "source": body.get("brier_source", "unknown"),
+    })
+
+
 @control_api.get("/api/remote-log")
 async def api_remote_log():
     """Return recent remote commands and injections."""
@@ -2960,6 +3034,8 @@ async def api_remote_log():
         "queued_commands": remote_config["commands"],
         "injected_features_count": len(remote_config["injected_features"]),
         "recent_features": remote_config["injected_features"][-10:],
+        "pending_elites_count": len(remote_config.get("pending_elites", [])),
+        "promotion_log": remote_config.get("promotion_log", [])[-10:],
         "log_tail": live["log"][-30:],
     })
 
