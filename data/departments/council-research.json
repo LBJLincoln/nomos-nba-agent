@@ -1,0 +1,221 @@
+{
+  "dept": "research",
+  "repo": "nomos-nba-agent",
+  "iteration": 15,
+  "best_metric": null,
+  "last_run": "2026-04-04T20:03:32Z",
+  "created": "2026-04-03T20:12:17Z",
+  "forge_version": "v19",
+  "history": [
+    {
+      "iteration": 1,
+      "ts": "2026-04-04T01:02:05Z",
+      "proposal": "Run ArXiv + GitHub scan for latest NBA/ML papers",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 15
+        }
+      }
+    },
+    {
+      "iteration": 2,
+      "ts": "2026-04-04T08:02:06Z",
+      "proposal": "Run ArXiv + GitHub scan for latest NBA/ML papers",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 3,
+      "ts": "2026-04-04T09:02:10Z",
+      "proposal": "Run ArXiv + GitHub scan for latest NBA/ML papers",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 4,
+      "ts": "2026-04-04T10:03:11Z",
+      "proposal": "Run ArXiv + GitHub scan for latest NBA/ML papers",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 5,
+      "ts": "2026-04-04T11:03:03Z",
+      "proposal": "Run ArXiv + GitHub scan for latest NBA/ML papers",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 6,
+      "ts": "2026-04-04T12:03:31Z",
+      "proposal": "Run ArXiv + GitHub scan for latest NBA/ML papers",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 7,
+      "ts": "2026-04-04T13:03:44Z",
+      "proposal": "[LLM] Implement an automated ArXiv and GitHub scan to discover the latest NBA/ML research papers.",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 8,
+      "ts": "2026-04-04T13:30:50Z",
+      "proposal": "[LLM] Implement a scheduled ArXiv and GitHub scan to automatically fetch the latest NBA/ML research papers.",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 9,
+      "ts": "2026-04-04T14:04:20Z",
+      "proposal": "[LLM] Scan ArXiv and GitHub for relevant NBA/ML research.",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 10,
+      "ts": "2026-04-04T15:04:23Z",
+      "proposal": "[LLM] Implement a scheduled ArXiv and GitHub scan to find the latest NBA/ML research papers.",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 11,
+      "ts": "2026-04-04T16:03:50Z",
+      "proposal": "[LLM] Implement an automated ArXiv and GitHub scan for the latest NBA/ML research papers.",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 12,
+      "ts": "2026-04-04T17:03:44Z",
+      "proposal": "[LLM] Initiate a targeted ArXiv and GitHub scan for NBA-related machine learning papers.",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 13,
+      "ts": "2026-04-04T18:04:07Z",
+      "proposal": "[LLM] Implement a scheduled ArXiv and GitHub scan to automatically fetch the latest NBA/ML research papers.",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 14,
+      "ts": "2026-04-04T19:02:51Z",
+      "proposal": "[LLM] Scan ArXiv and GitHub for NBA/ML research papers to incorporate into model training.",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    },
+    {
+      "iteration": 15,
+      "ts": "2026-04-04T20:03:32Z",
+      "proposal": "[LLM] Implement a scheduled ArXiv and GitHub scan to identify the latest NBA/ML research papers.",
+      "result": "keep",
+      "metrics": {
+        "papers_found": {
+          "value": 0
+        },
+        "scan_count": {
+          "value": 18
+        }
+      }
+    }
+  ]
+}

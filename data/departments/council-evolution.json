@@ -1,0 +1,249 @@
+{
+  "dept": "evolution",
+  "repo": "nomos-nba-agent",
+  "iteration": 14,
+  "best_metric": null,
+  "last_run": "2026-04-04T19:22:01Z",
+  "created": "2026-04-03T20:12:18Z",
+  "forge_version": "v19",
+  "history": [
+    {
+      "iteration": 1,
+      "ts": "2026-04-04T07:22:01Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 3693 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 3693
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 2,
+      "ts": "2026-04-04T08:22:12Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 3693 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 3693
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 3,
+      "ts": "2026-04-04T09:22:05Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 4222 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 4222
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 4,
+      "ts": "2026-04-04T10:22:13Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 4616 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 4616
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 5,
+      "ts": "2026-04-04T11:22:13Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 4616 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 4616
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 6,
+      "ts": "2026-04-04T12:22:11Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 5117 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 5117
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 7,
+      "ts": "2026-04-04T12:58:55Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 5208 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 5208
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 8,
+      "ts": "2026-04-04T13:22:16Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 5208 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 5208
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 9,
+      "ts": "2026-04-04T13:29:51Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 5208 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 5208
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 10,
+      "ts": "2026-04-04T14:22:18Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 5586 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 5586
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 11,
+      "ts": "2026-04-04T15:22:08Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 5586 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 5586
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 12,
+      "ts": "2026-04-04T16:22:22Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 6011 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 6011
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 13,
+      "ts": "2026-04-04T17:22:11Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 6106 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 6106
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    },
+    {
+      "iteration": 14,
+      "ts": "2026-04-04T19:22:01Z",
+      "proposal": "Fleet healthy at 0.22159 \u2014 6457 total gens",
+      "result": "keep",
+      "metrics": {
+        "best_fleet_brier": {
+          "value": 0.22159
+        },
+        "total_generations": {
+          "value": 6457
+        },
+        "stagnant_islands": {
+          "value": 0
+        }
+      }
+    }
+  ]
+}

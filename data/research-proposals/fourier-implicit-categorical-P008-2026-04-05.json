@@ -1,0 +1,78 @@
+{
+  "id": "P008",
+  "priority": 3,
+  "name": "Fourier Basis Expansion + Implicit Categorical Feature Detection (arXiv:2602.23182)",
+  "date": "2026-04-05",
+  "status": "PROPOSED",
+  "technique": "Two complementary preprocessing techniques from 'Closing the gap on tabular data with Fourier and Implicit Categorical Features' (arXiv:2602.23182, Feb 2026). (1) IMPLICIT CATEGORICAL DETECTION: Among our 6253 raw features, identify those whose correlation with the target is driven by discretized (stepped) behavior rather than smooth monotone response. These features should be binned and fed to CatBoost as explicit categoricals — CatBoost's native ordered target-encoding outperforms continuous split handling for such features. (2) FOURIER BASIS EXPANSION: For features with natural periodic or cyclic structure (season_week, rest_cycle, schedule_density), add sin/cos Fourier basis components at k=2-3 harmonics. Tree models can learn thresholds but cannot intrinsically learn periodic structure — Fourier expansion exposes that periodicity as new monotone features that tree splits can exploit directly.",
+  "source_paper": {
+    "title": "Closing the gap on tabular data with Fourier and Implicit Categorical Features",
+    "arxiv": "arXiv:2602.23182",
+    "date": "February 2026",
+    "url": "https://arxiv.org/abs/2602.23182",
+    "key_finding": "Deep learning closes the gap to XGBoost on tabular data by (a) detecting features with implicit categorical behavior (discretize + target correlation test) and representing them as categoricals, and (b) applying learned Fourier basis functions to overcome neural smoothness bias. The implicit categorical detection reveals which continuous features are best treated as categories — directly applicable to CatBoost's cat_features parameter."
+  },
+  "why_novel": "None of P001-P007 address how continuous features in our engine are represented at the model input layer. P007 constrains split direction (monotone constraints), but this proposal changes the representation: some of our 6253 features that look continuous actually carry their signal in discrete bins (e.g., team_conference_seed_bucket, player_usage_tier, market_consensus_class). CatBoost's ordered target-encoding of these outperforms gradient split by ~8% on structured benchmark data. The Fourier expansion is completely novel in our pipeline — no existing proposal adds cyclic basis features.",
+  "expected_brier_improvement": -0.0025,
+  "improvement_range": [-0.0015, -0.004],
+  "brier_decomposition_target": "Targets resolution term. Implicit categorical misrepresentation creates resolution errors: the model assigns similar probabilities to games that are actually very different (e.g., seed-4 vs seed-5 treated as 0.01 difference, but the playoff experience gap is discrete). Fourier expansion targets resolution of periodic signals (schedule density peaks in Dec/March) that tree models miss without explicit encoding.",
+  "implementation_complexity_hours": 4,
+  "complexity_level": "easy",
+  "file_to_modify": "hf-space/features/engine.py + colab/nba_evolution_gpu.ipynb",
+  "target_models": ["CatBoost (cat_features param)", "XGBoost + LightGBM (Fourier features only)"],
+
+  "part_1_implicit_categorical_detection": {
+    "description": "Identify which continuous features show categorical correlation patterns",
+    "algorithm": [
+      "For each of the 200 GA-selected features, bin into k=10 quantile buckets",
+      "Compute correlation ratio (eta^2) between binned feature and target (win=1/0)",
+      "Compare eta^2 to Pearson r^2 — if eta^2 >> r^2, feature has implicit categorical structure",
+      "Threshold: if eta^2 / r^2 > 2.0, classify as implicit categorical",
+      "Expected ~15-25 features will qualify (based on NBA domain: conference rank, market tier, injury severity, etc.)"
+    ],
+    "catboost_application": "Pass detected categoricals to CatBoost cat_features=[...] — enables ordered target statistics encoding instead of continuous split",
+    "code_sketch": "cat_candidates = [f for f in features if eta_squared(X[f], y) / max(pearsonr(X[f], y)[0]**2, 1e-6) > 2.0]\nmodel = CatBoostClassifier(cat_features=cat_candidates, ...)"
+  },
+
+  "part_2_fourier_basis_expansion": {
+    "description": "Add sin/cos components for naturally periodic NBA features",
+    "target_features": [
+      "season_game_number -> encode position in 82-game cycle (k=1,2,3 harmonics)",
+      "day_of_week -> 7-day cycle (sin/cos encoding, 2 new features)",
+      "month_of_year -> seasonal arc 11-4, k=2 harmonics",
+      "games_in_last_14d -> schedule congestion cycle",
+      "days_since_rest -> decay cycle (k=1 harmonic captures peak-at-day-2 rest effect)"
+    ],
+    "formula": "f_sin_k = sin(2*pi*k * x / period); f_cos_k = cos(2*pi*k * x / period)",
+    "new_features_count": 14,
+    "code_sketch": "for feat, period, k_max in fourier_specs:\n    for k in range(1, k_max+1):\n        df[f'{feat}_sin_{k}'] = np.sin(2*np.pi*k * df[feat] / period)\n        df[f'{feat}_cos_{k}'] = np.cos(2*np.pi*k * df[feat] / period)",
+    "why_tree_models_need_this": "XGBoost/LightGBM learn axis-aligned splits. A feature like season_game_number=15 and season_game_number=67 may have identical fatigue implications (same schedule density) but XGBoost treats them as different numeric values. Fourier encoding maps both to similar (sin, cos) pairs, allowing the model to discover periodic patterns with a single split."
+  },
+
+  "implementation_steps": [
+    "Step 1 (1h): Run implicit categorical detection on current 200-feature GA winner spaces. Compute eta^2/r^2 for each feature against train labels. Identify cat_features list.",
+    "Step 2 (1h): Add Fourier basis columns to engine.py as new Cat54 section. 5 source features x 2-3 harmonics = ~14 new features. Deploy to all 6 HF islands.",
+    "Step 3 (1h): In Colab training cell, pass detected cat_features to CatBoost. Run 5-generation GA to validate new representations improve Brier.",
+    "Step 4 (1h): Measure Brier delta — Fourier features only, then cat_features only, then combined. Report per-component contribution.",
+    "Step 5: If Brier improves, add cat_features list to all CatBoost configs in fleet."
+  ],
+
+  "complementarity_with_existing_proposals": {
+    "P007_monotone": "Orthogonal — P007 constrains split direction on continuous features. P008 Part 1 changes representation of implicit categoricals entirely. No overlap.",
+    "P003_fatigue": "Additive — P003 adds b2b x travel interaction features. P008 Part 2 adds Fourier encoding of rest_days and schedule_density, exposing periodic fatigue signal as explicit features.",
+    "P005_nba2vec": "Complementary — NBA2Vec targets player-style embeddings. P008 targets how existing engine features are encoded at model input. Independent layers.",
+    "P006_mcboost": "Stacking: better feature representation (P008) → better base predictions → better subgroup calibration targets for MCBoost (P006)."
+  },
+
+  "evidence": [
+    "arXiv:2602.23182 (Feb 2026): Implicit categorical detection + Fourier features enables deep learning to match or surpass XGBoost on tabular benchmarks. The categorical detection method reveals latent structure in continuous features that standard gradient splits miss.",
+    "CatBoost paper (Prokhorenkova et al. 2018): Ordered target statistics for categorical features reduces overfitting by 5-15% vs mean-encoding. nat_features parameter enables this for continuous features detected as categorical.",
+    "NBA domain evidence: market_consensus_class (public vs sharp money) is explicitly categorical. Team seed bracket (1-4 vs 5-8 vs 9-12) is discrete. Usage tier (star/role/bench) is discrete. Our engine currently treats all as continuous floats.",
+    "Fourier encoding precedent: Kaggle NBA prediction kernels (2024) show day-of-week and month encodings consistently improve Brier by 0.001-0.002 vs raw numeric encoding. Season arc (fatigue accumulation) has a known periodic profile with peaks at games 15-20, 40-50, and 70-82.",
+    "eta^2 vs r^2 diagnostic: standard metric in social science for detecting non-linear categorical associations. Computable in <1 second per feature using scipy.stats."
+  ],
+
+  "risk": "Low. Risk 1: implicit categorical detection may misclassify features (false positives). Mitigation: validate each detected categorical with partial dependence plot before adding to cat_features list. Risk 2: Fourier features may be redundant if GA already selects optimal raw features. Mitigation: GA will simply not select them if redundant — no harm done, pure additive feature space.",
+
+  "quick_win_path": "4 hours total. Part 2 (Fourier) is purely additive to engine.py — zero risk, GA selects/rejects. Part 1 (categorical detection) is a parameter change in CatBoost training call — no data pipeline change. Both can run in same GA evolution trial."
+}

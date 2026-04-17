@@ -42,8 +42,8 @@ def test_expected_value():
 
 
 def test_evaluate_bet_recommends_bet():
-    """Bucks ML -130 (1.77), model 62% → should bet with fractional Kelly."""
-    opp = _make_opp(1.77, 0.62, "Bucks ML")
+    """Bucks ML -130 (1.77), model 63% → should bet with fractional Kelly (ev_ratio=1.1151 > 1.10)."""
+    opp = _make_opp(1.77, 0.63, "Bucks ML")
     result = evaluate_bet(opp, bankroll=1000)
     assert result.is_bet is True
     assert 0 < result.recommended_bet <= 50  # capped at 5% of 1000

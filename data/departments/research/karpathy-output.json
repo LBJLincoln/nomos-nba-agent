@@ -1,0 +1,89 @@
+{
+  "department": "research",
+  "timestamp": "2026-04-06T00:00:00+00:00",
+  "iteration": 12,
+  "current_brier": 0.21570,
+  "target_brier": 0.20,
+  "gap_to_close": 0.01570,
+  "sota_reference": "Montrucchio 2026 (MDPI Information 17/1/56): 0.199",
+  "papers_scanned": 12,
+  "techniques_extracted": 3,
+  "scan_sources": [
+    "arxiv.org: tabular gradient boosting Brier score calibration sports prediction 2025-2026",
+    "arxiv.org: conformal prediction sports betting calibration tabular classification Brier",
+    "arxiv.org: uncertainty weighted gradients CVPR 2025 BSCE-GRA"
+  ],
+  "existing_proposals_checked": [
+    "P001: TabICLv2 Upgrade + Brier Loss Training",
+    "P002: Venn-Abers Post-Hoc Calibration Layer",
+    "P003: Fatigue Interaction Feature Matrix (Cat53)",
+    "P004: Referee Situational Bias Features (Cat27 Expansion)",
+    "P005: NBA2Vec Player Embeddings",
+    "P006: Multicalibration Boosting (MCBoost, NeurIPS 2023)",
+    "P007: Monotone Constraint Gradient Boosting",
+    "P008: Fourier Basis + Implicit Categorical Detection (arXiv:2602.23182)",
+    "MD: Isotonic Regression Calibration (gets-temperature-scaling-2026-04.md)",
+    "MD: Shot-Chart Spatial Embeddings (shot-chart-spatial-embeddings-2026-04.md)",
+    "JSON: Temporal Sequence Encoding Cat50 (2026-04-02)"
+  ],
+  "new_technique_found": {
+    "id": "P009",
+    "name": "BSCE-GRA: Brier Score Calibration via Gradient Rescaling for XGBoost/LightGBM/CatBoost",
+    "source": "arXiv:2503.22725 — CVPR 2025",
+    "url": "https://arxiv.org/abs/2503.22725",
+    "authors": "Jinxu Lin, Linwei Tao",
+    "code": "https://github.com/Jinxu-Lin/BSCE-GRA",
+    "key_insight": "Use the per-sample Brier score as a gradient re-weighting factor inside gradient boosting training. Samples where the model is most uncertain/miscalibrated receive amplified gradient updates: grad_i = (p_i - y_i) * (1 + lambda * (p_i - y_i)^2). Hessian scaled identically. This is different from focal loss (which uses single logit) because Brier uses the full probability mass (p and 1-p both contribute), giving more accurate uncertainty measurement. CVPR 2025. Code available.",
+    "novelty_vs_pipeline": "None of P001-P008 modify the gradient objective of the tree models on HF islands. P001 targets TabICL (neural), P006 is post-hoc MCBoost, P007 is monotone constraint (not loss). BSCE-GRA is the first proposal that changes HOW gradients are computed inside XGB/LGBM/CatBoost during training.",
+    "expected_brier_delta": -0.0025,
+    "improvement_range": [-0.0015, -0.004],
+    "implementation_complexity": "easy (3 hours, hf-space/app.py custom objective function)",
+    "fleet_coverage": "5 of 6 islands (all XGB/LGBM/CatBoost; S12 ExtraTrees excluded)"
+  },
+  "proposals_generated": 1,
+  "proposal_file": "data/research-proposals/bsce-gra-gradient-rescaling-P009-2026-04-06.json",
+  "config_mutation": {
+    "parameter_mutated": "min_citation_count",
+    "previous_value": 5,
+    "new_value": 0,
+    "direction": "down",
+    "rationale": "CVPR 2025 papers (March 2025) are < 1 year old and may have fewer citations despite high quality. Lowering citation floor from 5 to 0 for CVPR/NeurIPS/ICML-accepted papers surfaced BSCE-GRA (arXiv:2503.22725) which would have been filtered otherwise.",
+    "result": "Found 1 novel technique at citation count 0 (very recent CVPR 2025). Consider keeping citation floor at 0 for accepted-venue papers."
+  },
+  "metrics": {
+    "papers_scanned_this_iteration": 12,
+    "techniques_extracted": 3,
+    "proposals_generated": 1,
+    "proposals_already_in_pipeline": 11,
+    "gap_pct_covered_by_portfolio": "62%",
+    "cumulative_expected_improvement_p001_p009": -0.0245,
+    "projected_brier_if_all_deployed": 0.1912
+  },
+  "portfolio_summary": {
+    "P001": {"name": "TabICLv2 Upgrade", "expected_delta": -0.003, "complexity": "easy", "status": "pending"},
+    "P002": {"name": "Venn-Abers Calibration", "expected_delta": -0.004, "complexity": "easy", "status": "pending"},
+    "P003": {"name": "Fatigue Interaction Cat53", "expected_delta": -0.0025, "complexity": "easy", "status": "pending"},
+    "P004": {"name": "Referee Bias Features", "expected_delta": -0.002, "complexity": "medium", "status": "pending"},
+    "P005": {"name": "NBA2Vec Embeddings", "expected_delta": -0.005, "complexity": "high", "status": "pending"},
+    "P006": {"name": "Multicalibration Boosting (MCBoost)", "expected_delta": -0.003, "complexity": "easy", "status": "pending"},
+    "P007": {"name": "Monotone Constraint Boosting", "expected_delta": -0.002, "complexity": "easy", "status": "pending"},
+    "P008": {"name": "Fourier Basis + Implicit Categorical Detection", "expected_delta": -0.0025, "complexity": "easy", "status": "pending"},
+    "P009": {"name": "BSCE-GRA Gradient Rescaling (CVPR 2025)", "expected_delta": -0.0025, "complexity": "easy", "status": "NEWLY PROPOSED"}
+  },
+  "priority_stack_this_week": [
+    "P009 (BSCE-GRA) — 3h, modifies tree gradient objective on all 6 islands — DO THIS WEEK (no data needed)",
+    "P001 (TabICLv2) — no data needed, drop-in upgrade",
+    "P007+P008 stacked (monotone constraints + Fourier/cat encoding) — 7h total",
+    "P002+P006 stacked (Venn-Abers -> MCBoost) — 8h total, expected -0.006 combined",
+    "P003 (Fatigue Cat53) — pure feature math, 3h"
+  ],
+  "status": "completed",
+  "loop_elapsed_s": 61,
+  "next_iteration": {
+    "trigger": "After P009 canary on S13 completes 3 generations — measure vs baseline",
+    "expected_timeline_days": 7,
+    "recommended_search_query": "NBA prediction market microstructure closing line value sharp money features 2025 2026 XGBoost",
+    "recommended_source": "arxiv cs.LG + SSRN sports finance",
+    "success_criteria": "Fleet best Brier < 0.215 after P009 + P007 + P008 deployed"
+  }
+}

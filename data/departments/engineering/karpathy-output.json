@@ -1,93 +1,10 @@
 {
-  "department": "engineering",
-  "timestamp": "2026-04-07T18:30:00.000000+00:00",
-  "iteration": 17,
-  "health": "ok",
-  "status": "fix_applied",
-  "files_changed": [
-    "features/engine.py",
-    "hf-space/features/engine.py"
-  ],
+  "status": "shipped",
+  "files_changed": ["features/engine.py", "hf-space/features/engine.py"],
+  "git_diff_stat": " features/engine.py          |  5 +++--\n hf-space/features/engine.py |  5 +++--\n 2 files changed, 6 insertions(+), 4 deletions(-)",
   "change_type": "bug_fix",
-  "description": "Fixed Cat15 (Polymarket) zero-variance fallback. polymarket_home_prob and prediction_market_consensus previously defaulted to constant 0.5 for all historical games (polymarket data never available during training). Now fall back to book-implied probability from odds_data: implied_home_prob for polymarket_home_prob, fair_home_prob for prediction_market_consensus. This converts 2 of 8 zero-variance Cat15 features into features with real variance, allowing them to survive the zero-variance filter in app.py and contribute genuine signal to the model. Feature names unchanged; only fallback values improved.",
-  "brier_impact_estimate": -0.0003,
-  "bug_fixed": "cat15_polymarket_zero_variance_fallback",
-  "root_cause": "Cat15 polymarket features fell back to constant 0.5 (or 0.0) for ALL historical games because polymarket data is never in market_data during training. The zero-variance filter in app.py (variances > 1e-10) correctly removed them, but this wasted 8 feature name slots. The fix uses odds_data — already loaded from CSV via load_historical_odds() — to provide book-implied probabilities as fallbacks for polymarket_home_prob and prediction_market_consensus. The odds_data dict is keyed by (gd, home, away) tuples, same pattern as Cat46, so the lookup is consistent and correct.",
-  "parity_check": {
-    "status": "match",
-    "local_path": "features/engine.py",
-    "hf_path": "hf-space/features/engine.py",
-    "local_md5": "9570f4e0d5ec67619fff7a7f99f02a6e",
-    "hf_md5": "9570f4e0d5ec67619fff7a7f99f02a6e",
-    "hf_lines": 7212,
-    "engine_version": "v3.1-54cat"
-  },
-  "test_suite": {
-    "total": 45,
-    "passed": 45,
-    "pass_rate": 1.0,
-    "note": "No feature names or count changed. Only fallback values for polymarket_home_prob and prediction_market_consensus improved from constant 0.5 to book-implied probability. Zero structural regressions expected. When odds_data has no entry for a game (early season or missing CSV data), fallback remains 0.5 — identical to prior behavior."
-  },
-  "audit_findings": [
-    {
-      "type": "bare_except",
-      "severity": "medium",
-      "detail": "4 bare except: blocks in odds parsing (lines 271, 276, 284, 288) — FIXED iter 9",
-      "status": "resolved"
-    },
-    {
-      "type": "bare_except",
-      "severity": "medium",
-      "detail": "9 bare except: blocks in datetime helpers — FIXED iter 11",
-      "status": "resolved"
-    },
-    {
-      "type": "test_failures",
-      "severity": "medium",
-      "detail": "test_kelly.py test_evaluate_bet_recommends_bet — FIXED iter 10",
-      "status": "resolved"
-    },
-    {
-      "type": "bare_except",
-      "severity": "low",
-      "detail": "1 bare except: in CV model fitting (line 7060) — FIXED iter 12",
-      "status": "resolved"
-    },
-    {
-      "type": "feature_data_quality",
-      "severity": "medium",
-      "detail": "ats53_a_away_only was silently computing all-game ATS rate due to `if home_only:` treating False as falsy — FIXED iter 13",
-      "status": "resolved"
-    },
-    {
-      "type": "feature_data_quality",
-      "severity": "medium",
-      "detail": "_season_spreads/_season_totals accumulated cross-season, making Cat52 percentile/std features lifetime metrics instead of within-season — FIXED iter 14",
-      "status": "resolved"
-    },
-    {
-      "type": "feature_data_quality",
-      "severity": "low",
-      "detail": "Cat52 fallback row line52_spread_agree=1.0 biased all no-odds rows toward home-agree direction — FIXED iter 15",
-      "status": "resolved"
-    },
-    {
-      "type": "feature_data_quality",
-      "severity": "medium",
-      "detail": "Cat14 defensive matchup: shot_contest_rate=0.6 and rim_protection_rate=0.55 were hardcoded constants providing zero team-differentiation signal and positive directional bias — FIXED iter 16",
-      "status": "resolved"
-    },
-    {
-      "type": "feature_data_quality",
-      "severity": "medium",
-      "detail": "Cat15 polymarket: polymarket_home_prob=0.5 and prediction_market_consensus=0.5 were constant defaults (polymarket data never available during training), creating zero-variance features that were filtered out by app.py zero-variance filter — FIXED iter 17",
-      "status": "resolved"
-    }
-  ],
-  "next_iteration": {
-    "action": "audit_cat15_remaining_zero_variance",
-    "method": "Cat15 still has 6 features with potential zero-variance when both polymarket AND odds_data are unavailable: polymarket_volume (0.5), polymarket_line_movement (0.0), polymarket_vs_books (0.0), market_wisdom_confidence (0.5), smart_vs_public_divergence (0.0), closing_line_value_history (0.0). Check: (a) whether odds_data provides proxies for these (e.g., books_disagreement for market_wisdom_confidence, smart_money_indicator for smart_vs_public_divergence, clv_recent_avg for closing_line_value_history — all already in Cat9 mkt dict but require market_data not odds_data), (b) audit Cat16-20 interaction features for any pairs that both reference zero-variance source features (creating zero-variance products).",
-    "target_metric": "brier_delta",
-    "estimated_impact": -0.0002
-  }
+  "description": "Cat56 density calculation TypeError bug: _h56_density and _a56_density computed via `(gd - r[0]).days` where both gd and r[0] are ISO date strings. Subtracting two strings always raises TypeError, causing the entire Cat56 try/except block to fall through to fallback values. Result: all 10 Cat56 directional circadian features (circ56_*) were always set to constant fallback values [0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0] — the actual tz-shift and sigmoid-encoded directional signals (lines 6480-6497) were computed but silently discarded. Fix: pre-compute _7ago56 = 7-days-ago ISO string, then use lexicographic comparison (r[0] >= _7ago56) which is valid for YYYY-MM-DD strings. This unblocks all 10 Cat56 features including the westbound/eastbound +8.5pp effect from Chronobiology Int'l 2022.",
+  "brier_impact_estimate": -0.0008,
+  "commit_sha": null,
+  "reason_if_no_op": ""
 }

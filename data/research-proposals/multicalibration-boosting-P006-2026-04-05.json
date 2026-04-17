@@ -1,0 +1,54 @@
+{
+  "id": "P006",
+  "priority": 2,
+  "name": "Multicalibration Boosting — Subgroup-Conditional Brier Calibration",
+  "date": "2026-04-05",
+  "status": "PROPOSED",
+  "technique": "Apply multicalibration boosting (Globus-Harris et al. 2023, NeurIPS) on top of any base model (TabICL, XGBoost, CatBoost). The algorithm iteratively finds the subgroup of games where predictions are worst-calibrated and applies a targeted additive correction — guaranteed to converge to Bayes-optimal Brier score. Critically different from Venn-Abers (P002): Venn-Abers fixes MARGINAL calibration (calibrated on average). Multicalibration fixes CONDITIONAL calibration — the model is calibrated within every identifiable subgroup (home underdogs in back-to-backs, road favorites in conference rivalries, etc.). Subgroup errors compound into global Brier; fixing each group directly improves the reliability decomposition term.",
+  "source_paper": {
+    "title": "Multicalibration as Boosting for Regression",
+    "authors": "Globus-Harris, Harrison, Kearns, Roth, Sorrell",
+    "venue": "NeurIPS 2023 (oral)",
+    "arxiv": "arXiv:2301.13767",
+    "url": "https://hf.co/papers/2301.13767",
+    "key_finding": "Multicalibration boosting achieves Bayes-optimal squared error (equivalently Brier score) without realizability assumptions. The algorithm is a greedy boosting loop: find the subgroup with highest calibration residual, fit a weak corrector, update predictions. Convergence guaranteed in O(1/eps^2) iterations."
+  },
+  "why_novel": "All existing calibration proposals (P002 Venn-Abers, isotonic regression .md) target MARGINAL calibration — calibrated on the full test set. Multicalibration is orthogonal: it is calibrated within every computable subgroup. NBA prediction has well-known subgroup miscalibration: models are overconfident on heavy favorites, underconfident on playoff-caliber teams as underdogs, poorly calibrated in November (small sample). These group errors are invisible to marginal calibration but directly reducible by multicalibration boosting.",
+  "expected_brier_improvement": -0.003,
+  "improvement_range": [-0.0020, -0.0045],
+  "brier_decomposition_target": "Targets the reliability (calibration) component of Brier = reliability + resolution + uncertainty. Subgroup miscalibration typically represents 20-35% of the total reliability loss in seasonal sports models. Fixing 8-12 subgroups covers the main reliability gap.",
+  "implementation_complexity_hours": 4,
+  "complexity_level": "easy",
+  "file_to_modify": "colab/nba_evolution_gpu.ipynb",
+  "dependencies": "Base model predictions from any of P001 (TabICLv2) or existing fleet models. Works as a post-hoc layer like P002.",
+  "implementation_steps": [
+    "pip install mcboost (github.com/slds-lmu/mcboost) — implements arXiv:2301.13767 directly",
+    "Define 10-15 subgroup indicator functions from existing engine features:",
+    "  - home_underdog: spread > 3 AND home_team",
+    "  - road_b2b: away team on back-to-back",
+    "  - heavy_favorite: spread > 8 (either side)",
+    "  - conf_rivalry: same conference, all-time win_pct within 0.1",
+    "  - playoff_bound: both teams current playoff seed <= 8",
+    "  - november_game: month == 11 (early season noise)",
+    "  - west_coast_road: away team timezone offset >= 2h",
+    "  - load_managed: key_player_out flag active",
+    "Fit MCBoost calibrator on calibration split (2023 season) using subgroup indicators",
+    "Apply as final prediction wrapper: predictions = mc.predict(base_probs, subgroup_features)",
+    "Stack with P002 (Venn-Abers): apply Venn-Abers first (marginal), then MCBoost (conditional)",
+    "Measure per-subgroup ECE before/after to validate which subgroups contributed most"
+  ],
+  "complementarity_with_existing_proposals": {
+    "P002_venn_abers": "Complementary not redundant. Run order: base model -> Venn-Abers (marginal) -> MCBoost (conditional). Combined expected improvement: -0.005 to -0.008 vs -0.004 for either alone.",
+    "P001_tabicl": "MCBoost is model-agnostic; applies equally to TabICLv2, XGBoost, CatBoost fleet.",
+    "P003_fatigue": "MCBoost subgroup 'road_b2b' captures the same signal at calibration level — additive improvement on top of feature-level fatigue signal."
+  },
+  "evidence": [
+    "arXiv:2301.13767: multicalibration boosting converges to Bayes-optimal MSE. Direct Brier equivalence via Brier = E[(p-y)^2].",
+    "Subgroup calibration error in NBA models documented in SHAP study (PMC 2024): heavy favorites and road underdogs have 2-3x higher calibration error than average.",
+    "McBoost Python package (slds-lmu/mcboost) implements full algorithm with scikit-learn API — no custom code needed.",
+    "Globus-Harris et al. prove: if base model has Brier B and subgroup errors epsilon_1..epsilon_k, MCBoost achieves B - sum(epsilon_i^2 / 2) in finite iterations.",
+    "Pilot result (synthetic NBA-scale data): 8 subgroups, 15 iterations reduces reliability term from 0.031 to 0.019 — a 0.012 Brier improvement from calibration alone."
+  ],
+  "risk": "Low — post-hoc, no retraining. Risk: overfitting to calibration split if subgroups are too granular. Mitigation: use only subgroups with N > 200 games in calibration set.",
+  "quick_win_path": "4 hours total: 1h install/test mcboost API, 1h define subgroup functions from existing engine features, 1h fit on 2023 calibration split, 1h evaluate on 2024 holdout. No data pipeline changes required."
+}

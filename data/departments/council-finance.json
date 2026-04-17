@@ -1,0 +1,10 @@
+{
+  "dept": "finance",
+  "repo": "nomos-nba-agent",
+  "iteration": 0,
+  "best_metric": null,
+  "last_run": null,
+  "created": "2026-04-03T20:12:19Z",
+  "forge_version": "v19",
+  "history": []
+}

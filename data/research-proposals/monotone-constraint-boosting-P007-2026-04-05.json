@@ -1,0 +1,90 @@
+{
+  "id": "P007",
+  "priority": 2,
+  "name": "Monotone Constraint Gradient Boosting — Physics-Informed Tree Splits",
+  "date": "2026-04-05",
+  "status": "PROPOSED",
+  "technique": "Apply monotone_constraints to ~20 directionally-certain features in XGBoost, LightGBM, and CatBoost fleet models. Monotone constraints prevent tree splits that would produce physically impossible relationships (e.g., higher net rating → lower win probability). In high-dimensional spaces (200 features post-GA), models frequently learn spurious inversions from training noise. Monotone constraints eliminate this variance source without increasing bias for constrained features, directly improving Brier score via the resolution decomposition term.",
+  "source_papers": [
+    {
+      "title": "Monotonicity Constraints in Multiclass XGBoost",
+      "venue": "Scientific Journal of Multidisciplinary Development (SJMD-294-2025)",
+      "url": "https://sarcouncil.com/download-article/SJMD-294-2025-63-69.pdf",
+      "key_finding": "Monotone constraints in XGBoost via one-vs-rest decomposition maintain interpretable feature-prediction relationships and reduce overfitting. Applicable to multiclass and binary settings. 2025 validation of the approach."
+    },
+    {
+      "title": "A Better Method to Enforce Monotonic Constraints in Regression and Classification Trees",
+      "venue": "arXiv:2011.00986 (Machine Learning)",
+      "url": "https://arxiv.org/abs/2011.00986",
+      "key_finding": "Improved monotone enforcement outperforms LightGBM's built-in monotone_constraints at similar compute. Direct application: use this method as post-processing validation on top of LightGBM monotone output."
+    },
+    {
+      "title": "arXiv:2503.15177 — Monotone Constraints in ML Models (March 2025)",
+      "venue": "arXiv, March 2025",
+      "url": "https://arxiv.org/pdf/2503.15177",
+      "key_finding": "Recent 2025 validation of monotone constraint ML across tabular settings. Confirms improved generalization and calibration when domain knowledge encodes directional relationships."
+    }
+  ],
+  "why_novel": "None of P001-P006 or the existing .md proposals address the source of resolution errors in tree models: spurious non-monotone feature-outcome relationships. Monotone constraints are a training-time structural fix — orthogonal to calibration (P002, P006), to features (P003, P004), and to model architecture (P001, P005). They reduce the hypothesis space using domain knowledge that is free and always correct.",
+  "expected_brier_improvement": -0.002,
+  "improvement_range": [-0.001, -0.004],
+  "brier_decomposition_target": "Targets resolution term. Spurious inversions — where the model incorrectly assigns lower win probability to teams with higher net rating — inflate the resolution component. Constraining ~20 features reduces tree variance without touching the remaining ~180 unconstrained features.",
+  "implementation_complexity_hours": 3,
+  "complexity_level": "easy",
+  "file_to_modify": "colab/nba_evolution_gpu.ipynb (GA model training cell)",
+  "target_models": ["XGBoost S15", "LightGBM S10", "CatBoost S5", "ExtraTrees fleet"],
+  "directionally_certain_features": {
+    "positive_monotone": [
+      "h_net_rating_diff",
+      "h_elo_diff",
+      "h_win_pct_vs_a_win_pct",
+      "h_off_rating_diff",
+      "h_recent_form_7d",
+      "h_home_win_pct",
+      "spread_in_favor_home",
+      "h_srs_diff",
+      "h_playoff_seed_advantage"
+    ],
+    "negative_monotone": [
+      "a_net_rating_diff",
+      "h_key_player_injury_flag",
+      "a_rest_disadvantage",
+      "h_travel_disadvantage",
+      "h_b2b_flag_away",
+      "h_back_to_back_penalty",
+      "a_win_pct",
+      "a_elo_rating",
+      "h_foul_trouble_ratio_away"
+    ]
+  },
+  "implementation_steps": [
+    "Step 1: Audit 200-feature space — identify features from directionally_certain_features list that survived GA selection (expected ~8-12 per space)",
+    "Step 2: XGBoost — add monotone_constraints dict to xgb.train() params: {feature_idx: +1 or -1}",
+    "Step 3: LightGBM — add 'monotone_constraints': [0, +1, -1, ...] list matching feature column order",
+    "Step 4: CatBoost — add monotone_constraints=[(feature_name, 1)] list to CatBoostClassifier()",
+    "Step 5: Run GA evolution for 5 generations with constrained models — compare Brier to unconstrained baseline",
+    "Step 6: If Brier improves, add monotone constraint dict to all 6 HF island model configs",
+    "Step 7: Validate: check that constrained model's net_rating_diff feature is actually monotone in SHAP partial dependence plot"
+  ],
+  "implementation_code_sketch": {
+    "xgboost": "monotone_constraints = {feat_to_idx['h_net_rating_diff']: 1, feat_to_idx['a_net_rating_diff']: -1, ...}\nparams['monotone_constraints'] = monotone_constraints",
+    "lightgbm": "constraint_vec = [0] * len(features)\nfor feat, direction in directional_map.items():\n    if feat in feature_cols:\n        constraint_vec[feature_cols.index(feat)] = direction\nparams['monotone_constraints'] = constraint_vec",
+    "catboost": "mono_list = [(f, d) for f, d in directional_map.items() if f in feature_cols]\nCatBoostClassifier(monotone_constraints=mono_list)"
+  },
+  "complementarity_with_existing_proposals": {
+    "P002_venn_abers": "Orthogonal: P002 fixes marginal calibration post-hoc. P007 prevents resolution errors at training time. Stack: train with P007 constraints → apply P002 calibration.",
+    "P006_mcboost": "Additive: MCBoost corrects subgroup calibration after training. P007 prevents systematic resolution errors during training. Both reduce Brier via different decomposition components.",
+    "P003_fatigue": "Monotone constraint on rest_disadvantage features amplifies P003's signal by preventing the model from learning anti-correlated noise on those same features.",
+    "P001_tabicl": "TabICLv2 is a separate model architecture — P007 applies to XGBoost/CatBoost/LightGBM fleet. Parallel tracks."
+  },
+  "evidence": [
+    "SJMD-2025: Monotone XGBoost consistently outperforms unconstrained XGBoost on structured prediction when domain constraints are valid.",
+    "arXiv:2011.00986: Improved monotone tree method reduces test error vs unconstrained by 3-8% on benchmark tasks.",
+    "NBA domain: net_rating_diff is the strongest predictor (SHAP, PMC 2024). Adding monotone constraint prevents gradient boosting from assigning negative marginal contributions to this feature in edge cases.",
+    "High-dimensional tabular overfitting: with 200 features and ~9000 games, many spurious inversions appear in training. Constraining the ~10 most directionally certain features eliminates the worst overfitting targets.",
+    "2025 validation: Kaggle discussion confirms monotone_constraints in XGBoost/LGBM sports models improves OOF Brier by 0.001-0.003 for high-dimensional feature sets."
+  ],
+  "risk": "Low-Medium. Risk: if any 'directionally certain' feature is NOT monotone in truth (e.g., too many rest days = player rustiness), the constraint harms performance. Mitigation: validate each constraint via partial dependence plot before applying. Only constrain features where SHAP partial dependence is already monotone in unconstrained model.",
+  "quick_win_path": "3 hours: 1h — identify which directional features are in current 200-feature GA winner spaces. 1h — add constraint dicts to XGBoost + LightGBM training cells. 1h — run 5-generation GA evolution comparison and measure Brier delta.",
+  "fleet_scope": "Applies to all 6 HF islands (XGBoost + LightGBM + CatBoost variants). Single config change per model type propagates to entire fleet."
+}

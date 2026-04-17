@@ -1,0 +1,76 @@
+{
+  "id": "P009",
+  "priority": 2,
+  "name": "BSCE-GRA: Brier Score Calibration via Gradient Rescaling for XGBoost/LightGBM/CatBoost",
+  "created": "2026-04-06",
+  "status": "proposed",
+  "source_paper": {
+    "title": "Uncertainty Weighted Gradients for Model Calibration",
+    "arxiv_id": "2503.22725",
+    "url": "https://arxiv.org/abs/2503.22725",
+    "venue": "CVPR 2025",
+    "authors": "Jinxu Lin, Linwei Tao",
+    "code": "https://github.com/Jinxu-Lin/BSCE-GRA"
+  },
+  "technique": "Apply BSCE-GRA (Brier Score Calibration via Gradient Rescaling Adjustments) as a custom objective function in XGBoost, LightGBM, and CatBoost on all 6 HF evolution islands. BSCE-GRA re-weights each sample's gradient update proportional to its per-sample Brier uncertainty, so that samples where the model is most miscalibrated receive amplified gradient corrections. Published CVPR 2025. Code available. Key distinction from focal loss (not in our pipeline): BSCE-GRA uses the full probability vector (all logits) to compute Brier uncertainty, not a single logit. This is more accurate for binary classification where p and (1-p) both carry information.",
+  "novelty_vs_pipeline": "None of P001-P008 modify the training objective of the tree models directly. P001 changes TabICL's native loss (different model). P006 is post-hoc calibration (MCBoost). P007 applies monotone constraints (not loss modification). BSCE-GRA targets the gradient computation inside XGBoost/LightGBM/CatBoost — a fundamentally different intervention point. This is the first proposal to modify the gradient boosting objective itself for calibration.",
+  "mechanism": {
+    "standard_xgboost_binary_grad": "grad_i = p_i - y_i  (log-loss derivative)",
+    "bsce_gra_grad": "brier_weight_i = (p_i - y_i)^2  |  grad_i = (p_i - y_i) * (1 + lambda * brier_weight_i)",
+    "bsce_gra_hess": "hess_i = p_i * (1 - p_i) * (1 + lambda * brier_weight_i)",
+    "lambda": "Hyperparameter 0.5-2.0 (start at 1.0). Controls strength of Brier-weighted correction.",
+    "intuition": "A sample with p=0.6, y=1 has brier_weight=0.16. Its gradient is amplified by 1.16x. A well-calibrated sample (p=0.9, y=1) has brier_weight=0.01, barely amplified. Miscalibrated samples get stronger pull toward truth."
+  },
+  "expected_brier_improvement": -0.0025,
+  "improvement_range": [-0.0015, -0.004],
+  "improvement_rationale": "CVPR 2025 experiments show 2-5% ECE reduction across classification benchmarks. Tree models have less natural miscalibration than neural nets (gradient boosting already implicitly regularizes), so we apply a conservative 15% scaling from published neural net results. The 6-island fleet amplifies this: one island canary, measure, then roll out. NBA prediction is a calibration-hard problem (probabilities cluster near 0.5-0.7), which is exactly the regime BSCE-GRA improves most.",
+  "implementation_complexity_hours": 3,
+  "complexity_level": "easy",
+  "files_to_modify": [
+    "hf-space/app.py (add bsce_gra_objective function, pass to xgb.train as obj=)",
+    "hf-space/app.py (add lgbm fobj parameter for LightGBM islands)",
+    "hf-space/app.py (CatBoost uses custom_loss parameter with Brier weighting)"
+  ],
+  "implementation_steps": [
+    "Step 1 (30 min): Add BSCE-GRA custom objective to hf-space/app.py",
+    "```python",
+    "import numpy as np",
+    "",
+    "def bsce_gra_objective(y_pred, dtrain, lam=1.0):",
+    "    y_true = dtrain.get_label()",
+    "    p = 1.0 / (1.0 + np.exp(-y_pred))  # sigmoid",
+    "    brier_w = (p - y_true) ** 2          # per-sample Brier uncertainty",
+    "    grad = (p - y_true) * (1.0 + lam * brier_w)",
+    "    hess = p * (1.0 - p) * (1.0 + lam * brier_w)",
+    "    return grad, hess",
+    "```",
+    "Step 2 (15 min): In XGBoost training call, replace 'objective': 'binary:logistic' with obj=bsce_gra_objective. Remove objective from params dict.",
+    "Step 3 (15 min): For LightGBM, implement as fobj= parameter. For CatBoost, wrap as custom loss object.",
+    "Step 4 (30 min): Deploy to S13 (CatBoost specialist) first as canary — measure generation Brier vs baseline over 3 generations.",
+    "Step 5 (15 min): If S13 shows improvement (delta < 0), update deploy_island.py default and redeploy all 6 islands.",
+    "Step 6: Add lambda=1.0 as a GA-evolvable hyperparameter in the search space (range 0.1-3.0, step 0.1)."
+  ],
+  "canary_deployment": {
+    "island": "S13 (CatBoost specialist, LBJLincoln26/nba-evo-4)",
+    "rollout_trigger": "3 generations showing Brier delta < 0 vs S13 baseline",
+    "rollback_trigger": "2 consecutive generations with Brier delta > +0.001"
+  },
+  "dependencies": "None — pure objective function change, no new data required. Works with current 6253 features and existing GA selection.",
+  "risk_level": "Low",
+  "risk_analysis": "Custom objectives in XGBoost/LightGBM are well-supported and reversible. The hessian modification is mild (same order of magnitude as log-loss hessian). Risk: if lambda too high (>3), gradients may destabilize. Mitigate by capping lambda at 2.0 in initial deployment.",
+  "complementarity": "Additive with P001 (TabICLv2), P002 (Venn-Abers), P006 (MCBoost). These operate on different interventions: P009 changes training objective of tree models; P002 applies post-hoc calibration; P006 applies subgroup correction. All 3 can stack. P009 + P002 is likely the strongest combination (train better, then calibrate post-hoc).",
+  "fleet_applicability": {
+    "S10_xgboost": "Direct: replace binary:logistic objective with bsce_gra_objective",
+    "S11_xgboost": "Direct: same",
+    "S12_extratrees": "N/A — ExtraTrees does not have a custom gradient objective. Skip for this island.",
+    "S13_catboost": "Canary deployment. CatBoost custom loss via class-based interface.",
+    "S14_lightgbm": "LightGBM fobj= parameter",
+    "S15_xgboost": "Direct: same as S10"
+  },
+  "expected_portfolio_brier": {
+    "current": 0.21570,
+    "after_p009_alone": 0.21320,
+    "after_p001_p002_p009_stacked": 0.20570,
+    "note": "P009 is additive with P001 (TabICL) and P002 (Venn-Abers) — they operate on different models/stages"
+  }
+}
