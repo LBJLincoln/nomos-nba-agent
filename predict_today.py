@@ -1226,12 +1226,16 @@ def build_predictions_output(
 
             # If spread edge is significant, add to value bets
             if abs(spread_edge) >= 2.0 and spread_line != 0:
-                spread_pick_side = home_abbrev if model_spread < spread_line else away_abbrev
-                spread_pick_direction = "covers" if (model_spread < spread_line) == (spread_line < 0) else "covers"
+                pick_home = model_spread < spread_line
+                spread_side = market["spread"].get("home" if pick_home else "away", {})
+                spread_price = spread_side.get("price", 1.91)  # default -110
                 all_value_bets.append({
                     "game": f"{away_abbrev} @ {home_abbrev}",
                     "type": "spread",
-                    "pick": f"{home_abbrev} {spread_line:+g}" if model_spread < spread_line else f"{away_abbrev} {-spread_line:+g}",
+                    "pick": f"{home_abbrev} {spread_line:+g}" if pick_home else f"{away_abbrev} {-spread_line:+g}",
+                    "odds": decimal_to_american(spread_price),
+                    "decimal_odds": spread_price,
+                    "book": spread_side.get("bookmaker", ""),
                     "edge": round(abs(spread_edge) / max(abs(spread_line), 1), 4),
                     "kelly": round(FRACTIONAL_KELLY * 0.02, 4),  # Conservative for spreads
                     "kelly_bet": round(bankroll * FRACTIONAL_KELLY * 0.02, 2),
@@ -1255,10 +1259,15 @@ def build_predictions_output(
 
             # If total edge is significant, add to value bets
             if abs(total_edge) >= 3.0 and total_line > 0:
+                total_side = market["total"].get("over" if total_pick == "OVER" else "under", {})
+                total_price = total_side.get("price", 1.91)
                 all_value_bets.append({
                     "game": f"{away_abbrev} @ {home_abbrev}",
                     "type": "total",
                     "pick": f"{total_pick} {total_line}",
+                    "odds": decimal_to_american(total_price),
+                    "decimal_odds": total_price,
+                    "book": total_side.get("bookmaker", ""),
                     "edge": round(abs(total_edge) / total_line, 4),
                     "kelly": round(FRACTIONAL_KELLY * 0.015, 4),
                     "kelly_bet": round(bankroll * FRACTIONAL_KELLY * 0.015, 2),
@@ -1297,18 +1306,23 @@ def build_predictions_output(
             top_props = [p for p in props if p["confidence"] >= 0.10][:10]
             game_entry["player_props"] = top_props
 
-            # Add high-confidence props to value bets
+            # Add high-confidence props to value bets (gate relaxed so props ship when edges exist)
             for prop in top_props:
-                if prop["confidence"] >= 0.25 and prop["edge"] >= 0.05:
+                if prop["confidence"] >= 0.15 and prop["edge"] >= 0.03:
+                    prop_price = prop.get("decimal_odds") or prop.get("price") or 1.91
                     all_value_bets.append({
                         "game": f"{away_abbrev} @ {home_abbrev}",
                         "type": "player_prop",
                         "pick": f"{prop['player']} {prop['pick']} {prop['line']} {prop['market'].upper()}",
+                        "odds": prop.get("american_odds") or decimal_to_american(prop_price),
+                        "decimal_odds": prop_price,
+                        "book": prop.get("book", ""),
                         "edge": prop["edge"],
                         "kelly": round(FRACTIONAL_KELLY * prop["confidence"] * 0.02, 4),
                         "kelly_bet": round(bankroll * FRACTIONAL_KELLY * prop["confidence"] * 0.02, 2),
                         "prediction": prop["prediction"],
                         "line": prop["line"],
+                        "market": prop["market"],
                         "confidence": _confidence_label(prop["confidence"]),
                     })
         else:
