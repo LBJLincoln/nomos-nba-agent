@@ -1,23 +1,13 @@
 {
   "department": "product",
   "dept_id": "d4",
-  "timestamp": "2026-04-10T14:00:02Z",
-  "model": "claude-sonnet-4-6",
-  "budget_usd": 1.5,
-  "max_turns": 50,
-  "duration_seconds": 265,
-  "exit_code": 1,
-  "status": "failed",
-  "agent_status": "unknown",
-  "verified_status": "unknown",
-  "stall_streak": 10,
-  "log_file": "/home/termius/mon-ipad/logs/councils/d4-product-2026-04-10.log",
-  "pre_sha": "99551765fcb1682036a811b1b83394b78130c7f6",
-  "real_sha": "37cf586e046aaa7d4862dbf9bd1f046ac5c361a1",
-  "agent_claimed_sha": "",
-  "rejected_files": [
-    "data/arena/agent-states-v5.json"
-  ],
-  "experiment_id": "aadc4462bc1c",
-  "experiment_id_written_at": "2026-04-10T14:15:03.896557+00:00"
+  "timestamp": "2026-04-19T12:25:00Z",
+  "iteration": 11,
+  "verdict": "PROPOSED",
+  "action": "d4-p11-council-digest-telegram",
+  "space_status": "woke_from_hibernate",
+  "stall_streak": 0,
+  "exit_code": 0,
+  "experiment_id": "6187294cf610",
+  "experiment_id_written_at": "2026-04-19T12:00:02.006821+00:00"
 }

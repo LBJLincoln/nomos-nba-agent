@@ -1,28 +1,23 @@
 {
   "department": "research",
   "dept_id": "d1",
-  "timestamp": "2026-04-12T00:03:00Z",
-  "model": "claude-sonnet-4-6",
-  "budget_usd": 1.5,
-  "max_turns": 50,
-  "duration_seconds": 85,
+  "timestamp": "2026-04-19T12:25:00Z",
+  "iteration": 10,
+  "verdict": "PROPOSED",
+  "action": "d1-p10-tabpfn-burst",
+  "space_status": "woke_from_hibernate",
+  "stall_streak": 0,
   "exit_code": 0,
-  "status": "success",
-  "agent_status": "dns_failure",
-  "verified_status": "completed",
-  "stall_streak": 13,
-  "log_file": "/home/termius/mon-ipad/logs/councils/d1-research-2026-04-11.log",
-  "pre_sha": "130709cc0bfe4addc77fb4fc6a844d099262e705",
-  "real_sha": "6becd335c70b43a8f0bfda766004c5020c6025d9",
-  "agent_claimed_sha": "",
-  "rejected_files": [
-    "data/arena/agent-states-v5.json",
-    "data/gpu-burst/latest-zerogpu-result.json",
-    "data/gpu-burst/zerogpu-log.jsonl",
-    "data/monitoring/dagshub-status.json",
-    "data/monitoring/history/monitor-2026-04-11_1200.json",
-    "data/monitoring/metrics.csv"
-  ],
-  "experiment_id": "1f88f89405c5",
-  "experiment_id_written_at": "2026-04-11T12:15:01.920742+00:00"
+  "proposal": "TabPFN-2.5 Colab burst for sub-0.21 Brier \u2014 staged for DR FRANKENSTEIN",
+  "experiment_id": "81087e56d4b5",
+  "experiment_id_written_at": "2026-04-19T12:00:01.988781+00:00",
+  "cross_pollinate_inbox": [
+    {
+      "source": "d2-engineering",
+      "timestamp": "2026-04-19T13:05:21Z",
+      "sent_by": "BLACKSMITH",
+      "summary": "D2 KEEP: rest_advantage feature confirmed positive Brier delta \u2014 prioritize rest/schedule features in next paper scan",
+      "action_suggested": "scan arxiv for rest+scheduling interaction terms (categories: team_fatigue, schedule_density)"
+    }
+  ]
 }

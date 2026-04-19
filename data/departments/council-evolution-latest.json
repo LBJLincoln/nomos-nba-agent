@@ -1,76 +1,36 @@
 {
-  "timestamp": "2026-04-15T12:16:35.787531+00:00",
-  "council": "d3-evolution",
-  "subject": "Trading Floor v3 Rationale Pattern Mining",
-  "findings": {
-    "best_agent": "qwen-arb",
-    "top_winning_keywords": [
-      {
-        "keyword": "consensus",
-        "mentions": 3,
-        "wins": 3,
-        "win_rate": 1.0
-      },
-      {
-        "keyword": "sharp",
-        "mentions": 25,
-        "wins": 17,
-        "win_rate": 0.68
-      },
-      {
-        "keyword": "home court",
-        "mentions": 78,
-        "wins": 49,
-        "win_rate": 0.628
-      },
-      {
-        "keyword": "net rating",
-        "mentions": 1840,
-        "wins": 1119,
-        "win_rate": 0.608
-      },
-      {
-        "keyword": "public",
-        "mentions": 5,
-        "wins": 3,
-        "win_rate": 0.6
-      },
-      {
-        "keyword": "injury",
-        "mentions": 5,
-        "wins": 3,
-        "win_rate": 0.6
-      },
-      {
-        "keyword": "model",
-        "mentions": 750,
-        "wins": 445,
-        "win_rate": 0.593
-      },
-      {
-        "keyword": "form",
-        "mentions": 1436,
-        "wins": 848,
-        "win_rate": 0.591
-      },
-      {
-        "keyword": "edge",
-        "mentions": 873,
-        "wins": 512,
-        "win_rate": 0.586
-      },
-      {
-        "keyword": "star",
-        "mentions": 98,
-        "wins": 54,
-        "win_rate": 0.551
-      }
-    ]
-  },
-  "verdicts": [
-    "Top-winning rationale keywords (win rate): consensus (100% n=3), sharp (68% n=25), home court (63% n=78), net rating (61% n=1840), public (60% n=5)",
-    "\u2192 Seed D2 Engineering to add features for top keywords (e.g. rest differential, altitude dummy)"
+  "department": "evolution",
+  "dept_id": "d3",
+  "timestamp": "2026-04-19T12:25:00Z",
+  "iteration": 16,
+  "verdict": "PROPOSED",
+  "action": "d3-p16-s22-venn-mutation",
+  "space_status": "woke_from_hibernate",
+  "stall_streak": 0,
+  "exit_code": 0,
+  "fleet_best_brier": 0.22073,
+  "active_islands": 13,
+  "proposal": "S22 venn_abers_fusion diversify config push",
+  "cross_pollination_received": [
+    "d6-overconfidence-hint",
+    "d1-tabpfn-signal"
   ],
-  "experiment_id": "0047ce1918c3",
-  "experiment_id_written_at": "2026-04-15T12:45:01.339140+00:00"
+  "experiment_id": "17eeadca5560",
+  "experiment_id_written_at": "2026-04-19T12:00:01.998989+00:00",
+  "cross_pollinate_inbox": [
+    {
+      "source": "d6-evaluation",
+      "timestamp": "2026-04-19T13:05:21Z",
+      "sent_by": "BLACKSMITH",
+      "summary": "D6 KEEP: calibration ECE=0.06217 slope=0.677 drift=PARTIAL \u2014 mutate toward lower-confidence features",
+      "action_suggested": "prefer lower-confidence feature subsets in next GA mutation"
+    },
+    {
+      "source": "d2-engineering",
+      "timestamp": "2026-04-19T13:05:21Z",
+      "sent_by": "BLACKSMITH",
+      "summary": "D2 KEEP: rest_advantage confirmed \u2014 bias GA crossover to preserve rest/schedule features on next S18/S19/S22 mutation",
+      "action_suggested": "increase feature retention weight for cat_rest_days, cat_back_to_back, cat_travel_fatigue"
+    }
+  ]
 }
