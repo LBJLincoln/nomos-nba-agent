@@ -64,6 +64,8 @@ Categories:
   62. CLUTCH PERFORMANCE (10 features — close-game DNA, ≤5pt margin win%, edge)
   63. PYTHAGOREAN LUCK (12 features — Morey expected WP, luck gap, regression signal)
   64. OPPONENT-ELO-WEIGHTED PERFORMANCE (10 features — quality-adjusted rolling stats, trend)
+  65. STYLE MATCHUP ADVANTAGE (12 features — 4-factor offense vs defense matchup edges)
+  66. PACE-NORMALIZED PER-100 BOX-SCORE DIFFERENTIALS (12 features — pts/ast/tov/reb per 100 poss)
   ≈ 6400+ feature candidates
 
 Architecture inspired by:
@@ -88,7 +90,7 @@ import csv
 import os
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.1-65cat"  # Cat65: Style Matchup Advantage (4-factor offense vs defense matchup edges)
+ENGINE_VERSION = "v3.1-66cat"  # Cat66: Pace-Normalized Per-100 Box-Score Differentials (MDPI Jan 2026)
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -2924,6 +2926,26 @@ class NBAFeatureEngine:
             "style65_h_composite_edge",      # Weighted sum of h's 4-factor edges
             "style65_a_composite_edge",      # Weighted sum of a's 4-factor edges
             "style65_net_style_edge",        # h_composite - a_composite (positive = home style advantage)
+        ])
+
+        # ── Cat 66: Pace-Normalized Per-100 Box-Score Differentials (12 features) ──
+        # Source: MDPI Information 17(1):56 Jan 2026 — "Uncertainty-Aware ML for NBA Forecasting".
+        # Normalizes raw box-score counts per 100 possessions, removing pace confounding.
+        # High-pace teams inflate raw totals; per-100 isolates true efficiency signal.
+        # possessions ≈ FGA + 0.44*FTA + TOV - OREB  (Oliver formula).
+        names.extend([
+            "p100_66_h_pts",     # Home pts per 100 possessions (rolling 10g avg)
+            "p100_66_a_pts",     # Away pts per 100 possessions
+            "p100_66_diff_pts",  # Home - Away pts/100 differential
+            "p100_66_h_ast",     # Home assists per 100 possessions
+            "p100_66_a_ast",     # Away assists per 100 possessions
+            "p100_66_diff_ast",  # Home - Away ast/100 differential
+            "p100_66_h_tov",     # Home turnovers per 100 possessions
+            "p100_66_a_tov",     # Away turnovers per 100 possessions
+            "p100_66_diff_tov",  # Away - Home tov/100 differential (home advantage = lower TOV)
+            "p100_66_h_reb",     # Home total rebounds per 100 possessions
+            "p100_66_a_reb",     # Away total rebounds per 100 possessions
+            "p100_66_diff_reb",  # Home - Away reb/100 differential
         ])
 
         self.feature_names = names
@@ -7103,6 +7125,56 @@ class NBAFeatureEngine:
                     _h65_comp,                         # style65_h_composite_edge
                     _a65_comp,                         # style65_a_composite_edge
                     _h65_comp - _a65_comp,             # style65_net_style_edge
+                ])
+            except Exception:
+                row.extend([0.0] * 12)
+
+            # ── Cat 66: Pace-Normalized Per-100 Box-Score Differentials (12 features) ──
+            # Source: MDPI Info 17(1):56 Jan 2026 — normalizing all stats per 100 poss removes
+            # pace confounding and aligns with how basketball analysts measure true efficiency.
+            try:
+                def _p100(records, n, stat_key, default_val):
+                    """Average of stat_per_100_possessions over last n games."""
+                    rs = records[-n:] if len(records) >= n else records
+                    if not rs:
+                        return default_val
+                    total = 0.0
+                    for r in rs:
+                        sd = r[4]
+                        poss = max(sd.get("poss", 90.0), 1.0)
+                        raw = sd.get(stat_key, 0.0)
+                        total += (raw / poss) * 100.0
+                    return total / len(rs)
+
+                # pts per 100: use ortg directly (already = pts*100/poss per _parse_stats)
+                _h66_pts = sum(r[4].get("ortg", 100.0) for r in hr_[-10:]) / max(len(hr_[-10:]), 1)
+                _a66_pts = sum(r[4].get("ortg", 100.0) for r in ar_[-10:]) / max(len(ar_[-10:]), 1)
+
+                # ast per 100 (ast_rate stored as ast/fgm; convert to per-100-poss via pace)
+                _h66_ast = _p100(hr_, 10, "ast_rate", 0.6) * 25.0   # scale: ast_rate*fgm≈25 fgm
+                _a66_ast = _p100(ar_, 10, "ast_rate", 0.6) * 25.0
+
+                # tov per 100: tov_rate = tov/(fga+0.44*fta+tov); multiply by ~85 plays to get tov/100
+                _h66_tov = _p100(hr_, 10, "tov_rate", 0.13) * 85.0
+                _a66_tov = _p100(ar_, 10, "tov_rate", 0.13) * 85.0
+
+                # reb per 100: oreb_pct + dreb_pct ≈ total reb rate; scale to per-100-poss
+                _h66_reb = (_p100(hr_, 10, "oreb_pct", 0.25) + _p100(hr_, 10, "dreb_pct", 0.75)) * 45.0
+                _a66_reb = (_p100(ar_, 10, "oreb_pct", 0.25) + _p100(ar_, 10, "dreb_pct", 0.75)) * 45.0
+
+                row.extend([
+                    _h66_pts,                          # p100_66_h_pts
+                    _a66_pts,                          # p100_66_a_pts
+                    _h66_pts - _a66_pts,               # p100_66_diff_pts
+                    _h66_ast,                          # p100_66_h_ast
+                    _a66_ast,                          # p100_66_a_ast
+                    _h66_ast - _a66_ast,               # p100_66_diff_ast
+                    _h66_tov,                          # p100_66_h_tov
+                    _a66_tov,                          # p100_66_a_tov
+                    _a66_tov - _h66_tov,               # p100_66_diff_tov (away-home: +ve = home advantage)
+                    _h66_reb,                          # p100_66_h_reb
+                    _a66_reb,                          # p100_66_a_reb
+                    _h66_reb - _a66_reb,               # p100_66_diff_reb
                 ])
             except Exception:
                 row.extend([0.0] * 12)
