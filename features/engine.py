@@ -3058,6 +3058,7 @@ class NBAFeatureEngine:
                     _team_next_is_home[(_t, _d)] = 0.5  # last game in data — unknown
 
         X, y = [], []
+        _y_margin, _y_total = [], []
         n_market = 32 if self.include_market else 0
 
         for game in games:
@@ -7181,6 +7182,8 @@ class NBAFeatureEngine:
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
+            _y_margin.append(hs - as_)
+            _y_total.append(hs + as_)
 
             # ── Update ATS / O-U trackers for future games ──
             # Must be AFTER feature extraction (no lookahead)
@@ -7233,6 +7236,8 @@ class NBAFeatureEngine:
 
         X = np.nan_to_num(np.array(X, dtype=np.float64))
         y = np.array(y, dtype=np.int32)
+        self.y_margin = np.array(_y_margin, dtype=np.int32)
+        self.y_total = np.array(_y_total, dtype=np.int32)
 
         # Verify dimensions
         expected = len(self.feature_names)
