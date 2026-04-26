@@ -1,0 +1,42 @@
+{
+  "date": "2026-04-26",
+  "source": "cloud-brain-4h-cycle",
+  "political_to_nba": {
+    "finding": "P4 (LBJLincoln/political-alpha-4) achieved new all-time political best Brier 0.24902 using lightgbm at gen 29557. Previously used xgboost_brier.",
+    "implication": "LightGBM with large gen-count convergence outperforms xgboost_brier on high-dimensional tabular prediction. NBA S14 (random_forest, worst fleet at 0.22431) is the prime candidate to benefit from lightgbm mutation.",
+    "recommendation": "Send boost_mutation to S14 encouraging lightgbm exploration. S14 random_forest has plateau at 0.22431 across 800+ gens.",
+    "action": "curl -X POST https://nomos42-nba-evo-5.hf.space/api/command -H 'Content-Type: application/json' -d '{\"action\":\"boost_mutation\",\"target_algorithm\":\"lightgbm\"}'"
+  },
+  "sota_research_highlights": {
+    "source": "mon-ipad/data/research-proposals/sota-2026-04-26.json",
+    "top_priorities": [
+      {
+        "rank": 1,
+        "technique": "TabPFN-2.5 / Real-TabPFN-2.5 with Brier-targeted fine-tuning",
+        "expected_delta": "-0.005 to -0.015 Brier",
+        "complexity": "medium",
+        "ref": "arXiv:2511.08667"
+      },
+      {
+        "rank": 2,
+        "technique": "Dual-ELO (regular-season vs playoff) + market-implied probability features",
+        "expected_delta": "-0.005 to -0.010 Brier",
+        "complexity": "low",
+        "note": "Pure feature addition — no model change. Top-3 SHAP contributor in Jan 2026 uncertainty-aware paper."
+      },
+      {
+        "rank": 3,
+        "technique": "SHAP-guided pruning + LightGBM DART/ranking objective",
+        "expected_delta": "-0.003 to -0.008 Brier",
+        "complexity": "low"
+      }
+    ]
+  },
+  "fleet_status_snapshot": {
+    "nba_best": 0.22062,
+    "nba_target": 0.20,
+    "nba_gap": 0.02062,
+    "weakest_island": "S14 random_forest 0.22431",
+    "strongest_island": "S15 extra_trees 0.22064 (post-reset)"
+  }
+}
