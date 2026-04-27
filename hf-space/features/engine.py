@@ -66,6 +66,7 @@ Categories:
   64. OPPONENT-ELO-WEIGHTED PERFORMANCE (10 features — quality-adjusted rolling stats, trend)
   65. STYLE MATCHUP ADVANTAGE (12 features — 4-factor offense vs defense matchup edges)
   66. PACE-NORMALIZED PER-100 BOX-SCORE DIFFERENTIALS (12 features — pts/ast/tov/reb per 100 poss)
+  67. YOUTUBE FINBERT SENTIMENT (6 features — rolling 3/7/14d polarity + volatility, sim_cutoff gated)
   ≈ 6400+ feature candidates
 
 Architecture inspired by:
@@ -90,7 +91,7 @@ import csv
 import os
 
 # ── Engine Version ──
-ENGINE_VERSION = "v3.1-66cat"  # Cat66: Pace-Normalized Per-100 Box-Score Differentials (MDPI Jan 2026)
+ENGINE_VERSION = "v3.2-67cat"  # Cat67: YouTube FinBERT rolling sentiment (HAWKEYE 2026-04-21, sim_cutoff-gated)
 
 # ── Team mappings ──
 TEAM_MAP = {
@@ -360,6 +361,197 @@ def load_historical_odds(csv_path=None):
     return lookup
 
 
+# ── Cat 67: YouTube FinBERT Sentiment Loader (HAWKEYE 2026-04-21) ──
+# Loads precomputed finBERT sentiment from data/youtube/sentiment.parquet
+# and exposes per-game rolling aggregates with a hard sim_date_cutoff gate.
+# Leakage precedent: 2026-04-18 POL excess_return, 2026-04-21 market_narrative
+# stripper. We MUST refuse any published_at > sim_cutoff at compute time.
+
+_YT_SENT_DEFAULT_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "data", "youtube", "sentiment.parquet",
+)
+
+
+def _load_youtube_sentiment(path=None):
+    """Load sentiment.parquet → pandas DataFrame, or None on any failure.
+
+    Columns expected: id, published_at (UTC tz-aware), channel,
+    sent_pos, sent_neu, sent_neg, polarity.
+    """
+    try:
+        import pandas as pd  # noqa: F401
+    except ImportError:
+        return None
+    p = path or os.environ.get("NOMOS_YT_SENT_PATH") or _YT_SENT_DEFAULT_PATH
+    if not p or not os.path.exists(p):
+        return None
+    try:
+        import pandas as pd
+        df = pd.read_parquet(p)
+        if "published_at" not in df.columns or "polarity" not in df.columns:
+            return None
+        df["published_at"] = pd.to_datetime(df["published_at"], utc=True, errors="coerce")
+        df = df.dropna(subset=["published_at"]).copy()
+        return df
+    except Exception:
+        return None
+
+
+def _youtube_sentiment_features(df, game_date_str, sim_cutoff=None):
+    """Compute 6 rolling-window sentiment scalars for one game.
+
+    Returns dict with yt_pol_mean_{3,7,14} and yt_abs_pol_mean_{3,7,14}.
+    All-zero fallback when df is None, empty, or window has no rows.
+    JOIN rule: published_at <= game_date AND game_date-published_at <= W days.
+    sim_cutoff (date str or datetime) is a hard leakage gate.
+    """
+    out = {f"yt_pol_mean_{w}": 0.0 for w in (3, 7, 14)}
+    out.update({f"yt_abs_pol_mean_{w}": 0.0 for w in (3, 7, 14)})
+    if df is None or len(df) == 0 or not game_date_str:
+        return out
+    try:
+        import pandas as pd
+        gd = pd.Timestamp(game_date_str[:10], tz="UTC")
+    except Exception:
+        return out
+    try:
+        sub = df
+        if sim_cutoff is not None:
+            try:
+                cutoff = pd.Timestamp(str(sim_cutoff)[:10], tz="UTC")
+                sub = sub[sub["published_at"] <= cutoff]
+            except Exception:
+                pass
+        sub = sub[sub["published_at"] <= gd]
+        if len(sub) == 0:
+            return out
+        age_days = (gd - sub["published_at"]).dt.total_seconds() / 86400.0
+        for w in (3, 7, 14):
+            window = sub[age_days <= float(w)]
+            if len(window) == 0:
+                continue
+            pol = window["polarity"].astype(float)
+            out[f"yt_pol_mean_{w}"] = float(pol.mean())
+            out[f"yt_abs_pol_mean_{w}"] = float(pol.abs().mean())
+    except Exception:
+        pass
+    return out
+
+
+# ── GENERALIZED VENN-ABERS CALIBRATION WRAPPER (2026-04-21, proposal #4) ────
+# Source: arXiv:2502.05676 + github.com/ip200/venn-abers
+#
+# Wraps any probability output with a Venn-Abers Inductive Calibrator. Additive
+# — gated behind the VENN_ABERS_CALIBRATION env flag (default on = "1"). When
+# disabled or when the `venn_abers` package is absent, `calibrate_probs`
+# returns the input unchanged so islands can ship without the dep upgrade.
+#
+# Usage in a scorer / evaluator:
+#     from features.engine import VennAbersProbabilityCalibrator
+#     cal = VennAbersProbabilityCalibrator()
+#     cal.fit(p_valid_2col, y_valid)        # p shape (n,2) — [p_no, p_yes]
+#     p_cal = cal.transform(p_test_2col)     # same shape
+#     # OR one-shot:
+#     p_cal = calibrate_probs(p_train, y_train, p_test)
+#
+# Brier-delta expectation per the paper: 2-5% drop on binary classifiers with
+# moderate miscalibration (our island fleet fits this — ECE ~0.05 on held-out).
+import os as _os_va
+
+
+def _venn_abers_enabled() -> bool:
+    """Return True if feature flag is on (default on). Env: VENN_ABERS_CALIBRATION."""
+    return _os_va.environ.get("VENN_ABERS_CALIBRATION", "1").strip().lower() not in ("0", "false", "no", "off")
+
+
+class VennAbersProbabilityCalibrator:
+    """Thin wrapper around venn_abers.VennAbersCalibrator that swallows ImportError
+    so island training loops never break on a missing dep.
+
+    Use for post-hoc calibration of any binary-classifier probability output.
+    Works on a held-out calibration set (inductive mode), hence `fit(p_cal, y_cal)`
+    then `transform(p_test)`.
+    """
+
+    def __init__(self, inductive: bool = True):
+        self._enabled = _venn_abers_enabled()
+        self._inductive = inductive
+        self._inner = None
+        self._fitted = False
+        self._p_cal = None
+        self._y_cal = None
+        self._import_err: Optional[str] = None
+        if self._enabled:
+            try:
+                # Use the manual VennAbers class (no estimator required — we
+                # post-hoc-calibrate scores from any upstream classifier).
+                from venn_abers import VennAbers as _VA  # noqa: N811
+                self._inner = _VA()
+            except ImportError as e:
+                self._import_err = str(e)
+                self._enabled = False
+
+    @property
+    def enabled(self) -> bool:
+        return self._enabled
+
+    def fit(self, p_cal, y_cal):
+        """p_cal: array-like shape (n, 2) — [p(class=0), p(class=1)].
+        y_cal: array-like of ints in {0, 1}."""
+        if not self._enabled or self._inner is None:
+            return self
+        import numpy as _np
+        p = _np.asarray(p_cal, dtype=float)
+        y = _np.asarray(y_cal, dtype=int)
+        if p.ndim == 1:
+            # Single-column input — treat as P(class=1); make a 2-col matrix.
+            p = _np.column_stack([1.0 - p, p])
+        # Cache cal set; manual VennAbers.fit stores internally.
+        self._inner.fit(p, y)
+        self._fitted = True
+        return self
+
+    def transform(self, p_test):
+        """Return calibrated P(class=1). Identity passthrough if disabled/unfit."""
+        if not self._enabled or self._inner is None or not self._fitted:
+            import numpy as _np
+            pt = _np.asarray(p_test, dtype=float)
+            if pt.ndim == 2 and pt.shape[1] == 2:
+                return pt[:, 1]
+            return pt
+        import numpy as _np
+        p = _np.asarray(p_test, dtype=float)
+        if p.ndim == 1:
+            p = _np.column_stack([1.0 - p, p])
+        out = self._inner.predict_proba(p)
+        # VennAbers.predict_proba returns (p_prime, p_zero_one) — we want p_prime
+        # (the calibrated 2-col probs). Take column 1 = P(class=1).
+        if isinstance(out, tuple):
+            p_prime = _np.asarray(out[0], dtype=float)
+        else:
+            p_prime = _np.asarray(out, dtype=float)
+        return p_prime[:, 1] if p_prime.ndim == 2 else p_prime
+
+    def fit_transform(self, p_cal, y_cal, p_test):
+        self.fit(p_cal, y_cal)
+        return self.transform(p_test)
+
+
+def calibrate_probs(p_train, y_train, p_test, inductive: bool = True):
+    """One-shot Venn-Abers calibration. Returns an array of P(class=1) the same
+    length as p_test. Safe no-op when feature flag off or venn_abers missing.
+    """
+    cal = VennAbersProbabilityCalibrator(inductive=inductive)
+    if not cal.enabled:
+        import numpy as _np
+        pt = _np.asarray(p_test, dtype=float)
+        if pt.ndim == 2 and pt.shape[1] == 2:
+            return pt[:, 1]
+        return pt
+    return cal.fit_transform(p_train, y_train, p_test)
+
+
 class NBAFeatureEngine:
     """
     Generates 6000+ features for each game from historical data.
@@ -370,9 +562,27 @@ class NBAFeatureEngine:
         # X.shape = (n_games, ~6000)
     """
 
-    def __init__(self, include_market=True, skip_placeholder=False):
+    def __init__(self, include_market=True, skip_placeholder=False,
+                 youtube_sentiment_path=None, sim_date_cutoff=None,
+                 enable_youtube=False):
+        """
+        Args:
+          enable_youtube: default False — corpus currently has only 20.7% NBA keyword
+            hits (audit 2026-04-21). HAWKEYE's Tier-1 proposal explicitly scoped FinBERT
+            rolling sentiment as POL-first; NBA path is dark until corpus mature.
+            Flip to True on sandbox island (S14) for A/B.
+          sim_date_cutoff: hard leakage gate — drops videos published after this date.
+        """
         self.include_market = include_market
         self.skip_placeholder = skip_placeholder
+        # Cat 67: YouTube FinBERT rolling sentiment (HAWKEYE 2026-04-21)
+        # sim_date_cutoff enforces leakage-gate — videos published after this
+        # are dropped. Default None → falls back to per-game date only.
+        self.enable_youtube = enable_youtube
+        self.sim_date_cutoff = sim_date_cutoff
+        self._yt_sent_cache = None  # pandas DataFrame, lazy-loaded below
+        if enable_youtube:
+            self._yt_sent_cache = _load_youtube_sentiment(youtube_sentiment_path)
         self.feature_names = []
         self._build_feature_names()
 
@@ -2946,6 +3156,22 @@ class NBAFeatureEngine:
             "p100_66_h_reb",     # Home total rebounds per 100 possessions
             "p100_66_a_reb",     # Away total rebounds per 100 possessions
             "p100_66_diff_reb",  # Home - Away reb/100 differential
+        ])
+
+        # ── Cat 67: YouTube FinBERT Sentiment (6 features) ──
+        # Source: HAWKEYE proposal 2026-04-21, Yang MDPI 2025, arXiv 2306.02136.
+        # ProsusAI/finBERT → per-video (pos, neu, neg, polarity=pos-neg).
+        # Per game: rolling mean over 3/7/14 day window of polarity AND |polarity|.
+        # Gated by sim_date_cutoff (published_at <= cutoff) to avoid the same
+        # class as 2026-04-18 POL excess_return / 2026-04-21 market_narrative leak.
+        # All-zero fallback when sentiment.parquet missing or window empty.
+        names.extend([
+            "yt_pol_mean_3",     # mean polarity last 3 days (signed: pos - neg)
+            "yt_pol_mean_7",     # mean polarity last 7 days
+            "yt_pol_mean_14",    # mean polarity last 14 days
+            "yt_abs_pol_mean_3", # mean |polarity| last 3d (volatility/intensity proxy)
+            "yt_abs_pol_mean_7", # mean |polarity| last 7d
+            "yt_abs_pol_mean_14",# mean |polarity| last 14d
         ])
 
         self.feature_names = names
@@ -7179,6 +7405,26 @@ class NBAFeatureEngine:
                 ])
             except Exception:
                 row.extend([0.0] * 12)
+
+            # ── Cat 67: YouTube FinBERT Sentiment (6 features) ──
+            # Per-game rolling aggregates. sim_date_cutoff gates all leakage.
+            try:
+                if self.enable_youtube and self._yt_sent_cache is not None:
+                    _yt67 = _youtube_sentiment_features(
+                        self._yt_sent_cache, gd, sim_cutoff=self.sim_date_cutoff
+                    )
+                    row.extend([
+                        _yt67["yt_pol_mean_3"],
+                        _yt67["yt_pol_mean_7"],
+                        _yt67["yt_pol_mean_14"],
+                        _yt67["yt_abs_pol_mean_3"],
+                        _yt67["yt_abs_pol_mean_7"],
+                        _yt67["yt_abs_pol_mean_14"],
+                    ])
+                else:
+                    row.extend([0.0] * 6)
+            except Exception:
+                row.extend([0.0] * 6)
 
             X.append(row)
             y.append(1 if hs > as_ else 0)
